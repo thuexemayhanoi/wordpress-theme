@@ -1,0 +1,26 @@
+name: Theme QA
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  syntax-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout theme
+        uses: actions/checkout@v4
+      - name: Verify WordPress theme files
+        run: |
+          test -s style.css
+          test -s index.php
+          test -s functions.php
+          grep -q "Theme Name:" style.css
+      - name: PHP syntax
+        run: |
+          find . -path './.git' -prune -o -name '*.php' -print0 | xargs -0 -r -n 1 php -l
+      - name: JavaScript syntax
+        run: node --check assets/js/theme.js
