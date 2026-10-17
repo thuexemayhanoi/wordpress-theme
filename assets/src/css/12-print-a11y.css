@@ -1,0 +1,90 @@
+/* Reduced motion, forced colors and print. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+
+  .card:hover {
+    transform: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .card,
+  .chip,
+  .toc,
+  .summary,
+  .takeaways,
+  .pillar-box,
+  .author-box,
+  .cta,
+  .post-nav__link,
+  .page-numbers {
+    border: 1px solid CanvasText;
+  }
+
+  .brand__mark,
+  .search-submit,
+  .button,
+  .pillar-box__icon {
+    border: 1px solid ButtonText;
+  }
+
+  .page-numbers.current {
+    border-width: 3px;
+  }
+}
+
+@media print {
+  .site-header,
+  .site-footer,
+  .toc,
+  .cta,
+  .post-nav,
+  .related,
+  .widget-area,
+  .comments-area,
+  .pagination-wrap,
+  .skip-link,
+  .header-search {
+    display: none !important;
+  }
+
+  body {
+    background: #ffffff;
+    color: #000000;
+    font-size: 12pt;
+  }
+
+  a {
+    color: #000000;
+    text-decoration: underline;
+  }
+
+  .prose a[href^="http"]::after {
+    content: " (" attr(href) ")";
+    font-size: 0.85em;
+    word-break: break-all;
+  }
+
+  .article-media img {
+    max-height: none;
+  }
+
+  .faq__item > summary {
+    list-style: none;
+  }
+
+  .faq__answer {
+    display: block !important;
+  }
+}

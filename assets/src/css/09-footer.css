@@ -1,0 +1,140 @@
+/* Footer: dark band with up to four columns. */
+.site-footer {
+  margin-top: clamp(32px, 6vw, 72px);
+  padding: clamp(36px, 5vw, 60px) 0 24px;
+  background: var(--footer-bg);
+  color: var(--footer-text);
+  font-size: 0.95rem;
+}
+
+.site-footer a {
+  color: var(--footer-text);
+  text-decoration: none;
+}
+
+.site-footer a:hover {
+  color: #ffffff;
+  text-decoration: underline;
+}
+
+.site-footer :focus-visible {
+  outline-color: #ffffff;
+}
+
+.footer-grid {
+  display: grid;
+  gap: clamp(24px, 4vw, 40px);
+}
+
+@media (min-width: 640px) {
+  .footer-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .footer-grid {
+    grid-template-columns: 1.4fr 1fr 1fr 1.2fr;
+  }
+}
+
+.footer-col:empty {
+  display: none;
+}
+
+.footer-title,
+.footer-col .widget-title {
+  margin: 0 0 0.9em;
+  color: #ffffff;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.brand--footer {
+  margin-bottom: 0.8em;
+  color: #ffffff;
+}
+
+.brand--footer:hover {
+  color: #ffffff;
+  text-decoration: none;
+}
+
+.footer-about {
+  max-width: 28em;
+  margin: 0 0 1em;
+  color: var(--footer-muted);
+}
+
+.footer-list,
+.footer-menu__list,
+.contact-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.footer-list li,
+.footer-menu__list li,
+.contact-list li {
+  margin-bottom: 0.55em;
+}
+
+.contact-list li {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.contact-list .icon {
+  margin-top: 0.25em;
+  color: var(--footer-muted);
+}
+
+.contact-list__map {
+  margin-left: 0.5em;
+  font-weight: 700;
+}
+
+.contact-list__hours {
+  display: block;
+}
+
+.site-footer .social-links__link {
+  border-color: var(--footer-line);
+  color: var(--footer-text);
+}
+
+.site-footer .social-links__link:hover {
+  border-color: #ffffff;
+  background: transparent;
+  color: #ffffff;
+  text-decoration: none;
+}
+
+.site-footer .footer-widget {
+  padding: 0;
+  border: 0;
+}
+
+.footer-bottom {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  margin-top: clamp(28px, 4vw, 44px);
+  padding-top: 20px;
+  border-top: 1px solid var(--footer-line);
+  color: var(--footer-muted);
+  font-size: 0.875rem;
+}
+
+.footer-bottom p {
+  margin: 0;
+}
+
+.footer-bottom a {
+  color: var(--footer-muted);
+  text-decoration: underline;
+}

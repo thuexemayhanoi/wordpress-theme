@@ -15,3 +15,6 @@
 Thumbs.db
 .idea/
 .vscode/
+
+# Agent worktrees and local tooling state (never part of the theme).
+/.claude/

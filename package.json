@@ -7,7 +7,7 @@
   "scripts": {
     "build": "node tools/build-assets.mjs",
     "build:check": "node tools/build-assets.mjs --check",
-    "lint:js": "node --check assets/js/theme.js && node --check assets/js/editor.js",
+    "lint:js": "node tools/build-assets.mjs --check",
     "test:e2e": "playwright test -c tests/e2e/playwright.config.mjs"
   },
   "devDependencies": {

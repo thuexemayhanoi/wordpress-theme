@@ -1,0 +1,171 @@
+/* Cards: article, compact, hero, hub. */
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--paper);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.card:hover {
+  border-color: var(--line-strong);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.card__media {
+  display: block;
+  overflow: hidden;
+  aspect-ratio: 16 / 10;
+  background: var(--surface);
+}
+
+.card__media img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.35s ease;
+}
+
+.card:hover .card__media img {
+  transform: scale(1.03);
+}
+
+.card__placeholder {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, var(--accent-soft), var(--surface));
+  color: var(--accent);
+}
+
+.card__placeholder .icon {
+  width: 36px;
+  height: 36px;
+  opacity: 0.7;
+}
+
+.card__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  padding: clamp(16px, 2vw, 22px);
+}
+
+.card__title {
+  margin: 0 0 0.45em;
+  font-size: 1.15rem;
+  line-height: 1.35;
+}
+
+.card__title a {
+  color: var(--text);
+  text-decoration: none;
+}
+
+/* The title link covers the whole card; links in the meta line stay above it. */
+.card__title a::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+.card__title a:hover {
+  color: var(--accent);
+}
+
+.card .meta a,
+.card .chips a {
+  position: relative;
+  z-index: 2;
+}
+
+.card__excerpt {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.card__link {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  margin-top: auto;
+  padding-top: 0.9em;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+/* Compact row */
+.card--compact {
+  flex-direction: row;
+  align-items: stretch;
+}
+
+.card--compact .card__media {
+  flex: none;
+  width: 112px;
+  aspect-ratio: auto;
+}
+
+.card--compact .card__body {
+  justify-content: center;
+  padding: 12px 16px;
+}
+
+.card--compact .card__title {
+  margin-bottom: 0.3em;
+  font-size: 1rem;
+}
+
+.card--compact .meta {
+  margin: 0;
+}
+
+/* Hero */
+.card--hero .card__media {
+  aspect-ratio: 16 / 9;
+}
+
+.card--hero .card__body {
+  padding: clamp(18px, 3vw, 30px);
+}
+
+.card--hero .card__title {
+  font-size: clamp(1.4rem, 2.8vw, 2.1rem);
+  letter-spacing: -0.02em;
+}
+
+.card--hero .card__excerpt {
+  font-size: 1.05rem;
+  -webkit-line-clamp: 4;
+}
+
+/* Hub */
+.card--hub .card__body {
+  height: 100%;
+}
+
+.card--hub .card__title {
+  font-size: 1.3rem;
+}
+
+.card--hub .chips {
+  position: relative;
+  z-index: 2;
+  margin: 0.9em 0 0;
+}

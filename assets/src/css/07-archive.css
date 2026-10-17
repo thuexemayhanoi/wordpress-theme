@@ -1,0 +1,136 @@
+/* Archives, search, pagination and empty states. */
+.archive-header {
+  max-width: 920px;
+  margin-bottom: clamp(20px, 3.5vw, 36px);
+}
+
+.archive-title {
+  margin: 0 0 0.35em;
+  font-size: clamp(1.9rem, 4.2vw, 3rem);
+  line-height: 1.12;
+  letter-spacing: -0.025em;
+}
+
+.archive-meta,
+.archive-lead {
+  margin: 0 0 1em;
+  color: var(--muted);
+}
+
+.archive-lead {
+  max-width: 40em;
+  font-size: 1.1rem;
+}
+
+.archive-label,
+.empty-state__label {
+  margin: 1.2em 0 0.5em;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.archive-description {
+  max-width: var(--measure);
+  font-size: 1.05rem;
+}
+
+.archive-header .search-form {
+  margin-block: 1em;
+}
+
+.author-hero {
+  display: flex;
+  align-items: flex-start;
+  gap: clamp(16px, 3vw, 28px);
+}
+
+.author-hero__avatar img,
+.author-box__avatar img {
+  display: block;
+  border-radius: 50%;
+}
+
+.author-hero__avatar img {
+  width: 96px;
+  height: 96px;
+}
+
+.author-hero__job {
+  margin: 0 0 0.3em;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.author-hero__bio {
+  max-width: 44em;
+}
+
+/* Pagination: plain links, wide touch targets. */
+.pagination-wrap {
+  margin-top: clamp(28px, 4vw, 48px);
+}
+
+.navigation.pagination .nav-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+.page-numbers {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--paper);
+  color: var(--text);
+  font-weight: 650;
+  text-decoration: none;
+}
+
+a.page-numbers:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.page-numbers.current {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.page-numbers.dots {
+  border-color: transparent;
+  background: transparent;
+}
+
+.empty-state {
+  max-width: 640px;
+  margin: 0 auto clamp(28px, 4vw, 48px);
+  padding: clamp(20px, 4vw, 36px);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.empty-state__title {
+  margin: 0 0 0.4em;
+  font-size: 1.4rem;
+}
+
+.empty-state__text {
+  color: var(--muted);
+}
+
+.empty-state .search-form {
+  max-width: none;
+  margin-bottom: 0.5em;
+}

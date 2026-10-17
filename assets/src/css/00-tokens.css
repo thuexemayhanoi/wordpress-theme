@@ -1,0 +1,97 @@
+/*
+ * Design tokens. Light is the default; dark applies with [data-theme="dark"] (toggle or saved choice)
+ * and, before any choice exists, with the visitor's system preference. Every text/background pair
+ * below meets WCAG AA (4.5:1 for text, 3:1 for UI) in both modes.
+ */
+:root {
+  color-scheme: light;
+
+  --bg: #ffffff;
+  --surface: #f5f7fb;
+  --paper: #ffffff;
+  --text: #0b1220;
+  --muted: #4a5a70;
+  --line: #dde4ee;
+  --line-strong: #c3cedd;
+  --accent: #0b57d0;
+  --accent-strong: #0842a0;
+  --accent-soft: #e8f0fe;
+  --on-accent: #ffffff;
+  --focus: #0b57d0;
+  --footer-bg: #0b1220;
+  --footer-text: #c7d2e3;
+  --footer-muted: #9aa9bf;
+  --footer-line: #25324a;
+  --mark: #fff1b8;
+
+  --shadow-sm: 0 1px 2px rgba(11, 18, 32, 0.06);
+  --shadow-md: 0 8px 24px rgba(11, 18, 32, 0.09);
+  --shadow-lg: 0 18px 48px rgba(11, 18, 32, 0.14);
+
+  --radius-sm: 8px;
+  --radius: 14px;
+  --radius-lg: 20px;
+
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --wrap: 1180px;
+  --measure: 760px;
+  --gutter: clamp(16px, 4vw, 32px);
+  --header-h: 68px;
+  --admin-h: var(--wp-admin--admin-bar--height, 0px);
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg: #0b0f17;
+  --surface: #121826;
+  --paper: #121826;
+  --text: #e8edf5;
+  --muted: #a3b3c9;
+  --line: #243049;
+  --line-strong: #33425e;
+  --accent: #8ab4f8;
+  --accent-strong: #aecbfa;
+  --accent-soft: #1b2a45;
+  --on-accent: #0b1220;
+  --focus: #8ab4f8;
+  --footer-bg: #070a10;
+  --footer-text: #c2cddd;
+  --footer-muted: #93a3ba;
+  --footer-line: #1c2740;
+  --mark: #5c4a00;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 18px 48px rgba(0, 0, 0, 0.55);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    color-scheme: dark;
+
+    --bg: #0b0f17;
+    --surface: #121826;
+    --paper: #121826;
+    --text: #e8edf5;
+    --muted: #a3b3c9;
+    --line: #243049;
+    --line-strong: #33425e;
+    --accent: #8ab4f8;
+    --accent-strong: #aecbfa;
+    --accent-soft: #1b2a45;
+    --on-accent: #0b1220;
+    --focus: #8ab4f8;
+    --footer-bg: #070a10;
+    --footer-text: #c2cddd;
+    --footer-muted: #93a3ba;
+    --footer-line: #1c2740;
+    --mark: #5c4a00;
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.45);
+    --shadow-lg: 0 18px 48px rgba(0, 0, 0, 0.55);
+  }
+}

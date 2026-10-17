@@ -1,0 +1,90 @@
+/* Comments. */
+.comments-area {
+  max-width: var(--measure);
+  margin: clamp(32px, 5vw, 56px) 0 0;
+}
+
+.comments-title {
+  font-size: 1.5rem;
+}
+
+.comment-list,
+.comment-list .children {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.comment-list .children {
+  margin-left: clamp(12px, 4vw, 40px);
+}
+
+.comment-body {
+  margin-bottom: 18px;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.comment-meta {
+  margin-bottom: 0.6em;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.comment-author {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.comment-author .avatar {
+  border-radius: 50%;
+}
+
+.comment-author .fn {
+  color: var(--text);
+  font-weight: 700;
+  font-style: normal;
+}
+
+.comment-metadata a {
+  color: var(--muted);
+}
+
+.reply a {
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.comment-respond {
+  margin-top: 2em;
+}
+
+.comment-reply-title {
+  font-size: 1.3rem;
+}
+
+.comment-form p {
+  margin-bottom: 1em;
+}
+
+.comment-form label {
+  display: block;
+  margin-bottom: 0.3em;
+}
+
+.comment-form-cookies-consent {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.comment-form-cookies-consent label {
+  margin: 0;
+  font-weight: 500;
+}
+
+.no-comments {
+  color: var(--muted);
+}

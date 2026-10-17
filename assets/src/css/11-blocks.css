@@ -1,0 +1,120 @@
+/* Gutenberg blocks inside article content. */
+.prose .alignwide {
+  width: min(1100px, calc(100vw - 2 * var(--gutter)));
+  max-width: none;
+  margin-inline: calc(50% - min(550px, 50vw - var(--gutter)));
+}
+
+.prose .alignfull {
+  width: 100vw;
+  max-width: none;
+  margin-inline: calc(50% - 50vw);
+}
+
+.prose--full {
+  width: min(var(--wrap), 100% - 2 * var(--gutter));
+  margin-inline: auto;
+}
+
+.prose--full .alignfull {
+  width: 100vw;
+  margin-inline: calc(50% - 50vw);
+}
+
+.alignleft {
+  float: left;
+  margin: 0.3em 1.5em 1em 0;
+}
+
+.alignright {
+  float: right;
+  margin: 0.3em 0 1em 1.5em;
+}
+
+.aligncenter {
+  display: block;
+  margin-inline: auto;
+}
+
+.wp-block-image img {
+  height: auto;
+}
+
+.wp-block-image.aligncenter,
+.wp-block-image .aligncenter {
+  text-align: center;
+}
+
+.wp-block-gallery {
+  gap: 12px;
+}
+
+.wp-block-quote cite,
+.wp-block-pullquote cite {
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-style: normal;
+}
+
+.wp-block-pullquote {
+  padding: 1.5em 0;
+  border-block: 2px solid var(--accent);
+  text-align: center;
+}
+
+.wp-block-separator {
+  border: 0;
+  border-top: 1px solid var(--line);
+}
+
+.wp-block-table {
+  overflow-x: auto;
+}
+
+.wp-block-table table {
+  min-width: 480px;
+}
+
+.wp-block-buttons {
+  gap: 12px;
+}
+
+.wp-block-button.is-style-outline .wp-block-button__link {
+  border: 2px solid var(--accent);
+  background: transparent;
+  color: var(--accent);
+}
+
+.wp-block-details {
+  margin-bottom: 1em;
+  padding: 0.8em 1em;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.wp-block-details summary {
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.wp-block-embed iframe,
+.wp-block-embed__wrapper iframe {
+  max-width: 100%;
+}
+
+.wp-block-embed.is-type-video .wp-block-embed__wrapper {
+  aspect-ratio: 16 / 9;
+}
+
+.wp-block-embed.is-type-video iframe {
+  width: 100%;
+  height: 100%;
+}
+
+.has-text-align-center {
+  text-align: center;
+}
+
+.has-text-align-right {
+  text-align: right;
+}
