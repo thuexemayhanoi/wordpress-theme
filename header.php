@@ -1,4 +1,15 @@
-<!DOCTYPE html>
+<?php
+/**
+ * Site header: brand, primary navigation (mega menu), search panel and color-mode toggle.
+ *
+ * Keyboard order follows the visual order on desktop: brand, navigation, actions.
+ *
+ * @package nguyen-ha-editorial
+ */
+
+defined( 'ABSPATH' ) || exit;
+
+?><!DOCTYPE html>
 <html <?php language_attributes(); ?>>
 <head>
 <meta charset="<?php bloginfo( 'charset' ); ?>">
@@ -7,23 +18,48 @@
 </head>
 <body <?php body_class(); ?>>
 <?php wp_body_open(); ?>
-<a class="skip-link" href="#primary"><?php esc_html_e( 'Skip to content', 'nguyen-ha-editorial' ); ?></a>
-<header class="site-header">
-<div class="wrap header-row">
-<a class="brand" href="<?php echo esc_url( home_url( '/' ) ); ?>" rel="home" aria-label="<?php echo esc_attr( get_bloginfo( 'name' ) ); ?>">
-<?php if ( has_custom_logo() ) {
-    $logo_id = get_theme_mod( 'custom_logo' );
-    echo wp_get_attachment_image( $logo_id, 'thumbnail', false, array( 'class' => 'custom-logo' ) );
-} else { ?>
-<span class="brand-mark" aria-hidden="true">NH</span>
-<?php } ?>
-<span><?php echo esc_html( get_bloginfo( 'name' ) ); ?></span></a>
-<nav id="site-navigation" class="header-nav" aria-label="<?php esc_attr_e( 'Main menu', 'nguyen-ha-editorial' ); ?>">
-<?php wp_nav_menu( array( 'theme_location' => 'primary', 'container' => false, 'fallback_cb' => 'wp_page_menu', 'depth' => 2 ) ); ?>
-</nav>
-<div class="nav-actions">
-<button class="icon-btn" id="theme-toggle" type="button" aria-label="<?php esc_attr_e( 'Switch color mode', 'nguyen-ha-editorial' ); ?>" title="<?php esc_attr_e( 'Switch color mode', 'nguyen-ha-editorial' ); ?>">◐</button>
-<button class="icon-btn mobile-toggle" id="menu-toggle" type="button" aria-controls="site-navigation" aria-expanded="false" aria-label="<?php esc_attr_e( 'Toggle menu', 'nguyen-ha-editorial' ); ?>">☰</button>
-</div></div>
+<a class="skip-link screen-reader-text" href="#primary"><?php esc_html_e( 'Skip to content', 'nguyen-ha-editorial' ); ?></a>
+
+<header id="masthead" class="site-header">
+	<div class="wrap header-row">
+		<a class="brand" href="<?php echo esc_url( home_url( '/' ) ); ?>" rel="home"<?php echo has_custom_logo() ? '' : ' aria-label="' . esc_attr( get_bloginfo( 'name' ) ) . '"'; ?>>
+			<?php echo nh_editorial_brand_markup(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped inside the helper. ?>
+		</a>
+
+		<nav id="primary-navigation" class="primary-nav" aria-label="<?php esc_attr_e( 'Primary', 'nguyen-ha-editorial' ); ?>">
+			<?php nh_editorial_primary_menu(); ?>
+		</nav>
+
+		<div class="header-actions">
+			<button type="button" class="icon-btn search-toggle" aria-expanded="false" aria-controls="header-search">
+				<?php echo nh_editorial_icon( 'search' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Static SVG markup. ?>
+				<span class="screen-reader-text"><?php esc_html_e( 'Search', 'nguyen-ha-editorial' ); ?></span>
+			</button>
+			<?php if ( nh_editorial_option( 'nh_dark_mode' ) ) : ?>
+			<button type="button" class="icon-btn mode-toggle" aria-pressed="false">
+				<?php echo nh_editorial_icon( 'moon', 'icon--moon' ) . nh_editorial_icon( 'sun', 'icon--sun' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Static SVG markup. ?>
+				<span class="screen-reader-text"><?php esc_html_e( 'Dark mode', 'nguyen-ha-editorial' ); ?></span>
+			</button>
+			<?php endif; ?>
+			<button type="button" class="icon-btn nav-toggle" aria-expanded="false" aria-controls="primary-navigation">
+				<?php echo nh_editorial_icon( 'menu', 'icon--open' ) . nh_editorial_icon( 'close', 'icon--close' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Static SVG markup. ?>
+				<span class="screen-reader-text"><?php esc_html_e( 'Menu', 'nguyen-ha-editorial' ); ?></span>
+			</button>
+		</div>
+	</div>
+
+	<div id="header-search" class="header-search" hidden>
+		<div class="wrap">
+			<?php
+			get_search_form(
+				array(
+					'aria_label' => __( 'Search articles', 'nguyen-ha-editorial' ),
+					'suggest'    => true,
+				)
+			);
+			?>
+		</div>
+	</div>
 </header>
-<main id="primary" class="site-main">
+
+<main id="primary" class="site-main" tabindex="-1">

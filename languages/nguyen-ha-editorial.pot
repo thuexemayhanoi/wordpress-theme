@@ -1,0 +1,696 @@
+# Copyright (C) 2026 Nguyen Ha Web Team
+# This file is distributed under the GPL-2.0-or-later.
+msgid ""
+msgstr ""
+"Project-Id-Version: Nguyen Ha Editorial 2.0.0\n"
+"Report-Msgid-Bugs-To: https://github.com/thuexemayhanoi/wordpress-theme/issues\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"POT-Creation-Date: 2026-10-17T06:08:45+00:00\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"X-Generator: WP-CLI 2.12.0\n"
+"X-Domain: nguyen-ha-editorial\n"
+
+#. Theme Name of the theme
+#: style.css
+#: inc/customizer.php:55
+msgid "Nguyen Ha Editorial"
+msgstr ""
+
+#. Theme URI of the theme
+#: style.css
+msgid "https://github.com/thuexemayhanoi/wordpress-theme"
+msgstr ""
+
+#. Description of the theme
+#: style.css
+msgid "Premium editorial magazine theme for large content sites: topic hubs and pillars, mega menu, light and dark mode, table of contents, FAQ, author box and a related-articles engine. Presentation only: SEO titles, meta tags and structured data are left to your SEO plugin or to the Nguyen Ha SEO Companion plugin."
+msgstr ""
+
+#. Author of the theme
+#: style.css
+msgid "Nguyen Ha Web Team"
+msgstr ""
+
+#. Author URI of the theme
+#: style.css
+msgid "https://github.com/thuexemayhanoi"
+msgstr ""
+
+#: 404.php:18
+msgid "Page not found"
+msgstr ""
+
+#: 404.php:19
+msgid "The address may have changed or the page may no longer exist. Search for what you need or start from a topic."
+msgstr ""
+
+#: 404.php:22
+msgid "Search the site"
+msgstr ""
+
+#: 404.php:31
+#: front-page.php:85
+#: home.php:18
+#: index.php:18
+msgid "Latest articles"
+msgstr ""
+
+#: 404.php:48
+msgid "Return home"
+msgstr ""
+
+#: archive.php:22
+msgid "Tag"
+msgstr ""
+
+#: archive.php:22
+msgid "Archive"
+msgstr ""
+
+#: archive.php:31
+msgid "No articles in this archive"
+msgstr ""
+
+#. translators: %s: article title.
+#: attachment.php:35
+#, php-format
+msgid "Back to %s"
+msgstr ""
+
+#: author.php:24
+msgid "Author"
+msgstr ""
+
+#: author.php:46
+#: front-page.php:103
+#: home.php:26
+msgid "No articles yet"
+msgstr ""
+
+#: category.php:29
+msgid "Subtopic"
+msgstr ""
+
+#: category.php:29
+msgid "Topic"
+msgstr ""
+
+#: category.php:57
+msgid "Subtopics"
+msgstr ""
+
+#: category.php:70
+#: home.php:19
+#: inc/customizer.php:26
+msgid "Articles"
+msgstr ""
+
+#: category.php:77
+msgid "No articles in this topic yet"
+msgstr ""
+
+#. translators: %s: number of comments.
+#: comments.php:22
+#, php-format
+msgid "%s comment"
+msgid_plural "%s comments"
+msgstr[0] ""
+msgstr[1] ""
+
+#: comments.php:44
+msgid "Older comments"
+msgstr ""
+
+#: comments.php:45
+msgid "Newer comments"
+msgstr ""
+
+#: comments.php:52
+msgid "Comments are closed."
+msgstr ""
+
+#: footer.php:39
+msgid "Explore"
+msgstr ""
+
+#: footer.php:40
+msgid "Footer"
+msgstr ""
+
+#: footer.php:61
+msgid "Topics"
+msgstr ""
+
+#: footer.php:84
+msgid "All rights reserved."
+msgstr ""
+
+#: footer.php:90
+msgid "Privacy Policy"
+msgstr ""
+
+#. translators: %d: page number.
+#: front-page.php:31
+#, php-format
+msgid "Latest articles, page %d"
+msgstr ""
+
+#: front-page.php:37
+msgid "No more articles"
+msgstr ""
+
+#: front-page.php:88
+msgid "All articles"
+msgstr ""
+
+#: header.php:21
+msgid "Skip to content"
+msgstr ""
+
+#: header.php:29
+msgid "Primary"
+msgstr ""
+
+#: header.php:36
+#: searchform.php:23
+msgid "Search"
+msgstr ""
+
+#: header.php:41
+msgid "Dark mode"
+msgstr ""
+
+#: header.php:46
+msgid "Menu"
+msgstr ""
+
+#: header.php:56
+#: searchform.php:15
+#: template-parts/components/empty-state.php:30
+#: template-parts/home/intro.php:29
+msgid "Search articles"
+msgstr ""
+
+#: inc/admin-notices.php:40
+msgid "Nguyen Ha Editorial:"
+msgstr ""
+
+#: inc/admin-notices.php:41
+msgid "the theme works on its own. Install and activate the \"Nguyen Ha SEO Companion\" plugin to edit summaries, FAQs and sources, manage Topic Clusters and the business profile, add structured data extras and use the fast internal search index."
+msgstr ""
+
+#: inc/admin-notices.php:42
+msgid "Dismiss"
+msgstr ""
+
+#: inc/breadcrumbs.php:26
+msgid "Home"
+msgstr ""
+
+#. translators: %s: search query.
+#: inc/breadcrumbs.php:111
+#, php-format
+msgid "Search results for: %s"
+msgstr ""
+
+#: inc/config.php:35
+msgid "Accent color"
+msgstr ""
+
+#: inc/config.php:36
+msgid "Used for links, buttons and highlights. Colors that are too light for readable text are darkened automatically (WCAG AA)."
+msgstr ""
+
+#: inc/config.php:42
+msgid "Logo for dark mode (optional)"
+msgstr ""
+
+#: inc/config.php:43
+msgid "Shown instead of the main logo when dark mode is active. The main logo is set under Site Identity."
+msgstr ""
+
+#: inc/config.php:49
+msgid "Enable dark mode"
+msgstr ""
+
+#: inc/config.php:50
+msgid "Follows the visitor preference and shows a toggle in the header."
+msgstr ""
+
+#: inc/config.php:56
+msgid "Sticky header"
+msgstr ""
+
+#: inc/config.php:62
+msgid "Search suggestions"
+msgstr ""
+
+#: inc/config.php:63
+msgid "Shows up to five matching articles while typing, using the built-in WordPress REST search. Turn off if REST is blocked."
+msgstr ""
+
+#: inc/config.php:69
+msgid "Table of contents on articles"
+msgstr ""
+
+#: inc/config.php:77
+msgid "Minimum headings for a table of contents"
+msgstr ""
+
+#: inc/config.php:78
+msgid "The table of contents is built from H2 and H3 headings and hidden below this number."
+msgstr ""
+
+#: inc/config.php:84
+msgid "Show reading time"
+msgstr ""
+
+#: inc/config.php:91
+msgid "Only when the author has a biography"
+msgstr ""
+
+#: inc/config.php:92
+msgid "Always"
+msgstr ""
+
+#: inc/config.php:93
+msgid "Never"
+msgstr ""
+
+#: inc/config.php:95
+msgid "Author box"
+msgstr ""
+
+#: inc/config.php:106
+#: template-parts/components/related.php:26
+msgid "Related articles"
+msgstr ""
+
+#: inc/config.php:112
+msgid "Homepage headline (H1)"
+msgstr ""
+
+#: inc/config.php:113
+msgid "Leave empty to use the site title."
+msgstr ""
+
+#: inc/config.php:119
+msgid "Homepage introduction"
+msgstr ""
+
+#: inc/config.php:120
+msgid "Leave empty to use the tagline."
+msgstr ""
+
+#: inc/config.php:128
+msgid "Topic sections on the homepage"
+msgstr ""
+
+#: inc/config.php:129
+msgid "Latest articles from the largest top-level categories. 0 hides them."
+msgstr ""
+
+#: inc/config.php:137
+msgid "Latest articles on a static front page"
+msgstr ""
+
+#: inc/config.php:138
+msgid "Only used when the front page is a static page. With \"Your latest posts\" the Reading setting applies and pages are paginated."
+msgstr ""
+
+#: inc/config.php:144
+msgid "Button label"
+msgstr ""
+
+#: inc/config.php:150
+msgid "Button link"
+msgstr ""
+
+#: inc/config.php:151
+msgid "A page, a tel: or mailto: link, or a messaging link. The call-to-action band stays hidden until label and link are set."
+msgstr ""
+
+#: inc/config.php:157
+msgid "Short message"
+msgstr ""
+
+#: inc/config.php:163
+msgid "Show the call-to-action after articles"
+msgstr ""
+
+#: inc/config.php:169
+msgid "Social profile links"
+msgstr ""
+
+#: inc/config.php:170
+msgid "One URL per line. Used for the footer icons. Leave empty to use the profiles of the companion plugin."
+msgstr ""
+
+#: inc/config.php:176
+msgid "Footer note"
+msgstr ""
+
+#: inc/config.php:177
+msgid "Basic formatting and links are allowed."
+msgstr ""
+
+#: inc/customizer.php:18
+msgid "Brand"
+msgstr ""
+
+#: inc/customizer.php:22
+msgid "Layout and features"
+msgstr ""
+
+#: inc/customizer.php:30
+msgid "Homepage"
+msgstr ""
+
+#: inc/customizer.php:34
+msgid "Call to action"
+msgstr ""
+
+#: inc/customizer.php:35
+msgid "A single call-to-action band shown on the homepage and after articles. Business details (phone, address, opening hours) are managed in the Nguyen Ha SEO Companion plugin so they stay consistent everywhere."
+msgstr ""
+
+#: inc/customizer.php:39
+msgid "Footer and social"
+msgstr ""
+
+#. translators: %s: menu item name.
+#: inc/navigation.php:26
+#, php-format
+msgid "Toggle submenu of %s"
+msgstr ""
+
+#: inc/search.php:105
+msgid "No suggestions"
+msgstr ""
+
+#. translators: %d: number of suggestions.
+#: inc/search.php:107
+#, php-format
+msgid "%d suggestions available"
+msgstr ""
+
+#: inc/search.php:108
+msgid "See all results"
+msgstr ""
+
+#: inc/search.php:109
+msgid "Suggested articles"
+msgstr ""
+
+#: inc/seo-compat.php:136
+msgid "(no title)"
+msgstr ""
+
+#: inc/setup.php:59
+msgid "Primary Navigation"
+msgstr ""
+
+#: inc/setup.php:60
+msgid "Footer Navigation"
+msgstr ""
+
+#: inc/setup.php:85
+msgid "Article Sidebar"
+msgstr ""
+
+#: inc/setup.php:87
+msgid "Widgets displayed beside the table of contents on articles."
+msgstr ""
+
+#. translators: %d: footer column number.
+#: inc/setup.php:99
+#, php-format
+msgid "Footer Column %d"
+msgstr ""
+
+#: inc/setup.php:101
+msgid "When this column has widgets they replace its default content."
+msgstr ""
+
+#: inc/template-tags.php:125
+msgid "Published"
+msgstr ""
+
+#: inc/template-tags.php:132
+msgid "Updated"
+msgstr ""
+
+#. translators: %d: minutes.
+#: inc/template-tags.php:141
+#, php-format
+msgid "%d min read"
+msgid_plural "%d min read"
+msgstr[0] ""
+msgstr[1] ""
+
+#: inc/template-tags.php:170
+msgid "Previous page"
+msgstr ""
+
+#: inc/template-tags.php:171
+msgid "Next page"
+msgstr ""
+
+#: inc/template-tags.php:172
+msgid "Page"
+msgstr ""
+
+#: inc/template-tags.php:173
+msgid "Pagination"
+msgstr ""
+
+#. translators: %s: number of articles.
+#: inc/template-tags.php:189
+#, php-format
+msgid "%s article"
+msgid_plural "%s articles"
+msgstr[0] ""
+msgstr[1] ""
+
+#: inc/template-tags.php:365
+msgid "Scrollable table"
+msgstr ""
+
+#. Template Name of the theme
+msgid "Full width page"
+msgstr ""
+
+#. Template Name of the theme
+msgid "Pillar / Hub page"
+msgstr ""
+
+#: page-templates/template-pillar.php:33
+msgid "Complete guide"
+msgstr ""
+
+#: page-templates/template-pillar.php:77
+msgid "Explore the topic"
+msgstr ""
+
+#: page-templates/template-pillar.php:95
+msgid "Latest articles in this topic"
+msgstr ""
+
+#: page-templates/template-pillar.php:98
+msgid "View all articles"
+msgstr ""
+
+#: page.php:37
+msgid "Page parts"
+msgstr ""
+
+#: search.php:46
+msgid "Search results"
+msgstr ""
+
+#. translators: %s: search phrase.
+#: search.php:50
+#, php-format
+msgid "Results for “%s”"
+msgstr ""
+
+#. translators: %s: number of results.
+#: search.php:58
+#, php-format
+msgid "%s result"
+msgid_plural "%s results"
+msgstr[0] ""
+msgstr[1] ""
+
+#: search.php:64
+msgid "Refine your search"
+msgstr ""
+
+#: search.php:67
+msgid "No exact match for all words, showing the closest results."
+msgstr ""
+
+#: search.php:71
+msgid "Matching topics"
+msgstr ""
+
+#: search.php:80
+msgid "Search within a topic"
+msgstr ""
+
+#: search.php:83
+msgid "All topics"
+msgstr ""
+
+#: search.php:121
+msgid "No matching articles"
+msgstr ""
+
+#: search.php:122
+msgid "Try different or fewer words, check the spelling, or start from one of the topics below."
+msgstr ""
+
+#: searchform.php:19
+msgid "Search for:"
+msgstr ""
+
+#: searchform.php:20
+msgid "Search guides and answers…"
+msgstr ""
+
+#: sidebar.php:15
+msgid "Sidebar"
+msgstr ""
+
+#: single.php:88
+msgid "Article pages"
+msgstr ""
+
+#: single.php:98
+msgid "Tags"
+msgstr ""
+
+#: template-parts/cards/hub-card.php:34
+#: template-parts/components/pillar-box.php:41
+msgid "Read the complete guide"
+msgstr ""
+
+#: template-parts/components/author-box.php:18
+msgid "About the author"
+msgstr ""
+
+#. translators: %s: author name.
+#: template-parts/components/author-box.php:36
+#, php-format
+msgid "All articles by %s"
+msgstr ""
+
+#: template-parts/components/breadcrumb.php:16
+msgid "Breadcrumb"
+msgstr ""
+
+#: template-parts/components/contact.php:28
+msgid "Contact"
+msgstr ""
+
+#: template-parts/components/contact.php:50
+msgid "Map"
+msgstr ""
+
+#: template-parts/components/cta.php:18
+msgid "Get in touch"
+msgstr ""
+
+#: template-parts/components/empty-state.php:15
+msgid "Nothing found"
+msgstr ""
+
+#: template-parts/components/empty-state.php:34
+#: template-parts/home/intro.php:31
+msgid "Popular topics"
+msgstr ""
+
+#: template-parts/components/faq.php:21
+msgid "Frequently asked questions"
+msgstr ""
+
+#: template-parts/components/pillar-box.php:21
+msgid "Topic guide"
+msgstr ""
+
+#. translators: %s: topic name.
+#: template-parts/components/pillar-box.php:28
+#, php-format
+msgid "Part of the topic: %s"
+msgstr ""
+
+#. translators: %s: category name.
+#: template-parts/components/pillar-box.php:51
+#, php-format
+msgid "More articles in %s"
+msgstr ""
+
+#: template-parts/components/post-nav.php:20
+msgid "More in this topic"
+msgstr ""
+
+#: template-parts/components/post-nav.php:23
+msgid "Previous"
+msgstr ""
+
+#: template-parts/components/post-nav.php:29
+msgid "Next"
+msgstr ""
+
+#. translators: %s: topic name.
+#: template-parts/components/post-nav.php:37
+#, php-format
+msgid "Articles in %s"
+msgstr ""
+
+#: template-parts/components/sources.php:18
+msgid "Sources and references"
+msgstr ""
+
+#: template-parts/components/summary.php:21
+#: template-parts/components/summary.php:22
+msgid "Quick answer"
+msgstr ""
+
+#: template-parts/components/summary.php:29
+msgid "Key takeaways"
+msgstr ""
+
+#: template-parts/components/toc.php:30
+msgid "Table of contents"
+msgstr ""
+
+#: template-parts/components/toc.php:34
+msgid "Contents"
+msgstr ""
+
+#: template-parts/home/featured.php:23
+msgid "Featured articles"
+msgstr ""
+
+#: template-parts/home/hubs.php:19
+msgid "Browse by topic"
+msgstr ""
+
+#: template-parts/home/hubs.php:20
+msgid "Start from a topic and follow the guides inside it."
+msgstr ""
+
+#: template-parts/home/intro.php:28
+msgid "What would you like to read?"
+msgstr ""
+
+#. translators: %s: number of articles, for example "12 articles".
+#: template-parts/home/topic-sections.php:45
+#, php-format
+msgid "View all (%s)"
+msgstr ""

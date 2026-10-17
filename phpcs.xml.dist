@@ -8,6 +8,7 @@
 	<exclude-pattern>/node_modules/*</exclude-pattern>
 	<exclude-pattern>/assets/*</exclude-pattern>
 	<exclude-pattern>/.git/*</exclude-pattern>
+	<exclude-pattern>/.claude/*</exclude-pattern>
 
 	<!-- How to scan. -->
 	<arg value="sp"/>
@@ -51,6 +52,9 @@
 	<rule ref="WordPress.Files.FileName">
 		<exclude-pattern>/tests/*</exclude-pattern>
 	</rule>
+	<rule ref="Generic.Files.OneObjectStructurePerFile">
+		<exclude-pattern>/tests/*</exclude-pattern>
+	</rule>
 	<rule ref="Squiz.Commenting.FunctionComment.Missing">
 		<exclude-pattern>/tests/*</exclude-pattern>
 	</rule>
@@ -70,6 +74,10 @@
 		<exclude-pattern>/tests/*</exclude-pattern>
 	</rule>
 	<rule ref="WordPress.WP.AlternativeFunctions">
+		<exclude-pattern>/tests/*</exclude-pattern>
+	</rule>
+	<!-- The DOM API the tests inspect pages with uses camelCase properties (nodeName, textContent). -->
+	<rule ref="WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase">
 		<exclude-pattern>/tests/*</exclude-pattern>
 	</rule>
 </ruleset>
