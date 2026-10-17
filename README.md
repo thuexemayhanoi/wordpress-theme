@@ -18,7 +18,7 @@ Theme WordPress cổ điển (classic) cho blog biên tập kiến thức du l�
 
 Theme chạy độc lập: không có plugin đồng hành vẫn hiển thị đầy đủ, chỉ thiếu phần dữ liệu biên tập. Không dữ liệu doanh nghiệp, số điện thoại, giá hay đánh giá nào được ghi cứng trong mã (có test quét mã nguồn); thông tin liên hệ chỉ xuất hiện khi chủ sở hữu nhập vào plugin.
 
-Chi tiết: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/SEO-RESPONSIBILITY.md](docs/SEO-RESPONSIBILITY.md), [docs/DATA-CONTRACT.md](docs/DATA-CONTRACT.md).
+Chi tiết: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/SEO-RESPONSIBILITY.md](docs/SEO-RESPONSIBILITY.md), [docs/DATA-CONTRACT.md](docs/DATA-CONTRACT.md). Lịch sử thay đổi và các lỗi đã sửa: [CHANGELOG.md](CHANGELOG.md).
 
 ## Tính năng (chỉ những gì đã có mã và có test)
 

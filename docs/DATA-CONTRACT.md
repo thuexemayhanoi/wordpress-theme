@@ -184,4 +184,7 @@ automatically; page-cache plugins are purged by the plugin (`nh_seo_purge_urls`)
 | `nh_seo_faq_is_visible` | filter | plugin | Withdraw the claim that a post's FAQ is shown (a template that hides it). |
 | `nh_seo_search_activation_repair_limit` | filter | plugin | Posts the repair at activation re-indexes in that request (default 200). |
 | `nh_editorial_cache_version` | filter | theme | Cache-busting version for theme fragments. |
+| `nh_editorial_breadcrumb_items` | filter | theme | Last word on the items of the visible breadcrumb (name and url). |
+| `nh_editorial_seo_plugin_crumbs` | filter | theme | Crumbs of an SEO plugin other than Yoast (arrays of `text`, `url`, optionally `hide_in_schema`); Yoast's are read by the theme. |
+| `nh_editorial_breadcrumbs_follow_seo_plugin` | filter | theme | Return false to keep the theme's own trail even when an SEO plugin prints a different `BreadcrumbList`. |
 | `nh_editorial_related_count` | filter | theme | Number of related posts. |
