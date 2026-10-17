@@ -1,14 +1,15 @@
-# Vietnamese translation of Nguyen Ha Editorial.
-# This file is distributed under the GPL-2.0-or-later.
 msgid ""
 msgstr ""
 "Project-Id-Version: Nguyen Ha Editorial 2.0.0\n"
 "Report-Msgid-Bugs-To: https://github.com/thuexemayhanoi/wordpress-theme/issues\n"
+"Last-Translator: \n"
 "Language-Team: Vietnamese\n"
-"Language: vi\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"POT-Creation-Date: 2026-10-17T07:19:44+00:00\n"
+"PO-Revision-Date: 2026-10-17T07:19:44+00:00\n"
+"Language: vi\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 "X-Domain: nguyen-ha-editorial\n"
 
@@ -192,15 +193,17 @@ msgstr "Menu"
 msgid "Search articles"
 msgstr "Tìm bài viết"
 
-#: inc/admin-notices.php:40
+#: inc/admin-notices.php:41
+#: inc/admin-notices.php:103
 msgid "Nguyen Ha Editorial:"
 msgstr "Nguyen Ha Editorial:"
 
-#: inc/admin-notices.php:41
+#: inc/admin-notices.php:42
 msgid "the theme works on its own. Install and activate the \"Nguyen Ha SEO Companion\" plugin to edit summaries, FAQs and sources, manage Topic Clusters and the business profile, add structured data extras and use the fast internal search index."
 msgstr "giao diện vẫn hoạt động độc lập. Hãy cài đặt và kích hoạt plugin \"Nguyen Ha SEO Companion\" để chỉnh sửa phần tóm tắt, FAQ và nguồn tham khảo, quản lý Topic Cluster và hồ sơ doanh nghiệp, bổ sung dữ liệu có cấu trúc và dùng chỉ mục tìm kiếm nội bộ nhanh."
 
-#: inc/admin-notices.php:42
+#: inc/admin-notices.php:43
+#: inc/admin-notices.php:106
 msgid "Dismiss"
 msgstr "Đóng"
 
@@ -407,29 +410,29 @@ msgstr "Bài viết gợi ý"
 msgid "(no title)"
 msgstr "(không có tiêu đề)"
 
-#: inc/setup.php:59
+#: inc/setup.php:68
 msgid "Primary Navigation"
 msgstr "Điều hướng chính"
 
-#: inc/setup.php:60
+#: inc/setup.php:69
 msgid "Footer Navigation"
 msgstr "Điều hướng chân trang"
 
-#: inc/setup.php:85
+#: inc/setup.php:94
 msgid "Article Sidebar"
 msgstr "Thanh bên bài viết"
 
-#: inc/setup.php:87
+#: inc/setup.php:96
 msgid "Widgets displayed beside the table of contents on articles."
 msgstr "Tiện ích hiển thị bên cạnh mục lục trong bài viết."
 
 #. translators: %d: footer column number.
-#: inc/setup.php:99
+#: inc/setup.php:108
 #, php-format
 msgid "Footer Column %d"
 msgstr "Cột chân trang %d"
 
-#: inc/setup.php:101
+#: inc/setup.php:110
 msgid "When this column has widgets they replace its default content."
 msgstr "Khi cột này có tiện ích, chúng sẽ thay thế nội dung mặc định của cột."
 
@@ -688,3 +691,11 @@ msgstr "Bạn muốn đọc gì?"
 #, php-format
 msgid "View all (%s)"
 msgstr "Xem tất cả (%s)"
+
+#: inc/admin-notices.php:104
+msgid "the homepage headline (H1) and introduction currently come from the site title and tagline. If your homepage has an approved headline that must not change, enter the same text under Appearance, Customize, Homepage before the site goes live."
+msgstr "tiêu đề trang chủ (H1) và phần giới thiệu hiện lấy từ tên website và khẩu hiệu. Nếu trang chủ của bạn có tiêu đề đã được duyệt và không được thay đổi, hãy nhập cùng nội dung đó tại Giao diện, Tùy biến, Trang chủ trước khi đưa website vào hoạt động."
+
+#: inc/admin-notices.php:105
+msgid "Open the Customizer"
+msgstr "Mở trình tùy biến"
