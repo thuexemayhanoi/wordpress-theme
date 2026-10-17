@@ -671,15 +671,17 @@ final class NH_SEO_Settings_Page {
 	 */
 	private static function render_tools() {
 		echo '<h2>' . esc_html__( 'Tools', 'nguyen-ha-seo-companion' ) . '</h2>';
-		if ( ! has_action( 'nh_seo_render_tools_panel' ) ) {
-			echo '<p>' . esc_html__( 'There are no tools available.', 'nguyen-ha-seo-companion' ) . '</p>';
-			return;
-		}
+
+		$has_panels = (bool) has_action( 'nh_seo_render_tools_panel' );
 
 		/**
 		 * Prints the panels of the Tools tab (for example the search index tools).
 		 */
 		do_action( 'nh_seo_render_tools_panel' );
+
+		if ( ! $has_panels ) {
+			echo '<p>' . esc_html__( 'There are no tools available.', 'nguyen-ha-seo-companion' ) . '</p>';
+		}
 	}
 
 	/**

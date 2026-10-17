@@ -589,8 +589,12 @@ class NH_Test_Admin_Settings extends NH_Unit_Test_Case {
 
 	public function test_the_tools_tab_says_so_when_no_module_adds_a_panel() {
 		remove_all_actions( 'nh_seo_render_tools_panel' );
+		$before = did_action( 'nh_seo_render_tools_panel' );
 
-		$this->assertStringContainsString( 'There are no tools available.', $this->page( 'tools' ) );
+		$html = $this->page( 'tools' );
+
+		$this->assertStringContainsString( 'There are no tools available.', $html );
+		$this->assertSame( $before + 1, did_action( 'nh_seo_render_tools_panel' ), 'the Tools tab always fires the action, even when nothing is hooked' );
 	}
 
 	public function test_the_status_box_is_read_only_and_shows_the_defaults() {

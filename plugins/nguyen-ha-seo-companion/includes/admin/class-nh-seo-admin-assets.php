@@ -20,6 +20,14 @@ final class NH_SEO_Admin_Assets {
 	const TERM_TAXONOMIES = array( 'category', NH_SEO_Keys::TAXONOMY_CLUSTER );
 
 	/**
+	 * Hook suffix of the settings page. Kept here so that deciding where to load assets does not need to
+	 * load the settings page class on every admin screen; a test keeps it in line with the page slug.
+	 *
+	 * @var string
+	 */
+	const SETTINGS_HOOK = 'settings_page_nguyen-ha-seo-companion';
+
+	/**
 	 * Which kind of plugin screen this is.
 	 *
 	 * @param WP_Screen|null $screen      Current screen.
@@ -27,7 +35,7 @@ final class NH_SEO_Admin_Assets {
 	 * @return string settings | post | term | user, or '' when the plugin has nothing to show here.
 	 */
 	public static function context( $screen, $hook_suffix = '' ) {
-		if ( 'settings_page_' . NH_SEO_Settings_Page::SLUG === $hook_suffix ) {
+		if ( self::SETTINGS_HOOK === $hook_suffix ) {
 			return 'settings';
 		}
 		if ( ! $screen instanceof WP_Screen ) {
@@ -68,7 +76,6 @@ final class NH_SEO_Admin_Assets {
 				'i18n'    => array(
 					'selectLogo'   => __( 'Choose a logo', 'nguyen-ha-seo-companion' ),
 					'useLogo'      => __( 'Use this image', 'nguyen-ha-seo-companion' ),
-					'noLogo'       => __( 'No logo selected.', 'nguyen-ha-seo-companion' ),
 					'itemAdded'    => __( 'Item added.', 'nguyen-ha-seo-companion' ),
 					'itemRemoved'  => __( 'Item removed.', 'nguyen-ha-seo-companion' ),
 					'itemMoved'    => __( 'Item moved.', 'nguyen-ha-seo-companion' ),

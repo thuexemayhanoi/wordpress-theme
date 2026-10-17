@@ -145,9 +145,32 @@ class NH_Test_Admin_Assets extends NH_Unit_Test_Case {
 		$data = wp_scripts()->get_data( 'nh-seo-admin', 'data' );
 		$this->assertStringContainsString( 'var nhSeoAdmin = ', $data );
 		$this->assertStringContainsString( '"context":"post"', $data );
-		foreach ( array( 'selectLogo', 'useLogo', 'noLogo', 'itemAdded', 'itemRemoved', 'itemMoved', 'limitReached' ) as $key ) {
+		foreach ( array( 'selectLogo', 'useLogo', 'itemAdded', 'itemRemoved', 'itemMoved', 'limitReached' ) as $key ) {
 			$this->assertStringContainsString( '"' . $key . '":"', $data, $key );
 		}
+	}
+
+	public function test_every_string_handed_to_the_script_is_used_by_the_script() {
+		set_current_screen( $this->screen( 'post', 'page' ) );
+		NH_SEO_Admin_Assets::enqueue( 'post.php' );
+
+		$data = wp_scripts()->get_data( 'nh-seo-admin', 'data' );
+		$js   = file_get_contents( NH_SEO_DIR . 'assets/admin.js' );
+		$this->assertNotFalse( $js );
+
+		preg_match( '/"i18n":\{(.*?)\}/s', $data, $match );
+		$this->assertNotEmpty( $match, 'the localized data has an i18n object' );
+		preg_match_all( '/"([A-Za-z]+)":"/', $match[1], $keys );
+		$this->assertNotEmpty( $keys[1] );
+		foreach ( $keys[1] as $key ) {
+			// A boolean keeps the failure message short instead of dumping the whole script.
+			$used = 1 === preg_match( '/\bi18n\.' . preg_quote( $key, '/' ) . '\b/', $js );
+			$this->assertTrue( $used, "admin.js never reads the string \"$key\"" );
+		}
+	}
+
+	public function test_the_settings_hook_constant_matches_the_page_slug() {
+		$this->assertSame( 'settings_page_' . NH_SEO_Settings_Page::SLUG, NH_SEO_Admin_Assets::SETTINGS_HOOK );
 	}
 
 	public function test_the_media_library_is_only_loaded_on_the_settings_page() {
