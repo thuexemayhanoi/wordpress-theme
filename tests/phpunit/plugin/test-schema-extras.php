@@ -154,6 +154,146 @@ class NH_Test_Schema_Extras extends NH_Schema_Test_Case {
 		$this->assertCount( 1, $this->blocks_at( $this->url() ) );
 	}
 
+	/**
+	 * Create a reusable block (synced pattern) and return its ID.
+	 *
+	 * @param string $content Block markup.
+	 * @param string $status  Post status.
+	 * @return int
+	 */
+	private function reusable_block( $content, $status = 'publish' ) {
+		return self::factory()->post->create(
+			array(
+				'post_type'    => 'wp_block',
+				'post_status'  => $status,
+				'post_title'   => 'Shared block',
+				'post_content' => $content,
+			)
+		);
+	}
+
+	/**
+	 * Markup that places a reusable block, optionally inside a group block.
+	 *
+	 * @param int  $ref   Reusable block ID.
+	 * @param bool $group Whether to nest it in a group.
+	 * @return string
+	 */
+	private function uses_reusable( $ref, $group = true ) {
+		$block = '<!-- wp:block {"ref":' . $ref . '} /-->';
+		return $group ? '<!-- wp:group --><div class="wp-block-group">' . $block . '</div><!-- /wp:group -->' : $block;
+	}
+
+	public function test_a_faq_block_inside_a_published_reusable_block_counts_as_an_external_faq() {
+		$this->set_faq( $this->post_id, 2 );
+		$faq_block = '<!-- wp:yoast/faq-block {"questions":[]} --><div>FAQ</div><!-- /wp:yoast/faq-block -->';
+		$reusable  = $this->reusable_block( $faq_block );
+
+		foreach ( array( true, false ) as $group ) {
+			wp_update_post(
+				array(
+					'ID'           => $this->post_id,
+					'post_content' => $this->uses_reusable( $reusable, $group ),
+				)
+			);
+			$this->assertSame( array(), $this->blocks_at( $this->url() ), 'Visitors see the FAQ block of the reusable block, and its plugin prints the FAQPage.' );
+		}
+
+		// A reusable block that is not published is not shown to visitors.
+		wp_update_post(
+			array(
+				'ID'          => $reusable,
+				'post_status' => 'draft',
+			)
+		);
+		$this->assertCount( 1, $this->blocks_at( $this->url() ) );
+
+		// A reference to something that is not a reusable block, or to nothing, changes nothing.
+		wp_update_post(
+			array(
+				'ID'           => $this->post_id,
+				'post_content' => $this->uses_reusable( $this->post_id ) . $this->uses_reusable( 99999999 ) . '<!-- wp:block {"ref":"x"} /-->',
+			)
+		);
+		$this->assertCount( 1, $this->blocks_at( $this->url() ) );
+	}
+
+	public function test_reusable_blocks_are_followed_a_few_levels_deep_and_loops_end() {
+		$this->set_faq( $this->post_id, 2 );
+		$faq_block = '<!-- wp:rank-math/faq-block {"questions":[]} --><div>FAQ</div><!-- /wp:rank-math/faq-block -->';
+
+		// Chain: post -> level 1 -> level 2 -> level 3 (holds the FAQ block).
+		$level3 = $this->reusable_block( $faq_block );
+		$level2 = $this->reusable_block( $this->uses_reusable( $level3 ) );
+		$level1 = $this->reusable_block( $this->uses_reusable( $level2 ) );
+		wp_update_post(
+			array(
+				'ID'           => $this->post_id,
+				'post_content' => $this->uses_reusable( $level1 ),
+			)
+		);
+		$this->assertSame( array(), $this->blocks_at( $this->url() ), 'Three levels are followed.' );
+
+		// One level more is beyond the bound: the search ends quietly instead of walking on.
+		$level0 = $this->reusable_block( $this->uses_reusable( $level1 ) );
+		wp_update_post(
+			array(
+				'ID'           => $this->post_id,
+				'post_content' => $this->uses_reusable( $level0 ),
+			)
+		);
+		$this->assertCount( 1, $this->blocks_at( $this->url() ), 'Four levels are not followed.' );
+
+		// Two reusable blocks that contain each other never loop.
+		$a = $this->reusable_block( 'placeholder' );
+		$b = $this->reusable_block( $this->uses_reusable( $a ) );
+		wp_update_post(
+			array(
+				'ID'           => $a,
+				'post_content' => $this->uses_reusable( $b ),
+			)
+		);
+		wp_update_post(
+			array(
+				'ID'           => $this->post_id,
+				'post_content' => $this->uses_reusable( $a ),
+			)
+		);
+		$this->assertCount( 1, $this->blocks_at( $this->url() ) );
+	}
+
+	public function test_only_a_bounded_number_of_reusable_blocks_is_opened_per_post() {
+		$this->set_faq( $this->post_id, 2 );
+		$content = '';
+		for ( $i = 0; $i < NH_SEO_Schema_Detect::MAX_REUSABLE_BLOCKS; $i++ ) {
+			$content .= $this->uses_reusable( $this->reusable_block( '<!-- wp:paragraph --><p>Nothing here</p><!-- /wp:paragraph -->' ), false );
+		}
+		$with_faq = $this->reusable_block( '<!-- wp:yoast/faq-block {"questions":[]} --><div>FAQ</div><!-- /wp:yoast/faq-block -->' );
+		wp_update_post(
+			array(
+				'ID'           => $this->post_id,
+				'post_content' => $content . $this->uses_reusable( $with_faq, false ),
+			)
+		);
+
+		$this->assertFalse( NH_SEO_Schema_Detect::has_external_faq( $this->post_id ), 'The eleventh reusable block is past the bound.' );
+		$this->assertCount( 1, $this->blocks_at( $this->url() ) );
+
+		// The filter is the way out for such a page.
+		add_filter( 'nh_seo_has_external_faq', '__return_true' );
+		$this->assertSame( array(), $this->blocks_at( $this->url() ) );
+		remove_filter( 'nh_seo_has_external_faq', '__return_true' );
+
+		// Within the bound the same reusable block is found.
+		wp_update_post(
+			array(
+				'ID'           => $this->post_id,
+				'post_content' => $this->uses_reusable( $with_faq, false ),
+			)
+		);
+		$this->assertTrue( NH_SEO_Schema_Detect::has_external_faq( $this->post_id ) );
+	}
+
 	public function test_external_faq_detection_is_extensible() {
 		$this->set_faq( $this->post_id, 2 );
 		wp_update_post(
