@@ -33,6 +33,9 @@ Dùng danh sách này trên bản sao staging, hoặc trên production **khi the
 4. **Pillar.** Với mỗi danh mục hub (*Dịch vụ*, *Khu vực*, *Cẩm nang*, và các danh mục con nếu muốn), chọn **trang pillar** ở trường "Pillar page" của plugin. Theme không tự đoán theo slug nên không tạo liên kết nội bộ hàng loạt ngoài ý muốn.
 5. **Plugin đồng hành (tùy chọn).** Nếu cài: *Settings → Nguyen Ha SEO Companion*. Chế độ schema phải hiển thị **extras (đã phát hiện plugin SEO)**; chỉ điền hồ sơ doanh nghiệp bằng dữ liệu **chủ sở hữu xác nhận** (không có giá trị mặc định nào được điền sẵn). Nếu muốn bật chỉ mục tìm kiếm, bấm dựng chỉ mục (xem COMPANION-PLUGIN.md); trước đó tìm kiếm là tìm kiếm gốc của WordPress.
 
+6. **Menu chính và điểm chuyển sang menu ngăn kéo.** Menu đầy đủ chỉ hiện khi cửa sổ rộng hơn nội dung (1180 px); hẹp hơn là nút menu. Giá trị này nằm ở hai nơi phải sửa cùng nhau: `assets/src/css/03-header.css` (media query) và `assets/src/js/navigation.js` (`MOBILE`), rồi `npm run build`. Với menu thật của site, xem header ở 1024, 1280 và 1440 px: nếu menu dài hơn bốn mục mà xuống dòng hoặc tên site bị cắt, nâng điểm chuyển hoặc rút gọn menu. Bộ e2e chỉ thử với menu mẫu bốn mục.
+7. **Bài viết đặt mật khẩu.** WordPress liệt kê chúng trong trang chủ, danh mục và tìm kiếm với tiền tố "Protected:" (hành vi mặc định của lõi). Theme **không** ẩn chúng khỏi các danh sách chính, vì lọc `has_password` trên truy vấn danh mục làm chậm trang (đo trên 50.000 bài: khoảng 2 s so với 0,1 s); các thành phần do theme dựng (nổi bật, liên quan, bài trước/sau, trang chủ) đã loại chúng bằng cách rẻ hơn. Nếu không muốn tiêu đề các bài đó xuất hiện công khai, chuyển chúng sang trạng thái *Riêng tư* thay vì đặt mật khẩu. Bộ e2e chạy với `NH_ALLOW_PROTECTED_LINKS=1` để báo cáo (không coi là lỗi) các liên kết đó.
+
 ## C. Đối chiếu SEO (trên staging hoặc bằng cách xem trước)
 
 Dùng baseline 525 trang trong `data/seo/protection-baseline.json` (repository `wp-aiwriter`). Với trang chủ và một mẫu đủ rộng (mỗi danh mục một bài, mỗi trang tĩnh), kiểm tra:
@@ -50,6 +53,7 @@ Dùng baseline 525 trang trong `data/seo/protection-baseline.json` (repository `
 
 - [ ] Trang chủ, một bài viết dài có bảng, một bài có H2/H3, danh mục cha (3 cấp), danh mục lá, tìm kiếm có kết quả và không có kết quả, 404, từng trang trong 18 trang tĩnh (đặc biệt trang từng dùng template/shortcode riêng của Glass), trang tác giả.
 - [ ] Điện thoại (375 px), máy tính bảng (768 px), máy tính (1440 px): không cuộn ngang, menu mở/đóng bằng bàn phím và chạm, chế độ tối, mục lục, FAQ.
+- [ ] Tìm kiếm không có từ khóa (`/?s=`) hiện lời nhắc và các chủ đề, không liệt kê mọi bài viết.
 - [ ] Bộ e2e (`npm run test:e2e` với `NH_BASE_URL` trỏ tới staging) xanh; xem [TESTING.md](TESTING.md).
 - [ ] PageSpeed/Lighthouse của staging (chỉ là số đo phòng thí nghiệm; chưa có dữ liệu Core Web Vitals thực tế của theme này).
 

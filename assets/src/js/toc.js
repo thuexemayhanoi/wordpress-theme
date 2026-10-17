@@ -38,36 +38,57 @@ export function initToc() {
     });
   });
 
-  if (!('IntersectionObserver' in window)) {
-    return;
-  }
-
-  const byTarget = new Map();
+  // The current section is the last heading that has reached the line where an anchor jump lands: the top of the
+  // viewport plus the sticky header (html { scroll-padding-top }). That line is what the stylesheet says it is, so the
+  // marker is right at every viewport height and header height; a band measured in percent of the viewport was not.
+  const entries = [];
   links.forEach((link) => {
     const target = targetOf(link);
     if (target) {
-      byTarget.set(target, link);
+      entries.push({ target, link });
     }
   });
+  if (!entries.length) {
+    return;
+  }
 
   let active = null;
-  const observer = new IntersectionObserver(
-    (entries) => {
-      entries.forEach((entry) => {
-        if (!entry.isIntersecting) {
-          return;
-        }
-        const link = byTarget.get(entry.target);
-        if (link && link !== active) {
-          if (active) {
-            active.removeAttribute('aria-current');
-          }
-          link.setAttribute('aria-current', 'true');
-          active = link;
-        }
-      });
-    },
-    { rootMargin: '-15% 0px -75% 0px' }
-  );
-  byTarget.forEach((link, target) => observer.observe(target));
+  let frame = 0;
+
+  const landingLine = () => {
+    const padding = parseFloat(window.getComputedStyle(document.documentElement).scrollPaddingTop);
+    return (Number.isFinite(padding) ? padding : 0) + 2;
+  };
+
+  const update = () => {
+    frame = 0;
+    const line = landingLine();
+    let current = null;
+    for (const entry of entries) {
+      if (entry.target.getBoundingClientRect().top <= line) {
+        current = entry.link;
+      } else {
+        break;
+      }
+    }
+    if (current !== active) {
+      if (active) {
+        active.removeAttribute('aria-current');
+      }
+      if (current) {
+        current.setAttribute('aria-current', 'true');
+      }
+      active = current;
+    }
+  };
+
+  const schedule = () => {
+    if (!frame) {
+      frame = window.requestAnimationFrame(update);
+    }
+  };
+
+  window.addEventListener('scroll', schedule, { passive: true });
+  window.addEventListener('resize', schedule);
+  update();
 }

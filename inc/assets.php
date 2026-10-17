@@ -142,6 +142,15 @@ function nh_editorial_print_head_extras() {
 	echo '<meta name="theme-color" content="#0b0f17" media="(prefers-color-scheme: dark)">' . "\n";
 
 	// Without JavaScript the collapsed menus and the search panel must stay reachable.
-	echo '<noscript><style>.sub-menu[hidden],.header-search[hidden]{display:block}.search-toggle,.submenu-toggle,.nav-toggle,.mode-toggle{display:none}.primary-nav{display:block!important;position:static!important}</style></noscript>' . "\n";
+	// !important is needed: the critical CSS has [hidden]{display:none!important}, and the header must not stay sticky
+	// (nor squeeze the menu beside the brand) once the whole menu is shown inside it.
+	echo '<noscript><style>'
+		. '.sub-menu[hidden],.header-search[hidden]{display:block!important}'
+		. '.search-toggle,.submenu-toggle,.nav-toggle,.mode-toggle{display:none!important}'
+		. '.has-sticky-header .site-header{position:static!important}.header-row{flex-wrap:wrap}'
+		. '.primary-nav{display:block!important;position:static!important;flex:1 1 100%!important;order:3;max-height:none!important;padding:0!important;border:0!important;box-shadow:none!important;overflow:visible!important}'
+		. '.nav-list{display:flex!important;flex-wrap:wrap}.nav-list>li{display:block!important;border-bottom:0!important}'
+		. '.mega-panel{position:static!important;display:block!important;max-height:none!important;padding:0 0 0 14px!important;border:0!important;box-shadow:none!important}'
+		. '</style></noscript>' . "\n";
 }
 add_action( 'wp_head', 'nh_editorial_print_head_extras', 1 );

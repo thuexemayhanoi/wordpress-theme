@@ -11,7 +11,7 @@ if ( post_password_required() ) {
 	return;
 }
 ?>
-<section id="comments" class="comments-area" aria-labelledby="comments-title">
+<section id="comments" class="comments-area"<?php echo have_comments() ? ' aria-labelledby="comments-title"' : ''; ?>>
 	<?php if ( have_comments() ) : ?>
 		<h2 id="comments-title" class="comments-title">
 			<?php

@@ -22,7 +22,7 @@ $nh_editorial_privacy  = get_privacy_policy_url();
 				<?php if ( is_active_sidebar( 'footer-1' ) ) : ?>
 					<?php dynamic_sidebar( 'footer-1' ); ?>
 				<?php else : ?>
-					<a class="brand brand--footer" href="<?php echo esc_url( home_url( '/' ) ); ?>" rel="home"<?php echo has_custom_logo() ? '' : ' aria-label="' . esc_attr( get_bloginfo( 'name' ) ) . '"'; ?>>
+					<a class="brand brand--footer" href="<?php echo esc_url( home_url( '/' ) ); ?>" rel="home">
 						<?php echo nh_editorial_brand_markup(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped inside the helper. ?>
 					</a>
 					<?php if ( '' !== get_bloginfo( 'description' ) ) : ?>

@@ -22,7 +22,7 @@ defined( 'ABSPATH' ) || exit;
 
 <header id="masthead" class="site-header">
 	<div class="wrap header-row">
-		<a class="brand" href="<?php echo esc_url( home_url( '/' ) ); ?>" rel="home"<?php echo has_custom_logo() ? '' : ' aria-label="' . esc_attr( get_bloginfo( 'name' ) ) . '"'; ?>>
+		<a class="brand" href="<?php echo esc_url( home_url( '/' ) ); ?>" rel="home">
 			<?php echo nh_editorial_brand_markup(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped inside the helper. ?>
 		</a>
 
@@ -53,7 +53,7 @@ defined( 'ABSPATH' ) || exit;
 			<?php
 			get_search_form(
 				array(
-					'aria_label' => __( 'Search articles', 'nguyen-ha-editorial' ),
+					'aria_label' => __( 'Search the site', 'nguyen-ha-editorial' ),
 					'suggest'    => true,
 				)
 			);

@@ -87,4 +87,25 @@
   .faq__answer {
     display: block !important;
   }
+
+  /* Browsers that hide a closed <details> through ::details-content (Chromium 131+) ignore the rule above. */
+  .faq__item::details-content {
+    display: block !important;
+    height: auto !important;
+    content-visibility: visible !important;
+  }
+
+  /* Dark mode keeps its light-on-dark tokens in print; paper is white. */
+  :root,
+  :root[data-theme="dark"],
+  :root:not([data-theme]) {
+    --bg: #ffffff;
+    --surface: #ffffff;
+    --paper: #ffffff;
+    --text: #000000;
+    --muted: #333333;
+    --accent: #000000;
+    --line: #999999;
+    --line-strong: #666666;
+  }
 }

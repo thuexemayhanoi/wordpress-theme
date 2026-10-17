@@ -124,7 +124,9 @@
 
 .card--compact .card__body {
   justify-content: center;
+  min-width: 0;
   padding: 12px 16px;
+  overflow-wrap: anywhere;
 }
 
 .card--compact .card__title {

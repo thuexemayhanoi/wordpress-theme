@@ -26,6 +26,13 @@ function nh_editorial_search_query( $query ) {
 		$query->set( 'post_type', array( 'post', 'page' ) );
 	}
 	$query->set( 'ignore_sticky_posts', true );
+
+	// A search without a word ("/?s=", a form sent empty) would list and count every article. search.php answers it
+	// with a prompt, so the query only has to be cheap: no post has the ID 0.
+	$phrase = $query->get( 's' );
+	if ( ! is_scalar( $phrase ) || '' === trim( (string) $phrase ) ) {
+		$query->set( 'post__in', array( 0 ) );
+	}
 }
 add_action( 'pre_get_posts', 'nh_editorial_search_query' );
 
@@ -103,7 +110,8 @@ function nh_editorial_search_suggest_attributes() {
 	$attributes = array(
 		'data-suggest-url'   => rest_url( 'wp/v2/search' ),
 		'data-label-none'    => __( 'No suggestions', 'nguyen-ha-editorial' ),
-		/* translators: %d: number of suggestions. */
+		'data-label-one'     => __( '1 suggestion available', 'nguyen-ha-editorial' ),
+		/* translators: %d: number of suggestions (two or more). */
 		'data-label-count'   => __( '%d suggestions available', 'nguyen-ha-editorial' ),
 		'data-label-all'     => __( 'See all results', 'nguyen-ha-editorial' ),
 		'data-label-heading' => __( 'Suggested articles', 'nguyen-ha-editorial' ),

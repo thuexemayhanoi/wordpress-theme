@@ -76,6 +76,7 @@ function initSuggest(form) {
 
   const labels = {
     none: form.getAttribute('data-label-none') || '',
+    one: form.getAttribute('data-label-one') || '',
     count: form.getAttribute('data-label-count') || '%d',
     all: form.getAttribute('data-label-all') || '',
   };
@@ -107,7 +108,7 @@ function initSuggest(form) {
       const base = form.getAttribute('action') || '/';
       addLink(labels.all, base + (base.indexOf('?') === -1 ? '?' : '&') + 's=' + encodeURIComponent(query), 'search-suggest__all');
     }
-    status.textContent = items.length ? labels.count.replace('%d', String(items.length)) : labels.none;
+    status.textContent = items.length === 1 && labels.one ? labels.one : items.length ? labels.count.replace('%d', String(items.length)) : labels.none;
     box.hidden = items.length === 0;
   }
 

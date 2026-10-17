@@ -7,7 +7,8 @@
  *   touch always work through the button. Focus leaving a menu item closes its panel.
  * - Without this script the panels stay hidden and every top-level link still works.
  */
-const MOBILE = '(max-width: 960px)';
+// Same width as the drawer media query in assets/src/css/03-header.css (the content width, --wrap).
+const MOBILE = '(max-width: 1180px)';
 
 export function initNavigation() {
   const nav = document.getElementById('primary-navigation');

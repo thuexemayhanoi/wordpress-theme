@@ -358,8 +358,12 @@
   font-weight: 700;
 }
 
-/* Tablet and mobile: drawer navigation. */
-@media (max-width: 960px) {
+/*
+ * Tablet and mobile: drawer navigation. The full navigation needs the whole content width (--wrap, 1180px) for the
+ * brand, a few menu items, search and the colour switch; below it the menu wraps and the brand name is cut. The same
+ * number is MOBILE in assets/src/js/navigation.js: change both together.
+ */
+@media (max-width: 1180px) {
   .nav-toggle {
     display: grid;
   }

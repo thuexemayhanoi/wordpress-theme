@@ -48,11 +48,12 @@ msgid "The address may have changed or the page may no longer exist. Search for 
 msgstr "Địa chỉ có thể đã thay đổi hoặc trang không còn tồn tại. Hãy tìm kiếm nội dung bạn cần hoặc bắt đầu từ một chủ đề."
 
 #: 404.php:22
+#: header.php:56
 msgid "Search the site"
 msgstr "Tìm kiếm trên website"
 
 #: 404.php:31
-#: front-page.php:85
+#: front-page.php:96
 #: home.php:18
 #: index.php:18
 msgid "Latest articles"
@@ -85,7 +86,7 @@ msgid "Author"
 msgstr "Tác giả"
 
 #: author.php:46
-#: front-page.php:103
+#: front-page.php:114
 #: home.php:26
 msgid "No articles yet"
 msgstr "Chưa có bài viết nào"
@@ -152,16 +153,16 @@ msgid "Privacy Policy"
 msgstr "Chính sách bảo mật"
 
 #. translators: %d: page number.
-#: front-page.php:31
+#: front-page.php:32
 #, php-format
 msgid "Latest articles, page %d"
 msgstr "Bài viết mới nhất, trang %d"
 
-#: front-page.php:37
+#: front-page.php:38
 msgid "No more articles"
 msgstr "Không còn bài viết nào"
 
-#: front-page.php:88
+#: front-page.php:99
 msgid "All articles"
 msgstr "Tất cả bài viết"
 
@@ -174,6 +175,7 @@ msgid "Primary"
 msgstr "Chính"
 
 #: header.php:36
+#: search.php:24
 #: searchform.php:23
 msgid "Search"
 msgstr "Tìm kiếm"
@@ -186,7 +188,6 @@ msgstr "Chế độ tối"
 msgid "Menu"
 msgstr "Menu"
 
-#: header.php:56
 #: searchform.php:15
 #: template-parts/components/empty-state.php:30
 #: template-parts/home/intro.php:29
@@ -207,12 +208,12 @@ msgstr "giao diện vẫn hoạt động độc lập. Hãy cài đặt và kíc
 msgid "Dismiss"
 msgstr "Đóng"
 
-#: inc/breadcrumbs.php:26
+#: inc/breadcrumbs.php:66
 msgid "Home"
 msgstr "Trang chủ"
 
 #. translators: %s: search query.
-#: inc/breadcrumbs.php:111
+#: inc/breadcrumbs.php:151
 #, php-format
 msgid "Search results for: %s"
 msgstr "Kết quả tìm kiếm cho: %s"
@@ -388,21 +389,21 @@ msgstr "Chân trang và mạng xã hội"
 msgid "Toggle submenu of %s"
 msgstr "Mở/đóng menu con của %s"
 
-#: inc/search.php:105
+#: inc/search.php:112
 msgid "No suggestions"
 msgstr "Không có gợi ý"
 
-#. translators: %d: number of suggestions.
-#: inc/search.php:107
+#. translators: %d: number of suggestions (two or more).
+#: inc/search.php:115
 #, php-format
 msgid "%d suggestions available"
 msgstr "Có %d gợi ý"
 
-#: inc/search.php:108
+#: inc/search.php:116
 msgid "See all results"
 msgstr "Xem tất cả kết quả"
 
-#: inc/search.php:109
+#: inc/search.php:117
 msgid "Suggested articles"
 msgstr "Bài viết gợi ý"
 
@@ -436,45 +437,45 @@ msgstr "Cột chân trang %d"
 msgid "When this column has widgets they replace its default content."
 msgstr "Khi cột này có tiện ích, chúng sẽ thay thế nội dung mặc định của cột."
 
-#: inc/template-tags.php:125
+#: inc/template-tags.php:126
 msgid "Published"
 msgstr "Đăng ngày"
 
-#: inc/template-tags.php:132
+#: inc/template-tags.php:133
 msgid "Updated"
 msgstr "Cập nhật"
 
 #. translators: %d: minutes.
-#: inc/template-tags.php:141
+#: inc/template-tags.php:142
 #, php-format
 msgid "%d min read"
 msgid_plural "%d min read"
 msgstr[0] "Đọc %d phút"
 
-#: inc/template-tags.php:170
+#: inc/template-tags.php:171
 msgid "Previous page"
 msgstr "Trang trước"
 
-#: inc/template-tags.php:171
+#: inc/template-tags.php:172
 msgid "Next page"
 msgstr "Trang sau"
 
-#: inc/template-tags.php:172
+#: inc/template-tags.php:173
 msgid "Page"
 msgstr "Trang"
 
-#: inc/template-tags.php:173
+#: inc/template-tags.php:174
 msgid "Pagination"
 msgstr "Phân trang"
 
 #. translators: %s: number of articles.
-#: inc/template-tags.php:189
+#: inc/template-tags.php:190
 #, php-format
 msgid "%s article"
 msgid_plural "%s articles"
 msgstr[0] "%s bài viết"
 
-#: inc/template-tags.php:365
+#: inc/template-tags.php:350
 msgid "Scrollable table"
 msgstr "Bảng có thể cuộn"
 
@@ -506,48 +507,49 @@ msgstr "Xem tất cả bài viết"
 msgid "Page parts"
 msgstr "Các phần của trang"
 
-#: search.php:46
+#: search.php:73
 msgid "Search results"
 msgstr "Kết quả tìm kiếm"
 
 #. translators: %s: search phrase.
-#: search.php:50
+#: search.php:77
 #, php-format
 msgid "Results for “%s”"
 msgstr "Kết quả cho “%s”"
 
 #. translators: %s: number of results.
-#: search.php:58
+#: search.php:85
 #, php-format
 msgid "%s result"
 msgid_plural "%s results"
 msgstr[0] "%s kết quả"
 
-#: search.php:64
+#: search.php:26
+#: search.php:91
 msgid "Refine your search"
 msgstr "Tinh chỉnh tìm kiếm"
 
-#: search.php:67
+#: search.php:94
 msgid "No exact match for all words, showing the closest results."
 msgstr "Không có kết quả khớp với tất cả các từ, đang hiển thị kết quả gần nhất."
 
-#: search.php:71
+#: search.php:98
 msgid "Matching topics"
 msgstr "Chủ đề phù hợp"
 
-#: search.php:80
+#: search.php:107
 msgid "Search within a topic"
 msgstr "Tìm trong một chủ đề"
 
-#: search.php:83
+#: search.php:110
 msgid "All topics"
 msgstr "Tất cả chủ đề"
 
-#: search.php:121
+#: search.php:148
 msgid "No matching articles"
 msgstr "Không có bài viết phù hợp"
 
-#: search.php:122
+#: search.php:149
 msgid "Try different or fewer words, check the spelling, or start from one of the topics below."
 msgstr "Hãy thử từ khóa khác hoặc ít từ hơn, kiểm tra chính tả, hoặc bắt đầu từ một trong các chủ đề bên dưới."
 
@@ -699,3 +701,15 @@ msgstr "tiêu đề trang chủ (H1) và phần giới thiệu hiện lấy từ
 #: inc/admin-notices.php:105
 msgid "Open the Customizer"
 msgstr "Mở trình tùy biến"
+
+#: inc/search.php:113
+msgid "1 suggestion available"
+msgstr "Có 1 gợi ý"
+
+#: search.php:25
+msgid "What are you looking for?"
+msgstr "Bạn đang tìm gì?"
+
+#: search.php:33
+msgid "Start from a topic"
+msgstr "Bắt đầu từ một chủ đề"

@@ -43,13 +43,19 @@
 }
 
 .footer-title,
-.footer-col .widget-title {
+.footer-col .widget-title,
+.footer-col :is(h2, h3, h4) {
   margin: 0 0 0.9em;
   color: #ffffff;
   font-size: 0.8rem;
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
+}
+
+/* Several widgets stacked in one column (core block widgets print no spacing of their own). */
+.footer-widget + .footer-widget {
+  margin-top: 1.6em;
 }
 
 .brand--footer {

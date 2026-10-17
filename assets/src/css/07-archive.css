@@ -47,6 +47,11 @@
   gap: clamp(16px, 3vw, 28px);
 }
 
+.author-hero__avatar,
+.author-box__avatar {
+  flex: none;
+}
+
 .author-hero__avatar img,
 .author-box__avatar img {
   display: block;
@@ -133,4 +138,69 @@ a.page-numbers:hover {
 .empty-state .search-form {
   max-width: none;
   margin-bottom: 0.5em;
+}
+
+/* Pillar box: above the fold on category hubs, so it must not wait for the deferred stylesheet (layout shift). */
+.pillar-box {
+  display: flex;
+  gap: 16px;
+  margin: clamp(28px, 4vw, 44px) 0;
+  padding: clamp(16px, 3vw, 24px);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.pillar-box__icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.pillar-box__label {
+  margin: 0 0 0.3em;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.pillar-box__title {
+  margin: 0 0 0.3em;
+  font-size: 1.2rem;
+  font-weight: 750;
+  line-height: 1.35;
+}
+
+.pillar-box__title a {
+  color: var(--text);
+  text-decoration: none;
+}
+
+.pillar-box__title a:hover {
+  color: var(--accent);
+}
+
+.pillar-box__text {
+  margin: 0 0 0.6em;
+  color: var(--muted);
+}
+
+.pillar-box__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.pillar-box__hub {
+  margin: 0.8em 0 0;
+  font-size: 0.95rem;
 }

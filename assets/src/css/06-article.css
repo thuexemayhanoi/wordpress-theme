@@ -280,12 +280,6 @@
   margin-top: 0;
 }
 
-.prose h2,
-.prose h3,
-.prose h4 {
-  scroll-margin-top: calc(var(--header-h) + var(--admin-h) + 16px);
-}
-
 .prose h2 {
   margin: 2em 0 0.6em;
   font-size: clamp(1.45rem, 2.6vw, 1.85rem);

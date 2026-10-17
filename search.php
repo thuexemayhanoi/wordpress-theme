@@ -14,6 +14,33 @@ get_header();
 
 global $wp_query;
 $nh_editorial_phrase = nh_editorial_search_phrase();
+
+// Nothing to look for yet: a prompt and the topics, not a list of every article under "Results for “”".
+if ( '' === $nh_editorial_phrase ) {
+	?>
+	<div class="wrap inner-page">
+		<header class="archive-header archive-header--search">
+			<?php nh_editorial_breadcrumbs(); ?>
+			<p class="eyebrow"><?php esc_html_e( 'Search', 'nguyen-ha-editorial' ); ?></p>
+			<h1 class="archive-title"><?php esc_html_e( 'What are you looking for?', 'nguyen-ha-editorial' ); ?></h1>
+			<?php get_search_form( array( 'aria_label' => __( 'Refine your search', 'nguyen-ha-editorial' ) ) ); ?>
+		</header>
+		<?php
+		get_template_part(
+			'template-parts/components/empty-state',
+			null,
+			array(
+				'title'  => __( 'Start from a topic', 'nguyen-ha-editorial' ),
+				'search' => false,
+			)
+		);
+		?>
+	</div>
+	<?php
+	get_footer();
+	return;
+}
+
 $nh_editorial_hubs   = nh_editorial_get_hubs( 8 );
 $nh_editorial_active = isset( $_GET['cat'] ) ? absint( wp_unslash( $_GET['cat'] ) ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only filter, no state change.
 
