@@ -338,6 +338,24 @@ class NH_Test_Theme_Source extends NH_Unit_Test_Case {
 		$this->assertSame( array(), $unused, 'these shipped assets are not loaded by any theme file' );
 	}
 
+	/**
+	 * WordPress core defines fallbacks for mb_strlen() and mb_substr() when the mbstring extension is missing,
+	 * but not for the other mb_* functions: calling one unguarded would end every page in a fatal error on such a host.
+	 */
+	public function test_mbstring_functions_without_a_core_fallback_are_guarded() {
+		$with_fallback = array( 'mb_strlen', 'mb_substr', 'mb_check_encoding' );
+		foreach ( $this->theme_php_files() as $file ) {
+			$source = (string) preg_replace( '#/\*.*?\*/|//[^\n]*#s', '', (string) file_get_contents( $file ) );
+			preg_match_all( '/\b(mb_[a-z_]+)\s*\(/', $source, $matches );
+			foreach ( array_unique( $matches[1] ) as $function ) {
+				if ( in_array( $function, $with_fallback, true ) ) {
+					continue;
+				}
+				$this->assertStringContainsString( "function_exists( '{$function}' )", $source, basename( $file ) . ' calls ' . $function . '() without checking that it exists.' );
+			}
+		}
+	}
+
 	public function test_no_dangerous_functions_in_theme_source() {
 		$forbidden = '/\b(eval|base64_decode|shell_exec|passthru|proc_open|popen|create_function|unserialize|extract|assert)\s*\(|\bexec\s*\(|\bsystem\s*\(/';
 		foreach ( $this->theme_php_files() as $file ) {

@@ -198,7 +198,8 @@ function nh_editorial_site_initials() {
 	$words    = preg_split( '/\s+/u', trim( wp_strip_all_tags( get_bloginfo( 'name' ) ) ), -1, PREG_SPLIT_NO_EMPTY );
 	$initials = '';
 	foreach ( array_slice( (array) $words, 0, 2 ) as $word ) {
-		$initials .= mb_strtoupper( mb_substr( $word, 0, 1 ) );
+		$letter    = mb_substr( $word, 0, 1 );
+		$initials .= function_exists( 'mb_strtoupper' ) ? mb_strtoupper( $letter ) : strtoupper( $letter );
 	}
 	return '' !== $initials ? $initials : 'N';
 }
