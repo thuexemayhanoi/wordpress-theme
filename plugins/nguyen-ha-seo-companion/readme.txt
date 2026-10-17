@@ -20,10 +20,10 @@ Nguyen Ha SEO Companion is the companion plugin of the Nguyen Ha Editorial theme
 * **Topic Clusters.** A flat, non-public taxonomy that groups articles for internal linking. Clusters have no public pages, archives or sitemap entries, so they can never compete with your category pages. Each article can have a primary cluster; categories and clusters can point to a Pillar page; Pillar and Hub pages can list a category or a cluster.
 * **Fallback rendering.** If the active theme does not display the quick answer, takeaways, FAQ, sources or update date itself, the plugin adds exactly the missing parts to the article with a tiny stylesheet. A theme opts out feature by feature.
 * **Verified business profile.** One settings form for the business name, type, contact details, address, opening hours and social profiles. Nothing is pre-filled and nothing is guessed. The theme reads it through a filter.
-* **Structured data.** FAQPage and LocalBusiness data next to the graph of your SEO plugin (Yoast SEO, Rank Math and others are detected), or a complete minimal graph when no SEO plugin is active. FAQ data is only output when the FAQ is visible on the page, and ratings, reviews and offers are never output.
-* **Internal search index.** An optional index that makes the site search fast and relevant on sites with tens of thousands of posts, with an automatic fallback to the WordPress search.
-* **Cache purging.** Affected URLs are purged once per request from LiteSpeed Cache, WP Rocket, W3 Total Cache and WP Super Cache.
-* **WP-CLI.** `wp nh-seo reindex`, `wp nh-seo index-status` and `wp nh-seo purge`.
+* **Structured data.** FAQPage and LocalBusiness data next to the graph of your SEO plugin (Yoast SEO, Rank Math and others are detected), or a complete minimal graph when no SEO plugin is active. FAQ data is only output when the FAQ is visible on the page and no FAQ block of Yoast SEO or Rank Math already prints it. LocalBusiness data needs a complete business profile and a page you flagged (or the front page, when you allow it). Ratings, reviews and offers are never output.
+* **Internal search index.** An optional index that makes the site search fast and relevant on sites with tens of thousands of posts. Accents do not matter ("thue xe may" finds "Thuê xe máy"), titles and category, tag and cluster names count more than the text, and the best match comes first. It needs InnoDB full-text indexes (MySQL 5.6, MariaDB 10.0.5 or newer). Until you build it, and whenever it cannot be used, WordPress searches as before.
+* **Cache purging.** When content is published, updated, unpublished or deleted, the URLs it makes stale (the post, the home page, its category and tag archives, the author page, its Pillar page and its neighbours) are purged once per request from LiteSpeed Cache, WP Rocket, W3 Total Cache and WP Super Cache.
+* **WP-CLI.** `wp nh-seo reindex` rebuilds the search index in batches, `wp nh-seo index-status` shows its state and `wp nh-seo purge --post=<id>` purges the caches for one post.
 
 **What it never does**
 
@@ -36,7 +36,7 @@ Nguyen Ha SEO Companion is the companion plugin of the Nguyen Ha Editorial theme
 1. Upload the `nguyen-ha-seo-companion` folder to `/wp-content/plugins/`, or install the zip from Plugins > Add New > Upload Plugin.
 2. Activate the plugin.
 3. Open Settings > Nguyen Ha SEO Companion. Fill in the Business profile with information that is accurate and verifiable, or leave it empty.
-4. Optional: open the Tools tab and build the search index.
+4. Optional: open the Tools tab and build the search index (or run `wp nh-seo reindex`).
 
 No other setup is needed. Posts without any of the fields below render exactly as before.
 
@@ -68,7 +68,21 @@ No. It makes no remote requests and does not track visitors. The business profil
 
 = Will it conflict with Yoast SEO or Rank Math? =
 
-No. When an SEO plugin owns the titles and the structured data graph, the companion only prints separate FAQPage and LocalBusiness blocks and never edits that plugin's graph. The primary category chosen in those plugins is respected.
+It is built not to. When an SEO plugin owns the titles and the structured data graph, the companion prints no titles, canonical links, robots tags or graph of its own: only separate FAQPage and LocalBusiness blocks, and never edits that plugin's graph. A FAQ block of Yoast SEO or Rank Math in the content (also inside a reusable block) and a Local SEO add-on are recognised, and the companion then prints nothing of its own for them. The primary category chosen in those plugins is respected.
+
+= How does the internal search index work, and what are its limits? =
+
+The index is a separate table with a folded copy of every public post and page: the title, the category, tag and cluster names, the extra keywords and the words of the text. Your content is never changed. It is kept up to date when you save, trash, delete or re-categorise a post; a change that touches thousands of posts at once (renaming a category) is refreshed in the background by WP-Cron, and the Tools tab says when a rebuild is advised.
+
+* It finds the start of words ("motor" finds "motorbike"), not text inside a word. Up to 15,000 indexed posts a search that finds nothing in the index is repeated with the WordPress search, which does find text inside words. Above that the empty answer stands, because the WordPress search then reads every post and takes seconds. The filter `nh_seo_search_native_fallback_limit` changes the limit.
+* A search made only of words of one or two letters, a quoted phrase and a search with an excluded word ("-word") are answered by WordPress as before. Inside a longer search, words of one or two letters are ignored by the index, because full-text indexes do not hold them.
+* When no post has every word, the results that have some of the words are shown and the theme can say so with `nh_seo_search_was_relaxed()`.
+* Private posts are not indexed, and password protected posts never are. After an import that writes straight into the database, rebuild the index in the Tools tab or with `wp nh-seo reindex`.
+* A database error pauses the index for ten minutes; WordPress searches meanwhile and the Tools tab shows why.
+
+= Can my own cache or CDN be purged too? =
+
+Yes: listen to the action `nh_seo_purge_urls`, which receives the list of URLs once per request. The built-in connections to LiteSpeed Cache, WP Rocket, W3 Total Cache and WP Super Cache use the public hooks and functions of those plugins and can be switched off with the setting "Purge page caches when content changes".
 
 = Which languages are included? =
 
@@ -96,12 +110,16 @@ A Pillar must be another published, public post or page. Drafts, private and pas
 * `nh_seo_cluster_synced`: fires after an alias was applied to a post.
 * `nh_seo_render_tools_panel`: other modules print their panel in the Tools tab.
 * `nh_seo_search_status`: the one-line search index status shown in the Status tab.
-* `nh_seo_detected_seo_plugin`, `nh_seo_breadcrumb_trail`, `nh_seo_schema_graph`, `nh_seo_purge_urls`: see the data contract in the theme repository.
+* `nh_seo_detected_seo_plugin`, `nh_seo_breadcrumb_trail`: see the data contract in the theme repository.
+* `nh_seo_schema_mode`, `nh_seo_schema_graph`, `nh_seo_faq_min_items`, `nh_seo_has_external_faq`, `nh_seo_external_faq_blocks`, `nh_seo_has_external_localbusiness`, `nh_seo_local_seo_probes`: the structured data mode, the nodes that are printed and how another plugin's FAQ and LocalBusiness data is recognised.
+* `nh_seo_search_enabled`, `nh_seo_search_post_types`, `nh_seo_search_taxonomies`, `nh_seo_search_native_fallback_limit`, `nh_seo_search_batch_size`: where the search index is used, what it holds, and how large a build step is. `nh_seo_search_was_relaxed()` tells a theme that the results are the partial ones.
+* `nh_seo_purge_urls` (action), `nh_seo_purge_post_urls`, `nh_seo_purge_max_urls`, `nh_seo_purge_failed`: the URLs handed to the cache plugins, and a way to add to them or to listen.
+* The Nguyen Ha Editorial theme asks `nh_editorial_search_index_active` whether a fast search index is serving the search, and offers suggestions while typing on very large sites only when it is. The plugin answers true only while its index is built and in use.
 
 == Changelog ==
 
 = 1.0.0 =
-* First release: Topic Clusters, answer-first content with FAQ and sources, fallback rendering, business profile, structured data, internal search index, cache purging and WP-CLI commands.
+* First release: Topic Clusters, answer-first content with FAQ and sources, fallback rendering, business profile, structured data (FAQPage and LocalBusiness next to an SEO plugin's graph, or a minimal graph), internal search index that ignores accents (Vietnamese and other Latin scripts), cache purging for LiteSpeed Cache, WP Rocket, W3 Total Cache and WP Super Cache, and the WP-CLI commands `reindex`, `index-status` and `purge`.
 
 == Upgrade Notice ==
 
