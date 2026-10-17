@@ -1,0 +1,74 @@
+/*
+ * Nguyen Ha SEO Companion: fallback blocks for themes that do not render the editorial extras themselves.
+ * Neutral on purpose: colours are inherited from the theme and borders use a translucent grey.
+ */
+.nh-seo-block {
+	margin: 1.5em 0;
+	padding: 1em 1.25em;
+	border: 1px solid rgba(127, 127, 127, 0.35);
+	border-inline-start-width: 4px;
+	border-radius: 0.375em;
+	background: rgba(127, 127, 127, 0.07);
+	color: inherit;
+	line-height: 1.6;
+}
+
+.nh-seo-block > :last-child {
+	margin-bottom: 0;
+}
+
+.nh-seo-block__title {
+	margin: 0 0 0.5em;
+	font-size: 1.15em;
+	line-height: 1.3;
+}
+
+.nh-seo-summary__text {
+	margin: 0;
+	font-size: 1.05em;
+}
+
+.nh-seo-takeaways__list,
+.nh-seo-sources__list {
+	margin: 0;
+	padding-inline-start: 1.4em;
+}
+
+.nh-seo-takeaways__list li + li,
+.nh-seo-sources__item + .nh-seo-sources__item {
+	margin-top: 0.35em;
+}
+
+.nh-seo-faq__item + .nh-seo-faq__item {
+	margin-top: 1em;
+	padding-top: 1em;
+	border-top: 1px solid rgba(127, 127, 127, 0.25);
+}
+
+.nh-seo-faq__question {
+	margin: 0 0 0.35em;
+	font-size: 1.05em;
+	line-height: 1.4;
+}
+
+.nh-seo-faq__answer > :first-child {
+	margin-top: 0;
+}
+
+.nh-seo-faq__answer > :last-child {
+	margin-bottom: 0;
+}
+
+.nh-seo-sources__item {
+	overflow-wrap: anywhere;
+}
+
+.nh-seo-sources__publisher {
+	opacity: 0.8;
+}
+
+.nh-seo-updated {
+	margin: 0 0 1em;
+	font-size: 0.9em;
+	opacity: 0.85;
+}
