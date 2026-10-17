@@ -18,6 +18,8 @@ $nh_editorial_last = count( $nh_editorial_crumbs ) - 1;
 		<?php foreach ( $nh_editorial_crumbs as $nh_editorial_i => $nh_editorial_crumb ) : ?>
 			<?php if ( $nh_editorial_i === $nh_editorial_last ) : ?>
 				<li class="breadcrumbs__item breadcrumbs__item--current" aria-current="page"><span><?php echo esc_html( $nh_editorial_crumb['name'] ); ?></span></li>
+			<?php elseif ( '' === $nh_editorial_crumb['url'] ) : ?>
+				<li class="breadcrumbs__item"><span><?php echo esc_html( $nh_editorial_crumb['name'] ); ?></span></li>
 			<?php else : ?>
 				<li class="breadcrumbs__item"><a href="<?php echo esc_url( $nh_editorial_crumb['url'] ); ?>"><?php echo esc_html( $nh_editorial_crumb['name'] ); ?></a></li>
 			<?php endif; ?>

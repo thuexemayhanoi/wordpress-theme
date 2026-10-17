@@ -211,6 +211,34 @@ class NH_Test_Breadcrumb_Source extends NH_Unit_Test_Case {
 		$this->assertStringNotContainsString( '<b>', $html );
 	}
 
+	public function test_a_crumb_without_an_address_is_text_not_a_link_to_nowhere() {
+		$this->yoast_prints_the_list(
+			array(
+				array(
+					'url'  => home_url( '/' ),
+					'text' => 'Home',
+				),
+				array(
+					'url'  => '',
+					'text' => 'Section without a page',
+				),
+				array(
+					'url'  => get_permalink( $this->post ),
+					'text' => 'Choosing a scooter',
+				),
+			)
+		);
+		$this->go_to( get_permalink( $this->post ) );
+
+		ob_start();
+		nh_editorial_breadcrumbs();
+		$html = ob_get_clean();
+		$this->assertSame( 3, substr_count( $html, '<li ' ) );
+		$this->assertSame( 1, substr_count( $html, '<a ' ), 'Only Home is a link.' );
+		$this->assertStringNotContainsString( 'href=""', $html );
+		$this->assertStringContainsString( '<span>Section without a page</span>', $html );
+	}
+
 	public function test_a_search_page_shows_the_wording_of_the_plugin() {
 		$crumbs = array(
 			array(
