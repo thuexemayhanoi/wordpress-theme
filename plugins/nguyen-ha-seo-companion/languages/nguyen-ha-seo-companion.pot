@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-17T05:55:44+00:00\n"
+"POT-Creation-Date: 2026-10-17T06:04:32+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: nguyen-ha-seo-companion\n"
@@ -39,31 +39,27 @@ msgstr ""
 msgid "https://github.com/thuexemayhanoi"
 msgstr ""
 
-#: includes/admin/class-nh-seo-admin-assets.php:69
+#: includes/admin/class-nh-seo-admin-assets.php:77
 msgid "Choose a logo"
 msgstr ""
 
-#: includes/admin/class-nh-seo-admin-assets.php:70
+#: includes/admin/class-nh-seo-admin-assets.php:78
 msgid "Use this image"
 msgstr ""
 
-#: includes/admin/class-nh-seo-admin-assets.php:71
-msgid "No logo selected."
-msgstr ""
-
-#: includes/admin/class-nh-seo-admin-assets.php:72
+#: includes/admin/class-nh-seo-admin-assets.php:79
 msgid "Item added."
 msgstr ""
 
-#: includes/admin/class-nh-seo-admin-assets.php:73
+#: includes/admin/class-nh-seo-admin-assets.php:80
 msgid "Item removed."
 msgstr ""
 
-#: includes/admin/class-nh-seo-admin-assets.php:74
+#: includes/admin/class-nh-seo-admin-assets.php:81
 msgid "Item moved."
 msgstr ""
 
-#: includes/admin/class-nh-seo-admin-assets.php:75
+#: includes/admin/class-nh-seo-admin-assets.php:82
 msgid "The maximum number of items is reached."
 msgstr ""
 
@@ -80,7 +76,7 @@ msgid "Answer first"
 msgstr ""
 
 #: includes/admin/class-nh-seo-meta-box.php:95
-#: includes/admin/class-nh-seo-settings-page.php:727
+#: includes/admin/class-nh-seo-settings-page.php:729
 #: includes/render/class-nh-seo-renderer.php:64
 msgid "Quick answer"
 msgstr ""
@@ -102,7 +98,7 @@ msgid "One or two sentences that answer the question of the article right away. 
 msgstr ""
 
 #: includes/admin/class-nh-seo-meta-box.php:107
-#: includes/admin/class-nh-seo-settings-page.php:728
+#: includes/admin/class-nh-seo-settings-page.php:730
 #: includes/render/class-nh-seo-renderer.php:87
 msgid "Key takeaways"
 msgstr ""
@@ -173,7 +169,7 @@ msgid "Answer"
 msgstr ""
 
 #: includes/admin/class-nh-seo-meta-box.php:163
-#: includes/admin/class-nh-seo-settings-page.php:730
+#: includes/admin/class-nh-seo-settings-page.php:732
 #: includes/render/class-nh-seo-renderer.php:158
 msgid "Sources"
 msgstr ""
@@ -285,13 +281,13 @@ msgstr ""
 
 #: includes/admin/class-nh-seo-meta-box.php:378
 #: includes/admin/class-nh-seo-settings-page.php:352
-#: includes/admin/class-nh-seo-settings-page.php:769
+#: includes/admin/class-nh-seo-settings-page.php:771
 #: includes/data/class-nh-seo-data-model.php:63
 msgid "Topic Clusters"
 msgstr ""
 
 #: includes/admin/class-nh-seo-meta-box.php:383
-#: includes/admin/class-nh-seo-settings-page.php:763
+#: includes/admin/class-nh-seo-settings-page.php:765
 msgid "None"
 msgstr ""
 
@@ -490,18 +486,18 @@ msgid "Automatic (recommended)"
 msgstr ""
 
 #: includes/admin/class-nh-seo-settings-page.php:325
-#: includes/admin/class-nh-seo-settings-page.php:721
+#: includes/admin/class-nh-seo-settings-page.php:723
 msgid "Extras only: FAQ and local business next to another SEO plugin"
 msgstr ""
 
 #: includes/admin/class-nh-seo-settings-page.php:326
-#: includes/admin/class-nh-seo-settings-page.php:720
+#: includes/admin/class-nh-seo-settings-page.php:722
 msgid "Full: this plugin outputs the whole graph"
 msgstr ""
 
 #: includes/admin/class-nh-seo-settings-page.php:327
-#: includes/admin/class-nh-seo-settings-page.php:722
-#: includes/admin/class-nh-seo-settings-page.php:766
+#: includes/admin/class-nh-seo-settings-page.php:724
+#: includes/admin/class-nh-seo-settings-page.php:768
 msgid "Off"
 msgstr ""
 
@@ -526,7 +522,7 @@ msgid "Content"
 msgstr ""
 
 #: includes/admin/class-nh-seo-settings-page.php:345
-#: includes/admin/class-nh-seo-settings-page.php:766
+#: includes/admin/class-nh-seo-settings-page.php:768
 msgid "Fallback rendering"
 msgstr ""
 
@@ -601,7 +597,7 @@ msgid "You are not allowed to change these settings."
 msgstr ""
 
 #: includes/admin/class-nh-seo-settings-page.php:617
-#: includes/admin/class-nh-seo-settings-page.php:768
+#: includes/admin/class-nh-seo-settings-page.php:770
 msgid "Business profile"
 msgstr ""
 
@@ -615,7 +611,7 @@ msgid "Tools"
 msgstr ""
 
 #: includes/admin/class-nh-seo-settings-page.php:620
-#: includes/admin/class-nh-seo-settings-page.php:692
+#: includes/admin/class-nh-seo-settings-page.php:694
 msgid "Status"
 msgstr ""
 
@@ -639,65 +635,65 @@ msgstr ""
 msgid "The profile is not complete yet."
 msgstr ""
 
-#: includes/admin/class-nh-seo-settings-page.php:675
+#: includes/admin/class-nh-seo-settings-page.php:683
 msgid "There are no tools available."
 msgstr ""
 
-#: includes/admin/class-nh-seo-settings-page.php:729
+#: includes/admin/class-nh-seo-settings-page.php:731
 msgid "FAQ"
 msgstr ""
 
-#: includes/admin/class-nh-seo-settings-page.php:731
+#: includes/admin/class-nh-seo-settings-page.php:733
 msgid "Update date"
 msgstr ""
 
 #. translators: %s: name of an editorial block, such as FAQ.
-#: includes/admin/class-nh-seo-settings-page.php:737
+#: includes/admin/class-nh-seo-settings-page.php:739
 #, php-format
 msgid "%s: shown by the theme"
 msgstr ""
 
 #. translators: %s: name of an editorial block, such as FAQ.
-#: includes/admin/class-nh-seo-settings-page.php:740
+#: includes/admin/class-nh-seo-settings-page.php:742
 #, php-format
 msgid "%s: shown by the plugin fallback"
 msgstr ""
 
 #. translators: %s: name of an editorial block, such as FAQ.
-#: includes/admin/class-nh-seo-settings-page.php:743
+#: includes/admin/class-nh-seo-settings-page.php:745
 #, php-format
 msgid "%s: not shown"
 msgstr ""
 
-#: includes/admin/class-nh-seo-settings-page.php:762
+#: includes/admin/class-nh-seo-settings-page.php:764
 msgid "Plugin version"
 msgstr ""
 
-#: includes/admin/class-nh-seo-settings-page.php:763
+#: includes/admin/class-nh-seo-settings-page.php:765
 msgid "SEO plugin detected"
 msgstr ""
 
-#: includes/admin/class-nh-seo-settings-page.php:764
+#: includes/admin/class-nh-seo-settings-page.php:766
 msgid "Structured data in effect"
 msgstr ""
 
-#: includes/admin/class-nh-seo-settings-page.php:765
+#: includes/admin/class-nh-seo-settings-page.php:767
 msgid "Theme support"
 msgstr ""
 
-#: includes/admin/class-nh-seo-settings-page.php:766
+#: includes/admin/class-nh-seo-settings-page.php:768
 msgid "On"
 msgstr ""
 
-#: includes/admin/class-nh-seo-settings-page.php:767
+#: includes/admin/class-nh-seo-settings-page.php:769
 msgid "Internal search index"
 msgstr ""
 
-#: includes/admin/class-nh-seo-settings-page.php:768
+#: includes/admin/class-nh-seo-settings-page.php:770
 msgid "Complete"
 msgstr ""
 
-#: includes/admin/class-nh-seo-settings-page.php:768
+#: includes/admin/class-nh-seo-settings-page.php:770
 msgid "Not complete"
 msgstr ""
 

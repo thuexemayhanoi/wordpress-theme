@@ -42,31 +42,27 @@ msgstr "Nguyen Ha Web Team"
 msgid "https://github.com/thuexemayhanoi"
 msgstr "https://github.com/thuexemayhanoi"
 
-#: includes/admin/class-nh-seo-admin-assets.php:69
+#: includes/admin/class-nh-seo-admin-assets.php:77
 msgid "Choose a logo"
 msgstr "Chọn logo"
 
-#: includes/admin/class-nh-seo-admin-assets.php:70
+#: includes/admin/class-nh-seo-admin-assets.php:78
 msgid "Use this image"
 msgstr "Dùng ảnh này"
 
-#: includes/admin/class-nh-seo-admin-assets.php:71
-msgid "No logo selected."
-msgstr "Chưa chọn logo."
-
-#: includes/admin/class-nh-seo-admin-assets.php:72
+#: includes/admin/class-nh-seo-admin-assets.php:79
 msgid "Item added."
 msgstr "Đã thêm mục."
 
-#: includes/admin/class-nh-seo-admin-assets.php:73
+#: includes/admin/class-nh-seo-admin-assets.php:80
 msgid "Item removed."
 msgstr "Đã xóa mục."
 
-#: includes/admin/class-nh-seo-admin-assets.php:74
+#: includes/admin/class-nh-seo-admin-assets.php:81
 msgid "Item moved."
 msgstr "Đã di chuyển mục."
 
-#: includes/admin/class-nh-seo-admin-assets.php:75
+#: includes/admin/class-nh-seo-admin-assets.php:82
 msgid "The maximum number of items is reached."
 msgstr "Đã đạt số mục tối đa."
 
@@ -83,7 +79,7 @@ msgid "Answer first"
 msgstr "Trả lời trước"
 
 #: includes/admin/class-nh-seo-meta-box.php:95
-#: includes/admin/class-nh-seo-settings-page.php:727
+#: includes/admin/class-nh-seo-settings-page.php:729
 #: includes/render/class-nh-seo-renderer.php:64
 msgid "Quick answer"
 msgstr "Trả lời nhanh"
@@ -105,7 +101,7 @@ msgid "One or two sentences that answer the question of the article right away. 
 msgstr "Một hoặc hai câu trả lời ngay câu hỏi chính của bài viết. Chỉ dùng văn bản thuần."
 
 #: includes/admin/class-nh-seo-meta-box.php:107
-#: includes/admin/class-nh-seo-settings-page.php:728
+#: includes/admin/class-nh-seo-settings-page.php:730
 #: includes/render/class-nh-seo-renderer.php:87
 msgid "Key takeaways"
 msgstr "Điểm chính cần nhớ"
@@ -176,7 +172,7 @@ msgid "Answer"
 msgstr "Câu trả lời"
 
 #: includes/admin/class-nh-seo-meta-box.php:163
-#: includes/admin/class-nh-seo-settings-page.php:730
+#: includes/admin/class-nh-seo-settings-page.php:732
 #: includes/render/class-nh-seo-renderer.php:158
 msgid "Sources"
 msgstr "Nguồn tham khảo"
@@ -288,13 +284,13 @@ msgstr "Chuyên mục"
 
 #: includes/admin/class-nh-seo-meta-box.php:378
 #: includes/admin/class-nh-seo-settings-page.php:352
-#: includes/admin/class-nh-seo-settings-page.php:769
+#: includes/admin/class-nh-seo-settings-page.php:771
 #: includes/data/class-nh-seo-data-model.php:63
 msgid "Topic Clusters"
 msgstr "Cụm chủ đề"
 
 #: includes/admin/class-nh-seo-meta-box.php:383
-#: includes/admin/class-nh-seo-settings-page.php:763
+#: includes/admin/class-nh-seo-settings-page.php:765
 msgid "None"
 msgstr "Không có"
 
@@ -493,18 +489,18 @@ msgid "Automatic (recommended)"
 msgstr "Tự động (khuyên dùng)"
 
 #: includes/admin/class-nh-seo-settings-page.php:325
-#: includes/admin/class-nh-seo-settings-page.php:721
+#: includes/admin/class-nh-seo-settings-page.php:723
 msgid "Extras only: FAQ and local business next to another SEO plugin"
 msgstr "Chỉ phần bổ sung: FAQ và doanh nghiệp địa phương, dùng cùng plugin SEO khác"
 
 #: includes/admin/class-nh-seo-settings-page.php:326
-#: includes/admin/class-nh-seo-settings-page.php:720
+#: includes/admin/class-nh-seo-settings-page.php:722
 msgid "Full: this plugin outputs the whole graph"
 msgstr "Đầy đủ: plugin này xuất toàn bộ sơ đồ dữ liệu (graph)"
 
 #: includes/admin/class-nh-seo-settings-page.php:327
-#: includes/admin/class-nh-seo-settings-page.php:722
-#: includes/admin/class-nh-seo-settings-page.php:766
+#: includes/admin/class-nh-seo-settings-page.php:724
+#: includes/admin/class-nh-seo-settings-page.php:768
 msgid "Off"
 msgstr "Tắt"
 
@@ -529,7 +525,7 @@ msgid "Content"
 msgstr "Nội dung"
 
 #: includes/admin/class-nh-seo-settings-page.php:345
-#: includes/admin/class-nh-seo-settings-page.php:766
+#: includes/admin/class-nh-seo-settings-page.php:768
 msgid "Fallback rendering"
 msgstr "Hiển thị dự phòng"
 
@@ -604,7 +600,7 @@ msgid "You are not allowed to change these settings."
 msgstr "Bạn không có quyền thay đổi các cài đặt này."
 
 #: includes/admin/class-nh-seo-settings-page.php:617
-#: includes/admin/class-nh-seo-settings-page.php:768
+#: includes/admin/class-nh-seo-settings-page.php:770
 msgid "Business profile"
 msgstr "Hồ sơ doanh nghiệp"
 
@@ -618,7 +614,7 @@ msgid "Tools"
 msgstr "Công cụ"
 
 #: includes/admin/class-nh-seo-settings-page.php:620
-#: includes/admin/class-nh-seo-settings-page.php:692
+#: includes/admin/class-nh-seo-settings-page.php:694
 msgid "Status"
 msgstr "Trạng thái"
 
@@ -642,65 +638,65 @@ msgstr "Hồ sơ đã đầy đủ."
 msgid "The profile is not complete yet."
 msgstr "Hồ sơ chưa đầy đủ."
 
-#: includes/admin/class-nh-seo-settings-page.php:675
+#: includes/admin/class-nh-seo-settings-page.php:683
 msgid "There are no tools available."
 msgstr "Hiện không có công cụ nào."
 
-#: includes/admin/class-nh-seo-settings-page.php:729
+#: includes/admin/class-nh-seo-settings-page.php:731
 msgid "FAQ"
 msgstr "Câu hỏi thường gặp"
 
-#: includes/admin/class-nh-seo-settings-page.php:731
+#: includes/admin/class-nh-seo-settings-page.php:733
 msgid "Update date"
 msgstr "Ngày cập nhật"
 
 #. translators: %s: name of an editorial block, such as FAQ.
-#: includes/admin/class-nh-seo-settings-page.php:737
+#: includes/admin/class-nh-seo-settings-page.php:739
 #, php-format
 msgid "%s: shown by the theme"
 msgstr "%s: do giao diện hiển thị"
 
 #. translators: %s: name of an editorial block, such as FAQ.
-#: includes/admin/class-nh-seo-settings-page.php:740
+#: includes/admin/class-nh-seo-settings-page.php:742
 #, php-format
 msgid "%s: shown by the plugin fallback"
 msgstr "%s: plugin hiển thị dự phòng"
 
 #. translators: %s: name of an editorial block, such as FAQ.
-#: includes/admin/class-nh-seo-settings-page.php:743
+#: includes/admin/class-nh-seo-settings-page.php:745
 #, php-format
 msgid "%s: not shown"
 msgstr "%s: không hiển thị"
 
-#: includes/admin/class-nh-seo-settings-page.php:762
+#: includes/admin/class-nh-seo-settings-page.php:764
 msgid "Plugin version"
 msgstr "Phiên bản plugin"
 
-#: includes/admin/class-nh-seo-settings-page.php:763
+#: includes/admin/class-nh-seo-settings-page.php:765
 msgid "SEO plugin detected"
 msgstr "Plugin SEO được phát hiện"
 
-#: includes/admin/class-nh-seo-settings-page.php:764
+#: includes/admin/class-nh-seo-settings-page.php:766
 msgid "Structured data in effect"
 msgstr "Dữ liệu có cấu trúc đang áp dụng"
 
-#: includes/admin/class-nh-seo-settings-page.php:765
+#: includes/admin/class-nh-seo-settings-page.php:767
 msgid "Theme support"
 msgstr "Hỗ trợ của giao diện"
 
-#: includes/admin/class-nh-seo-settings-page.php:766
+#: includes/admin/class-nh-seo-settings-page.php:768
 msgid "On"
 msgstr "Bật"
 
-#: includes/admin/class-nh-seo-settings-page.php:767
+#: includes/admin/class-nh-seo-settings-page.php:769
 msgid "Internal search index"
 msgstr "Chỉ mục tìm kiếm nội bộ"
 
-#: includes/admin/class-nh-seo-settings-page.php:768
+#: includes/admin/class-nh-seo-settings-page.php:770
 msgid "Complete"
 msgstr "Đầy đủ"
 
-#: includes/admin/class-nh-seo-settings-page.php:768
+#: includes/admin/class-nh-seo-settings-page.php:770
 msgid "Not complete"
 msgstr "Chưa đầy đủ"
 
