@@ -247,8 +247,8 @@ function nh_seo_sanitize_date( $value ) {
 	if ( ! $date || $date->format( 'Y-m-d' ) !== $value ) {
 		return '';
 	}
-	$tomorrow = new DateTime( 'tomorrow', wp_timezone() );
-	if ( $date > $tomorrow ) {
+	// Today (in the site's timezone) is the latest acceptable day: a content update cannot be dated ahead.
+	if ( $date > new DateTime( 'today', wp_timezone() ) ) {
 		return '';
 	}
 	return $value;

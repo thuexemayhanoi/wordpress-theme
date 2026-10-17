@@ -186,7 +186,8 @@ function nh_editorial_clean_date( $raw ) {
 	if ( ! $date || $date->format( 'Y-m-d' ) !== $value ) {
 		return '';
 	}
-	return $date > new DateTime( 'tomorrow', wp_timezone() ) ? '' : $value;
+	// Today (in the site's timezone) is the latest acceptable day: a content update cannot be dated ahead.
+	return $date > new DateTime( 'today', wp_timezone() ) ? '' : $value;
 }
 
 wp_cache_add_non_persistent_groups( array( 'nh_editorial_extras' ) );
