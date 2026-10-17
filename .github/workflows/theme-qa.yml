@@ -582,23 +582,12 @@ jobs:
           wp eval 'wp(); ob_start(); wp_head(); $h = ob_get_clean(); echo strlen( $h ), " bytes, mentions of the plugin: ", preg_match_all( "/rank math|yoast/i", $h ), "\n"; foreach ( explode( "\n", $h ) as $l ) { if ( preg_match( "/canonical|robots|ld\+json|rank math|yoast/i", $l ) ) { echo substr( $l, 0, 200 ), "\n"; } }'
           echo "::endgroup::"
           if [ '${{ matrix.seo }}' = rankmath ]; then
-            echo "::group::Rank Math: the registration gate of rank-math.php"
-            sed -n '285,320p' "$dir/rank-math.php" | cut -c1-170
-            sed -n '380,400p' "$dir/rank-math.php" | cut -c1-170
-            echo "::endgroup::"
-            echo "::group::Rank Math: the registration class"
-            ls "$dir/includes/admin" | grep -i regist
-            sed -n '1,170p' "$dir/includes/admin/class-registration.php" | cut -c1-170
-            grep -rnE 'registration_skip|rank_math_registration' "$dir/includes" "$dir/rank-math.php" | cut -c1-190 | head -20
-            echo "::endgroup::"
-            echo "::group::Rank Math: breadcrumbs"
-            grep -nE 'function |crumbs' "$dir/includes/frontend/class-breadcrumbs.php" | cut -c1-170 | head -70
-            grep -rln 'BreadcrumbList' "$dir/includes" | head
+            echo "::group::Rank Math: where it decides whether to print (an invalid registration loads no front end)"
+            grep -nE 'registration|invalid' "$dir/rank-math.php" | cut -c1-190 | head -30
             echo "::endgroup::"
           else
-            echo "::group::Yoast: breadcrumbs"
+            echo "::group::Yoast: how it builds its breadcrumbs"
             grep -rnE 'function generate_breadcrumbs|hide_in_schema|wpseo_breadcrumb_links' "$dir/src" | cut -c1-200 | head -30
-            sed -n '1,40p' "$dir/src/surfaces/meta-surface.php" | cut -c1-170
             echo "::endgroup::"
           fi
 
