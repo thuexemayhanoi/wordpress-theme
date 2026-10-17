@@ -315,6 +315,29 @@ class NH_Test_Theme_Source extends NH_Unit_Test_Case {
 		$this->assertFileExists( $root . '/.htaccess' );
 	}
 
+	/**
+	 * A file in the installable zip that nothing loads is dead weight and, worse, a stale copy that someone may
+	 * edit by mistake (version 1 left such a script behind).
+	 */
+	public function test_every_shipped_asset_is_loaded_by_the_theme() {
+		$root   = dirname( __DIR__, 3 );
+		$source = '';
+		foreach ( $this->theme_php_files() as $file ) {
+			$source .= (string) file_get_contents( $file );
+		}
+		$assets = array_merge( (array) glob( $root . '/assets/css/*.css' ), (array) glob( $root . '/assets/js/*.js' ) );
+		$this->assertNotEmpty( $assets );
+
+		$unused = array();
+		foreach ( $assets as $asset ) {
+			$relative = 'assets/' . basename( dirname( $asset ) ) . '/' . basename( $asset );
+			if ( false === strpos( $source, $relative ) ) {
+				$unused[] = $relative;
+			}
+		}
+		$this->assertSame( array(), $unused, 'these shipped assets are not loaded by any theme file' );
+	}
+
 	public function test_no_dangerous_functions_in_theme_source() {
 		$forbidden = '/\b(eval|base64_decode|shell_exec|passthru|proc_open|popen|create_function|unserialize|extract|assert)\s*\(|\bexec\s*\(|\bsystem\s*\(/';
 		foreach ( $this->theme_php_files() as $file ) {
