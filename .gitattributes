@@ -1,0 +1,17 @@
+# Files that exist for development only. `git archive` (tools/package.sh) leaves them out of the
+# installable theme zip, so a deployment never ships tests, tooling or the companion plugin source twice.
+/.github            export-ignore
+/.gitattributes     export-ignore
+/.gitignore         export-ignore
+/.htaccess          export-ignore
+/composer.json      export-ignore
+/composer.lock      export-ignore
+/package.json       export-ignore
+/package-lock.json  export-ignore
+/phpcs.xml.dist     export-ignore
+/phpunit.xml.dist   export-ignore
+/docs               export-ignore
+/plugins            export-ignore
+/tests              export-ignore
+/tools              export-ignore
+/assets/src         export-ignore

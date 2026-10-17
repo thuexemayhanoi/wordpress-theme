@@ -1,0 +1,72 @@
+/* Homepage: introduction and featured stories. */
+.home-intro {
+  padding-block: clamp(32px, 6vw, 72px) clamp(20px, 3vw, 36px);
+  background: linear-gradient(180deg, var(--accent-soft), transparent 85%);
+}
+
+.home-intro__grid {
+  display: grid;
+  gap: clamp(20px, 4vw, 48px);
+  align-items: center;
+}
+
+@media (min-width: 900px) {
+  .home-intro__grid {
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  }
+}
+
+.home-intro__title {
+  margin: 0 0 0.35em;
+  font-size: clamp(2rem, 4.6vw, 3.4rem);
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+}
+
+.home-intro__lead {
+  max-width: 34em;
+  margin: 0;
+  color: var(--muted);
+  font-size: clamp(1.05rem, 1.6vw, 1.25rem);
+  line-height: 1.6;
+}
+
+.home-intro__search {
+  padding: clamp(18px, 3vw, 28px);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--paper);
+  box-shadow: var(--shadow-md);
+}
+
+.home-intro__label {
+  margin: 0 0 0.7em;
+  font-size: 1.1rem;
+  font-weight: 750;
+}
+
+.home-intro__search .search-form {
+  max-width: none;
+  margin-bottom: 1em;
+}
+
+.home-intro__search .chips {
+  margin: 0;
+}
+
+.featured-grid {
+  display: grid;
+  gap: clamp(16px, 2.4vw, 28px);
+}
+
+@media (min-width: 900px) {
+  .featured-grid {
+    grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  }
+}
+
+.featured-grid__side {
+  display: grid;
+  align-content: start;
+  gap: 16px;
+}

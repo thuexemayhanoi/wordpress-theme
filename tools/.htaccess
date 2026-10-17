@@ -1,0 +1,10 @@
+# Development files: never served over the web, even when a deployment copies the whole repository
+# into the theme folder (docs/DEPLOYMENT.md). Apache 2.4 and LiteSpeed read this; PHP files in here also
+# stop by themselves when requested directly.
+<IfModule mod_authz_core.c>
+	Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+	Order allow,deny
+	Deny from all
+</IfModule>

@@ -1,26 +1,683 @@
 name: Theme QA
+
+# Runs before a merge (pull requests) and on every push to main and to feature branches.
+# Only official GitHub actions are used; everything else is plain shell, so each step can be reproduced
+# locally with the same command (see docs/TESTING.md).
+#
+# A release artifact (theme zip, plugin zip, version manifest, QA report) is produced only when every
+# required job succeeded. Nothing here tags, publishes a GitHub release, pushes a branch or contacts the
+# production site, so it can never trigger a deployment.
+
 on:
+  pull_request:
   push:
-    branches: [main]
+    branches: [main, 'feature/**']
   workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: theme-qa-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '22'
+  WP_CLI_PHAR_URL: https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
+
 jobs:
-  syntax-check:
+  static:
+    name: Static checks, build and packages
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
-      - name: Checkout theme
+      - name: Check out the repository
         uses: actions/checkout@v4
-      - name: Verify WordPress theme files
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Cache Composer downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/composer
+          key: composer-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-
+
+      - name: Show tool versions
         run: |
-          test -s style.css
-          test -s index.php
-          test -s functions.php
-          grep -q "Theme Name:" style.css
-      - name: PHP syntax
+          php -v
+          composer --version
+          node --version
+
+      - name: Install PHP tooling
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Coding standards (WordPress, PHPCompatibilityWP for PHP 7.4 and later)
+        run: vendor/bin/phpcs
+
+      - name: Install Node tooling
+        run: npm ci
+
+      - name: Built assets are up to date and well formed
+        run: npm run build:check
+
+      - name: Download WP-CLI
+        run: curl -fsSL -o "$RUNNER_TEMP/wp-cli.phar" "$WP_CLI_PHAR_URL"
+
+      - name: Theme translation template is up to date
+        run: bash tools/check-pot.sh "php $RUNNER_TEMP/wp-cli.phar --allow-root" . nguyen-ha-editorial languages/nguyen-ha-editorial.pot --skip-theme-json
+
+      - name: Plugin translation template is up to date
+        run: bash tools/check-pot.sh "php $RUNNER_TEMP/wp-cli.phar --allow-root" plugins/nguyen-ha-seo-companion nguyen-ha-seo-companion plugins/nguyen-ha-seo-companion/languages/nguyen-ha-seo-companion.pot
+
+      - name: The release decision logic behaves as documented (tools/qa-report.py)
+        run: python3 -I -m unittest discover -s tools -p 'test_*.py' -v
+
+      - name: Build the installable zips and the version manifest
+        run: bash tools/package.sh
+
+      - name: Verify the zips (contents, development files, syntax, versions)
+        run: bash tools/verify-package.sh dist
+
+      - name: Upload the packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: packages
+          path: dist/
+          if-no-files-found: error
+          retention-days: 14
+
+  php-syntax:
+    name: PHP syntax (PHP ${{ matrix.php }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['7.4', '8.0', '8.1', '8.2', '8.3', '8.4']
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Lint every PHP file with the official PHP ${{ matrix.php }} image
         run: |
-          find . -path './.git' -prune -o -name '*.php' -print0 | xargs -0 -r -n 1 php -l
-      - name: JavaScript syntax
-        run: node --check assets/js/theme.js
+          docker run --rm -v "$PWD":/work -w /work php:${{ matrix.php }}-cli sh -c '
+            status=0
+            for file in $(find . -path ./.git -prune -o -path ./vendor -prune -o -path ./node_modules -prune -o -name "*.php" -print); do
+              php -l "$file" > /dev/null || status=1
+            done
+            exit $status'
+
+  phpunit:
+    name: PHPUnit (WordPress ${{ matrix.wp }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # The version the suites were developed and run against.
+          - wp: '7.1.3'
+            experimental: false
+          # Forward-compatibility canary: whatever WordPress.org serves as the latest release. Its results are
+          # reported but never block a release.
+          - wp: 'latest'
+            experimental: true
+    continue-on-error: ${{ matrix.experimental }}
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: wp_phpunit
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=12
+    env:
+      WP_TESTS_DB_NAME: wp_phpunit
+      WP_TESTS_DB_USER: root
+      WP_TESTS_DB_PASSWORD: root
+      WP_TESTS_DB_HOST: 127.0.0.1
+      JUNIT_DIR: qa-junit${{ matrix.experimental && '/experimental' || '' }}
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Cache Composer downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/composer
+          key: composer-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-
+
+      - name: Install the PHP extensions the WordPress test suite needs
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y --no-install-recommends php-mysql php-gd php-xml php-mbstring php-curl php-intl php-zip
+          php -m | grep -E '^(mysqli|gd|dom|mbstring|libxml|curl|intl)$'
+
+      - name: Install PHP tooling
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Download WordPress ${{ matrix.wp }}
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/wp-cli.phar" "$WP_CLI_PHAR_URL"
+          php "$RUNNER_TEMP/wp-cli.phar" --allow-root core download --path="$RUNNER_TEMP/wordpress" --version="${{ matrix.wp }}" --skip-content
+          echo "WP_CORE_DIR=$RUNNER_TEMP/wordpress" >> "$GITHUB_ENV"
+          mkdir -p "$JUNIT_DIR"
+
+      - name: Theme suite (permalinks /%category%/%postname%/)
+        run: vendor/bin/phpunit --testsuite theme --log-junit "$JUNIT_DIR/theme-wp${{ matrix.wp }}.xml"
+
+      - name: Theme suite (permalinks of the live site, /%postname%/)
+        if: ${{ !cancelled() }}
+        env:
+          NH_TEST_PERMALINKS: /%postname%/
+        run: vendor/bin/phpunit --testsuite theme --log-junit "$JUNIT_DIR/theme-postname-wp${{ matrix.wp }}.xml"
+
+      - name: Plugin suite
+        if: ${{ !cancelled() }}
+        run: vendor/bin/phpunit --testsuite plugin --log-junit "$JUNIT_DIR/plugin-wp${{ matrix.wp }}.xml"
+
+      - name: Theme suite (multisite)
+        if: ${{ !cancelled() && !matrix.experimental }}
+        env:
+          WP_MULTISITE: '1'
+        run: vendor/bin/phpunit --testsuite theme --log-junit "$JUNIT_DIR/theme-multisite-wp${{ matrix.wp }}.xml"
+
+      - name: Plugin suite (multisite)
+        if: ${{ !cancelled() && !matrix.experimental }}
+        env:
+          WP_MULTISITE: '1'
+        run: vendor/bin/phpunit --testsuite plugin --log-junit "$JUNIT_DIR/plugin-multisite-wp${{ matrix.wp }}.xml"
+
+      - name: Upload the JUnit logs
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: junit-phpunit-wp${{ matrix.wp }}
+          path: qa-junit/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  min-wp:
+    name: Site smoke test (WordPress ${{ matrix.wp }}, companion plugin ${{ matrix.plugin == '1' && 'active' || 'inactive' }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        # 6.3 is the minimum the theme header declares ("Requires at least"); 6.5 is a mid-range release. The
+        # theme must also work alone, so the oldest release runs once more without the companion plugin.
+        include:
+          - wp: '6.3.5'
+            plugin: '1'
+          - wp: '6.5.5'
+            plugin: '1'
+          - wp: '6.3.5'
+            plugin: '0'
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: wp_site
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=12
+    env:
+      SITE_URL: http://127.0.0.1:8080
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Install the PHP extensions WordPress needs
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y --no-install-recommends php-mysql php-gd php-xml php-mbstring php-curl php-intl php-zip
+          php -m | grep -E '^(mysqli|gd|dom|mbstring|libxml|curl|intl)$'
+
+      - name: Download WP-CLI and WordPress ${{ matrix.wp }}
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/wp-cli.phar" "$WP_CLI_PHAR_URL"
+          php "$RUNNER_TEMP/wp-cli.phar" --allow-root core download --path="$RUNNER_TEMP/wp" --version="${{ matrix.wp }}"
+          echo "WP_DIR=$RUNNER_TEMP/wp" >> "$GITHUB_ENV"
+
+      - name: Provision the site (theme active, companion plugin as in the matrix, permalinks of the live site)
+        env:
+          WP_CLI: php ${{ runner.temp }}/wp-cli.phar
+          DB_USER: root
+          DB_PASS: root
+          PERMALINKS: /%postname%/
+          WITH_PLUGIN: ${{ matrix.plugin }}
+        run: bash tests/bin/setup-site.sh "$WP_DIR" "$SITE_URL" wp_site
+
+      - name: Seed the fixture content
+        run: php "$RUNNER_TEMP/wp-cli.phar" --allow-root --path="$WP_DIR" eval-file tests/bin/seed-fixtures.php
+
+      - name: Readiness report and fingerprints before the visits (tools/staging-preflight.php, read-only)
+        run: |
+          status=0
+          php "$RUNNER_TEMP/wp-cli.phar" --allow-root --path="$WP_DIR" eval-file tools/staging-preflight.php content > "$RUNNER_TEMP/preflight-before.txt" || status=$?
+          cat "$RUNNER_TEMP/preflight-before.txt"
+          exit "$status"
+
+      - name: Serve the site
+        run: |
+          nohup bash tests/bin/serve.sh "$WP_DIR" 8080 > "$RUNNER_TEMP/serve.log" 2>&1 &
+          curl -fsS --retry 30 --retry-delay 1 --retry-connrefused -o /dev/null "$SITE_URL/"
+
+      - name: Smoke test every page type
+        run: python3 -I tests/bin/smoke.py "$SITE_URL" --log "$WP_DIR/wp-content/debug.log" --log "$WP_DIR/wp-content/php-error.log"
+
+      - name: Visiting the pages changed no post, term, option or rewrite rule
+        run: |
+          php "$RUNNER_TEMP/wp-cli.phar" --allow-root --path="$WP_DIR" eval-file tools/staging-preflight.php content > "$RUNNER_TEMP/preflight-after.txt"
+          diff <(sed -n '/^== Fingerprints/,$p' "$RUNNER_TEMP/preflight-before.txt") <(sed -n '/^== Fingerprints/,$p' "$RUNNER_TEMP/preflight-after.txt")
+
+      - name: Show the PHP error log
+        if: ${{ failure() }}
+        run: cat "$WP_DIR/wp-content/debug.log" "$WP_DIR/wp-content/php-error.log" "$RUNNER_TEMP/serve.log" || true
+
+  php74:
+    name: PHPUnit on PHP 7.4 (the oldest PHP the theme declares)
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: wp_phpunit
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=12
+    env:
+      WP_TESTS_DB_NAME: wp_phpunit
+      WP_TESTS_DB_USER: root
+      WP_TESTS_DB_PASSWORD: root
+      WP_TESTS_DB_HOST: 127.0.0.1
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Download WordPress 7.1.3
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/wp-cli.phar" "$WP_CLI_PHAR_URL"
+          php "$RUNNER_TEMP/wp-cli.phar" --allow-root core download --path="$RUNNER_TEMP/wordpress" --version=7.1.3 --skip-content
+          echo "WP_CORE_DIR=$RUNNER_TEMP/wordpress" >> "$GITHUB_ENV"
+
+      - name: Install the dev tooling and run both suites with the official PHP 7.4 image
+        # The runner's own PHP is newer, and the dev tools that the lock file pins need PHP 8.1: Composer resolves
+        # PHP 7.4 compatible versions inside the container instead. Nothing here is part of the release.
+        run: |
+          docker run --rm --network host \
+            -v "$PWD":/work -v "$WP_CORE_DIR":/wp-core -w /work \
+            -e WP_CORE_DIR=/wp-core -e WP_TESTS_DB_NAME -e WP_TESTS_DB_USER -e WP_TESTS_DB_PASSWORD -e WP_TESTS_DB_HOST \
+            php:7.4-cli-alpine sh -ec '
+              apk add --no-cache $PHPIZE_DEPS libpng-dev libjpeg-turbo-dev freetype-dev git unzip curl > /dev/null
+              docker-php-ext-configure gd --with-jpeg --with-freetype > /dev/null
+              docker-php-ext-install -j"$(nproc)" mysqli gd > /dev/null
+              php -v | head -1
+              php -m | grep -E "^(mysqli|gd|mbstring|dom|libxml|curl)$" | tr "\n" " "; echo
+              curl -fsSL https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+              composer update --no-interaction --no-progress --prefer-dist
+              mkdir -p qa-junit
+              vendor/bin/phpunit --testsuite theme --log-junit qa-junit/php74-theme.xml
+              NH_TEST_PERMALINKS=/%postname%/ vendor/bin/phpunit --testsuite theme --log-junit qa-junit/php74-theme-postname.xml
+              vendor/bin/phpunit --testsuite plugin --log-junit qa-junit/php74-plugin.xml'
+
+      - name: Upload the JUnit logs
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: junit-php74
+          path: qa-junit/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  e2e:
+    name: Browser tests (${{ matrix.project }}, Chromium)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        # One job per viewport project (tests/e2e/playwright.config.mjs): each provisions its own site, so the
+        # three run in parallel. The browser suite is read-only; it never writes to the site it tests.
+        project: [mobile, tablet, desktop]
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: wp_e2e
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=12
+    env:
+      SITE_URL: http://127.0.0.1:8080
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install the PHP extensions WordPress needs and poppler (the print test reads a real PDF)
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y --no-install-recommends php-mysql php-gd php-xml php-mbstring php-curl php-intl php-zip poppler-utils
+          php -m | grep -E '^(mysqli|gd|dom|mbstring|libxml|curl|intl)$'
+          pdftotext -v
+
+      - name: Install the Node tooling and Chromium
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Download WP-CLI and WordPress 7.1.3
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/wp-cli.phar" "$WP_CLI_PHAR_URL"
+          php "$RUNNER_TEMP/wp-cli.phar" --allow-root core download --path="$RUNNER_TEMP/wp" --version=7.1.3
+          echo "WP_DIR=$RUNNER_TEMP/wp" >> "$GITHUB_ENV"
+
+      - name: Provision the site (theme and companion plugin active, permalinks of the live site)
+        env:
+          WP_CLI: php ${{ runner.temp }}/wp-cli.phar
+          DB_USER: root
+          DB_PASS: root
+          PERMALINKS: /%postname%/
+          WITH_PLUGIN: '1'
+        run: bash tests/bin/setup-site.sh "$WP_DIR" "$SITE_URL" wp_e2e
+
+      - name: Seed the fixture content
+        run: php "$RUNNER_TEMP/wp-cli.phar" --allow-root --path="$WP_DIR" eval-file tests/bin/seed-fixtures.php
+
+      - name: Serve the site
+        run: |
+          nohup bash tests/bin/serve.sh "$WP_DIR" 8080 > "$RUNNER_TEMP/serve.log" 2>&1 &
+          curl -fsS --retry 30 --retry-delay 1 --retry-connrefused -o /dev/null "$SITE_URL/"
+
+      - name: Run the browser tests (${{ matrix.project }})
+        env:
+          NH_BASE_URL: ${{ env.SITE_URL }}
+          # A page type that cannot be found on the seeded site is a failure, not a skip.
+          NH_E2E_REQUIRE_ALL: '1'
+          # WordPress lists a password-protected post as "Protected: title" in archives; that is core behaviour the
+          # site owner decides about, so the link crawler reports those links instead of failing on them.
+          NH_ALLOW_PROTECTED_LINKS: '1'
+          NH_E2E_WORKERS: '2'
+          NH_E2E_JUNIT: ${{ github.workspace }}/qa-junit/e2e-${{ matrix.project }}.xml
+        run: npx playwright test -c tests/e2e/playwright.config.mjs --project=${{ matrix.project }}
+
+      - name: Summary of the run
+        if: ${{ !cancelled() }}
+        run: node tests/e2e/summarize.mjs --markdown >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Show the PHP error log
+        if: ${{ failure() }}
+        run: cat "$WP_DIR/wp-content/debug.log" "$WP_DIR/wp-content/php-error.log" "$RUNNER_TEMP/serve.log" || true
+
+      - name: Upload the JUnit log
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: junit-e2e-${{ matrix.project }}
+          path: qa-junit/
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Upload the HTML report, traces and screenshots of the failures
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-report-${{ matrix.project }}
+          path: |
+            tests/e2e/.artifacts/report
+            tests/e2e/.artifacts/test-results
+            tests/e2e/.artifacts/results.json
+          if-no-files-found: ignore
+          retention-days: 14
+
+  seo-plugins:
+    name: SEO plugin compatibility (${{ matrix.seo }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        # The real plugins, installed from wordpress.org on the runner: the theme must print no SEO markup of its
+        # own, the companion plugin must stay out of their JSON-LD graph, and there must be one canonical, one
+        # description and one graph per page. "none" is the site without any SEO plugin.
+        seo: [yoast, rankmath, none]
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: wp_seo
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=12
+    env:
+      SITE_URL: http://127.0.0.1:8080
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install the PHP extensions WordPress needs
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y --no-install-recommends php-mysql php-gd php-xml php-mbstring php-curl php-intl php-zip
+          php -m | grep -E '^(mysqli|gd|dom|mbstring|libxml|curl|intl)$'
+
+      - name: Install the Node tooling and Chromium
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Download WP-CLI and WordPress 7.1.3
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/wp-cli.phar" "$WP_CLI_PHAR_URL"
+          php "$RUNNER_TEMP/wp-cli.phar" --allow-root core download --path="$RUNNER_TEMP/wp" --version=7.1.3
+          echo "WP_DIR=$RUNNER_TEMP/wp" >> "$GITHUB_ENV"
+
+      - name: Provision the site (theme and companion plugin active, permalinks of the live site)
+        env:
+          WP_CLI: php ${{ runner.temp }}/wp-cli.phar
+          DB_USER: root
+          DB_PASS: root
+          PERMALINKS: /%postname%/
+          WITH_PLUGIN: '1'
+        run: bash tests/bin/setup-site.sh "$WP_DIR" "$SITE_URL" wp_seo
+
+      - name: Install and activate ${{ matrix.seo }}
+        if: ${{ matrix.seo != 'none' }}
+        run: |
+          slug=${{ matrix.seo == 'yoast' && 'wordpress-seo' || 'seo-by-rank-math' }}
+          php "$RUNNER_TEMP/wp-cli.phar" --allow-root --path="$WP_DIR" plugin install "$slug" --activate
+          php "$RUNNER_TEMP/wp-cli.phar" --allow-root --path="$WP_DIR" plugin list --fields=name,status,version
+
+      - name: Skip the account connection of Rank Math (it prints nothing on the front end until its owner connects or skips)
+        if: ${{ matrix.seo == 'rankmath' }}
+        run: |
+          # The setup wizard offers "Skip now" for the registration step; that choice is this option.
+          php "$RUNNER_TEMP/wp-cli.phar" --allow-root --path="$WP_DIR" option update rank_math_registration_skip 1
+          php "$RUNNER_TEMP/wp-cli.phar" --allow-root --path="$WP_DIR" option get rank_math_registration_skip
+
+      - name: Seed the fixture content
+        run: php "$RUNNER_TEMP/wp-cli.phar" --allow-root --path="$WP_DIR" eval-file tests/bin/seed-fixtures.php
+
+      - name: Serve the site
+        run: |
+          nohup bash tests/bin/serve.sh "$WP_DIR" 8080 > "$RUNNER_TEMP/serve.log" 2>&1 &
+          curl -fsS --retry 30 --retry-delay 1 --retry-connrefused -o /dev/null "$SITE_URL/"
+
+      - name: Compare the page head and the structured data with the ${{ matrix.seo }} setup
+        env:
+          NH_BASE_URL: ${{ env.SITE_URL }}
+          NH_SEO_PLUGIN: ${{ matrix.seo }}
+          NH_E2E_REQUIRE_ALL: '1'
+          NH_ALLOW_PROTECTED_LINKS: '1'
+          NH_E2E_WORKERS: '2'
+          NH_E2E_JUNIT: ${{ github.workspace }}/qa-junit/seo-${{ matrix.seo }}.xml
+        run: npx playwright test -c tests/e2e/playwright.config.mjs --project=desktop seo-plugins
+
+      - name: Summary of the run
+        if: ${{ !cancelled() }}
+        run: node tests/e2e/summarize.mjs --markdown >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Show what the plugin printed in the head of the home page
+        if: ${{ failure() }}
+        run: |
+          curl -fsS "$SITE_URL/" | sed -n '1,/<\/head>/p' | grep -iE '<title|canonical|<meta (name|property)=.(description|robots|og:|twitter:)|ld\+json|yoast|rank math|generator' | cut -c1-300 || true
+          cat "$WP_DIR/wp-content/debug.log" "$WP_DIR/wp-content/php-error.log" "$RUNNER_TEMP/serve.log" 2>/dev/null | grep -vE 'Accepted|Closing|Failed to poll|\[200\]' | tail -40 || true
+
+      - name: Probe the SEO plugin that stays silent or disagrees
+        if: ${{ failure() && matrix.seo != 'none' }}
+        continue-on-error: true
+        run: |
+          set +e
+          wp() { php "$RUNNER_TEMP/wp-cli.phar" --allow-root --path="$WP_DIR" "$@"; }
+          dir="$WP_DIR/wp-content/plugins/$([ '${{ matrix.seo }}' = yoast ] && echo wordpress-seo || echo seo-by-rank-math)"
+          echo "::group::options of the plugin"
+          wp option list --search='*rank*' --fields=option_name --format=csv | head -40
+          wp option list --search='*wpseo*' --fields=option_name --format=csv | head -20
+          echo "::endgroup::"
+          echo "::group::wp_head() under WP-CLI"
+          wp eval 'wp(); ob_start(); wp_head(); $h = ob_get_clean(); echo strlen( $h ), " bytes, mentions of the plugin: ", preg_match_all( "/rank math|yoast/i", $h ), "\n"; foreach ( explode( "\n", $h ) as $l ) { if ( preg_match( "/canonical|robots|ld\+json|rank math|yoast/i", $l ) ) { echo substr( $l, 0, 200 ), "\n"; } }'
+          echo "::endgroup::"
+          if [ '${{ matrix.seo }}' = rankmath ]; then
+            echo "::group::Rank Math: where it decides whether to print (an invalid registration loads no front end)"
+            grep -nE 'registration|invalid' "$dir/rank-math.php" | cut -c1-190 | head -30
+            echo "::endgroup::"
+          else
+            echo "::group::Yoast: how it builds its breadcrumbs"
+            grep -rnE 'function generate_breadcrumbs|hide_in_schema|wpseo_breadcrumb_links' "$dir/src" | cut -c1-200 | head -30
+            echo "::endgroup::"
+          fi
+
+      - name: Upload the JUnit log
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: junit-seo-${{ matrix.seo }}
+          path: qa-junit/
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Upload the HTML report and traces of the failures
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: seo-report-${{ matrix.seo }}
+          path: |
+            tests/e2e/.artifacts/report
+            tests/e2e/.artifacts/test-results
+            tests/e2e/.artifacts/results.json
+          if-no-files-found: ignore
+          retention-days: 14
+
+  release:
+    name: QA report and release artifact
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Every job a release depends on. A job that failed, was cancelled or did not run blocks the artifact.
+    needs: [static, php-syntax, phpunit, php74, min-wp, e2e, seo-plugins]
+    if: ${{ always() }}
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Download the packages
+        if: ${{ needs.static.result == 'success' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: packages
+          path: dist
+
+      - name: Download the JUnit logs
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          pattern: junit-*
+          path: qa-junit
+          merge-multiple: false
+
+      - name: Build the QA report
+        id: report
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: |
+          printf '%s' "$NEEDS" > needs.json
+          set +e
+          python3 tools/qa-report.py --needs needs.json --required static,php-syntax,phpunit,php74,min-wp,e2e,seo-plugins \
+            --junit-dir qa-junit --manifest dist/manifest.json --out qa
+          status=$?
+          set -e
+          cat qa/qa-report.md >> "$GITHUB_STEP_SUMMARY"
+          echo "releasable=$([ "$status" -eq 0 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+
+      - name: Assemble the release artifact
+        if: ${{ steps.report.outputs.releasable == 'true' }}
+        run: |
+          mkdir release
+          cp dist/*.zip dist/manifest.json dist/SHA256SUMS qa/qa-report.md qa/qa-report.json release/
+
+      - name: Upload the release artifact
+        if: ${{ steps.report.outputs.releasable == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ github.sha }}
+          path: release/
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload the QA report
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa-report
+          path: qa/
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: Stop when the run is not releasable
+        if: ${{ steps.report.outputs.releasable != 'true' }}
+        run: |
+          echo "At least one required gate failed or did not run: no release artifact was produced." >&2
+          exit 1

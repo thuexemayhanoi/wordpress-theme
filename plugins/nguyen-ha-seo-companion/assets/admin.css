@@ -1,0 +1,153 @@
+/*
+ * Nguyen Ha SEO Companion: admin styles (meta box, repeaters, settings). Loaded only on the plugin's own
+ * screens, the post editors and the term and profile screens.
+ */
+
+/* Meta box. */
+.nh-seo-box__intro {
+	margin-top: 0;
+	color: #50575e;
+}
+
+.nh-seo-section {
+	margin: 0 0 1.25em;
+	padding: 0;
+	border: 0;
+}
+
+.nh-seo-section__title {
+	margin: 0 0 0.5em;
+	padding: 0;
+	font-size: 14px;
+	font-weight: 600;
+}
+
+.nh-seo-field {
+	display: block;
+	margin: 0 0 1em;
+}
+
+.nh-seo-field > label,
+.nh-seo-field__label {
+	display: block;
+	margin: 0 0 0.25em;
+	font-weight: 600;
+}
+
+.nh-seo-field input[type="checkbox"] {
+	margin-inline-end: 0.35em;
+}
+
+.nh-seo-field .description {
+	margin: 0.35em 0 0;
+}
+
+.nh-seo-counter {
+	margin: 0.25em 0 0;
+	font-size: 12px;
+	color: #50575e;
+}
+
+.nh-seo-counter--over {
+	color: #b32d2e;
+	font-weight: 600;
+}
+
+.nh-seo-note {
+	padding: 0.5em 0.75em;
+	border-inline-start: 4px solid #dba617;
+	background: #fcf9e8;
+}
+
+.nh-seo-inline-note {
+	display: inline-block;
+	margin-inline-start: 0.75em;
+	vertical-align: middle;
+}
+
+/* Repeaters. */
+.nh-seo-repeater__list {
+	margin: 0 0 0.75em;
+	padding: 0;
+	list-style: none;
+	counter-reset: nh-seo-item;
+}
+
+.nh-seo-repeater__item {
+	position: relative;
+	margin: 0 0 0.75em;
+	padding: 0.75em 0.75em 0.5em 2.5em;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	background: #fff;
+	counter-increment: nh-seo-item;
+}
+
+.nh-seo-repeater__item::before {
+	position: absolute;
+	inset-block-start: 0.75em;
+	inset-inline-start: 0.75em;
+	content: counter(nh-seo-item);
+	font-weight: 600;
+	color: #50575e;
+}
+
+.nh-seo-repeater__fields .nh-seo-field {
+	margin-bottom: 0.6em;
+}
+
+.nh-seo-repeater__actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.25em 1em;
+	padding: 0.25em 0 0.5em;
+}
+
+.nh-seo-repeater__actions[hidden],
+.nh-seo-repeater__add[hidden] {
+	display: none;
+}
+
+.nh-seo-repeater__actions .button-link[disabled] {
+	color: #a7aaad;
+	text-decoration: none;
+	cursor: default;
+}
+
+/* Settings screen. */
+.nh-seo-verify {
+	max-width: 60em;
+}
+
+.nh-seo-settings .form-table td .description {
+	max-width: 60em;
+}
+
+.nh-seo-uppercase {
+	text-transform: uppercase;
+}
+
+.nh-seo-media__preview img {
+	display: block;
+	max-width: 96px;
+	height: auto;
+	margin: 0 0 0.5em;
+	border: 1px solid #c3c4c7;
+	background: #fff;
+}
+
+.nh-seo-media [hidden] {
+	display: none;
+}
+
+.nh-seo-status {
+	max-width: 60em;
+}
+
+.nh-seo-status th {
+	width: 14em;
+}
+
+.nh-seo-settings__panel {
+	margin-top: 1.25em;
+}

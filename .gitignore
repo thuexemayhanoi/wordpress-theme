@@ -1,0 +1,30 @@
+# Dependencies and tooling output (never deployed).
+/vendor/
+/node_modules/
+/.phpunit.result.cache
+/.phpcs-cache
+/tests/e2e/.artifacts/
+/tests/e2e/node_modules/
+/tests/e2e/__screenshots__/
+/tests/e2e/test-results/
+/tests/e2e/playwright-report/
+/test-results/
+/playwright-report/
+/coverage/
+
+# Local WordPress runtimes / logs.
+*.log
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Agent worktrees and local tooling state (never part of the theme).
+/.claude/
+
+# Release artifacts built by tools/package.sh.
+/dist/
+
+# Python bytecode from the tooling scripts.
+__pycache__/
+*.pyc

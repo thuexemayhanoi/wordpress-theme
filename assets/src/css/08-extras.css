@@ -1,0 +1,294 @@
+/* Below-the-fold article components: FAQ, sources, tags, CTA, topic box, author box, navigation. */
+.faq,
+.sources {
+  margin-top: clamp(32px, 5vw, 56px);
+}
+
+/* An FAQ outside the article column (full width template, static front page) keeps a readable line length. */
+.wrap > .faq {
+  max-width: 920px;
+}
+
+.faq__title,
+.sources__title {
+  font-size: clamp(1.4rem, 2.4vw, 1.75rem);
+}
+
+.faq__list {
+  border-top: 1px solid var(--line);
+}
+
+.faq__item {
+  border-bottom: 1px solid var(--line);
+}
+
+.faq__summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 4px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.faq__summary::-webkit-details-marker {
+  display: none;
+}
+
+.faq__question {
+  margin: 0;
+  font-size: 1.08rem;
+  line-height: 1.4;
+  letter-spacing: 0;
+}
+
+.faq__chevron {
+  color: var(--accent);
+  transition: transform 0.15s ease;
+}
+
+.faq__item[open] .faq__chevron {
+  transform: rotate(180deg);
+}
+
+.faq__answer {
+  padding: 0 4px 18px;
+  font-size: 1.05rem;
+}
+
+.faq__answer > *:last-child {
+  margin-bottom: 0;
+}
+
+.sources__list {
+  margin: 0;
+  padding-left: 1.4em;
+}
+
+.sources__list li {
+  margin-bottom: 0.5em;
+  padding-left: 0.3em;
+}
+
+.sources__publisher {
+  margin-left: 0.4em;
+  color: var(--muted);
+  font-size: 0.9em;
+}
+
+.sources__publisher::before {
+  content: "· ";
+}
+
+.chips--tags {
+  margin-top: 2em;
+}
+
+.cta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px 24px;
+  margin: clamp(28px, 4vw, 44px) 0;
+  padding: clamp(18px, 3vw, 28px);
+  border-radius: var(--radius-lg);
+  background: var(--accent-soft);
+  border: 1px solid var(--line);
+}
+
+.cta__text {
+  flex: 1 1 18em;
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.cta__button {
+  flex: none;
+}
+
+.section--cta .cta {
+  margin: 0;
+}
+
+.author-box {
+  display: flex;
+  gap: 18px;
+  margin: clamp(28px, 4vw, 44px) 0;
+  padding: clamp(16px, 3vw, 24px);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+}
+
+.author-box__avatar img {
+  width: 72px;
+  height: 72px;
+}
+
+.author-box__body {
+  min-width: 0;
+}
+
+.author-box__name {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 750;
+}
+
+.author-box__name a {
+  color: var(--text);
+  text-decoration: none;
+}
+
+.author-box__job {
+  margin: 0 0 0.4em;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.author-box__bio {
+  margin: 0.5em 0;
+  color: var(--muted);
+}
+
+.author-box__more {
+  display: inline-block;
+  margin-top: 0.4em;
+  font-weight: 700;
+}
+
+.social-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0.6em 0;
+  padding: 0;
+  list-style: none;
+}
+
+.social-links__link {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  color: var(--text);
+}
+
+.social-links__link:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.social-links__link .icon {
+  width: 20px;
+  height: 20px;
+}
+
+.post-nav {
+  display: grid;
+  gap: 16px;
+  margin: clamp(32px, 5vw, 56px) 0;
+}
+
+@media (min-width: 700px) {
+  .post-nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .post-nav__link--next {
+    grid-column: 2;
+    text-align: right;
+  }
+
+  .post-nav__link--next .post-nav__label {
+    justify-content: flex-end;
+  }
+}
+
+.post-nav__link {
+  display: block;
+  padding: 16px 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--text);
+  text-decoration: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.post-nav__link:hover {
+  border-color: var(--accent);
+  box-shadow: var(--shadow-md);
+  color: var(--accent);
+}
+
+.post-nav__label {
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+  margin-bottom: 0.3em;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.post-nav__title {
+  display: block;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.related {
+  margin-top: clamp(24px, 4vw, 48px);
+}
+
+.widget-area {
+  display: grid;
+  gap: 24px;
+  margin-top: clamp(28px, 4vw, 48px);
+}
+
+@media (min-width: 800px) {
+  .widget-area {
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  }
+}
+
+.widget {
+  padding: 18px 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.widget-title {
+  margin: 0 0 0.6em;
+  font-size: 1.05rem;
+}
+
+.widget ul {
+  margin: 0;
+  padding-left: 1.2em;
+}
+
+/* Password form of a protected post (core markup): the field style comes from the base forms, this lays it out. */
+.post-password-form p:last-of-type {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.post-password-form label {
+  display: grid;
+  flex: 1 1 14em;
+  gap: 6px;
+  font-weight: 700;
+}
