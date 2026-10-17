@@ -22,6 +22,10 @@ class NH_Test_Admin_User_Fields extends NH_Unit_Test_Case {
 		foreach ( array( 'administrator', 'editor', 'author', 'contributor', 'subscriber' ) as $role ) {
 			$this->users[ $role ] = self::factory()->user->create( array( 'role' => $role ) );
 		}
+		if ( is_multisite() ) {
+			// On a network only super admins may edit other users' profiles (core's manage_network_users rule).
+			grant_super_admin( $this->users['administrator'] );
+		}
 		wp_set_current_user( $this->users['administrator'] );
 	}
 
