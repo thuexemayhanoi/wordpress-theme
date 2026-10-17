@@ -68,7 +68,7 @@ class NH_Test_No_Content_Mutation extends NH_Render_Test_Case {
 
 	/**
 	 * Leave out what WordPress core itself records the first time a page is shown, whichever theme is active:
-	 * the security salts it generates when wp-config.php defines none (a real site defines them), and the
+	 * the security salts it generates when wp-config.php defines no distinct ones (the test configuration uses one placeholder for all eight; a real site defines eight different values), and the
 	 * marker that this theme has no Additional CSS post.
 	 *
 	 * @param array[] $options Rows of the options table.

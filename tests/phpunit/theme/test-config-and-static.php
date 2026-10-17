@@ -292,14 +292,14 @@ class NH_Test_Theme_Source extends NH_Unit_Test_Case {
 	public function test_no_php_file_of_the_repository_runs_when_requested_directly() {
 		$files = $this->repository_php_files();
 		$this->assertGreaterThan( 100, count( $files ), 'the whole repository is scanned' );
+
+		$unguarded = array();
 		foreach ( $files as $file ) {
-			$source = (string) file_get_contents( $file );
-			$this->assertMatchesRegularExpression(
-				"/defined\( 'ABSPATH' \)|Silence is golden|PHP_SAPI/",
-				$source,
-				substr( $file, strlen( dirname( __DIR__, 3 ) ) + 1 ) . ' must stop when requested directly.'
-			);
+			if ( ! preg_match( "/defined\( 'ABSPATH' \)|Silence is golden|PHP_SAPI/", (string) file_get_contents( $file ) ) ) {
+				$unguarded[] = substr( $file, strlen( dirname( __DIR__, 3 ) ) + 1 );
+			}
 		}
+		$this->assertSame( array(), $unguarded, 'these files would run when requested directly over the web' );
 	}
 
 	public function test_development_folders_are_closed_to_the_web_and_left_out_of_the_zip() {
