@@ -74,6 +74,9 @@ jobs:
       - name: Plugin translation template is up to date
         run: bash tools/check-pot.sh "php $RUNNER_TEMP/wp-cli.phar --allow-root" plugins/nguyen-ha-seo-companion nguyen-ha-seo-companion plugins/nguyen-ha-seo-companion/languages/nguyen-ha-seo-companion.pot
 
+      - name: The release decision logic behaves as documented (tools/qa-report.py)
+        run: python3 -I -m unittest discover -s tools -p 'test_*.py' -v
+
       - name: Build the installable zips and the version manifest
         run: bash tools/package.sh
 

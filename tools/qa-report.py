@@ -28,21 +28,33 @@ def read_junit(directory):
         except ET.ParseError:
             runs.append({'informational': False, 'run': os.path.basename(path), 'error': 'unreadable JUnit file'})
             continue
-        suite = root if root.tag == 'testsuite' else root.find('testsuite')
-        if suite is None:
+        counts = suite_counts(root)
+        if counts is None:
             continue
         # Runs under a directory named "experimental" (forward-compatibility canaries) are shown, not gated on.
         informational = 'experimental' in os.path.relpath(path, directory).lower()
-        runs.append({
-            'informational': informational,
-            'run': os.path.splitext(os.path.basename(path))[0] + (' (informational)' if informational else ''),
-            'tests': int(suite.get('tests', 0)),
-            'assertions': int(suite.get('assertions', 0)),
-            'failures': int(suite.get('failures', 0)),
-            'errors': int(suite.get('errors', 0)),
-            'skipped': int(suite.get('skipped', 0)),
-        })
+        runs.append(dict(
+            counts,
+            informational=informational,
+            run=os.path.splitext(os.path.basename(path))[0] + (' (informational)' if informational else ''),
+        ))
     return runs
+
+
+def suite_counts(root):
+    """Totals of one JUnit file, whichever tool wrote it.
+
+    PHPUnit writes <testsuites><testsuite tests=...>; Playwright writes <testsuites tests=...> with one
+    <testsuite> per spec file. A <testsuites> element that carries its own counters is used as it is, one
+    without counters is the sum of its direct <testsuite> children. Returns None when there is nothing to count.
+    """
+    if root.tag == 'testsuite' or root.get('tests') is not None:
+        sources = [root]
+    else:
+        sources = root.findall('testsuite')
+    if not sources:
+        return None
+    return {key: sum(int(source.get(key, 0)) for source in sources) for key in ('tests', 'assertions', 'failures', 'errors', 'skipped')}
 
 
 def main():
