@@ -114,7 +114,11 @@ function nh_editorial_post_meta( array $args = array() ) {
 	}
 
 	if ( $args['author'] ) {
-		$parts[] = '<span class="meta__author">' . nh_editorial_icon( 'user' ) . '<a href="' . esc_url( get_author_posts_url( (int) $post->post_author ) ) . '" rel="author">' . esc_html( get_the_author_meta( 'display_name', (int) $post->post_author ) ) . '</a></span>';
+		// A post whose author was deleted (or never set) has no author page and no name to show.
+		$author_name = get_the_author_meta( 'display_name', (int) $post->post_author );
+		if ( '' !== trim( (string) $author_name ) ) {
+			$parts[] = '<span class="meta__author">' . nh_editorial_icon( 'user' ) . '<a href="' . esc_url( get_author_posts_url( (int) $post->post_author ) ) . '" rel="author">' . esc_html( $author_name ) . '</a></span>';
+		}
 	}
 
 	if ( $args['date'] ) {

@@ -34,7 +34,8 @@ $nh_editorial_index = 0;
 			null,
 			array(
 				'heading'  => $nh_editorial_grid['heading'],
-				'priority' => 0 === $nh_editorial_index,
+				// The first row may claim the LCP slot; only the first card that has an image gets it.
+				'priority' => $nh_editorial_index < 3,
 				'category' => true,
 				'phrase'   => (string) $nh_editorial_grid['phrase'],
 			)

@@ -63,6 +63,38 @@ function nh_editorial_clean_text( $value, $limit ) {
 }
 
 /**
+ * Sanitize one FAQ answer: allowed tags only, http(s) links only, no dangling href.
+ *
+ * The kses filter removes a disallowed protocol but keeps the rest of the URL ("javascript:alert(1)"
+ * becomes the relative link "alert(1)"), so a link is kept only when it is absolute http(s),
+ * root-relative or an in-page anchor; any other href is dropped and the link text stays.
+ *
+ * @param mixed $answer Raw answer.
+ * @return string Safe HTML ('' when nothing readable is left).
+ */
+function nh_editorial_clean_faq_answer( $answer ) {
+	if ( ! is_scalar( $answer ) ) {
+		return '';
+	}
+
+	$answer = wp_kses( mb_substr( trim( (string) $answer ), 0, 3000 ), nh_editorial_faq_allowed_html(), array( 'http', 'https' ) );
+	$answer = trim( force_balance_tags( $answer ) );
+
+	if ( false !== stripos( $answer, '<a' ) ) {
+		$tags = new WP_HTML_Tag_Processor( $answer );
+		while ( $tags->next_tag( 'a' ) ) {
+			$href = $tags->get_attribute( 'href' );
+			if ( is_string( $href ) && ! preg_match( '#^(https?://|/|\#)#i', $href ) ) {
+				$tags->remove_attribute( 'href' );
+			}
+		}
+		$answer = $tags->get_updated_html();
+	}
+
+	return $answer;
+}
+
+/**
  * Validate FAQ items from meta (array of question/answer pairs).
  *
  * @param mixed $raw Meta value.
@@ -83,9 +115,7 @@ function nh_editorial_clean_faq( $raw ) {
 			continue;
 		}
 		$question = nh_editorial_clean_text( isset( $item['question'] ) ? $item['question'] : ( isset( $item['q'] ) ? $item['q'] : '' ), 300 );
-		$answer   = isset( $item['answer'] ) ? $item['answer'] : ( isset( $item['a'] ) ? $item['a'] : '' );
-		$answer   = is_scalar( $answer ) ? wp_kses( mb_substr( trim( (string) $answer ), 0, 3000 ), nh_editorial_faq_allowed_html(), array( 'http', 'https' ) ) : '';
-		$answer   = trim( force_balance_tags( $answer ) );
+		$answer   = nh_editorial_clean_faq_answer( isset( $item['answer'] ) ? $item['answer'] : ( isset( $item['a'] ) ? $item['a'] : '' ) );
 		if ( '' === $question || '' === trim( wp_strip_all_tags( $answer ) ) ) {
 			continue;
 		}

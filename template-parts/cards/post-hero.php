@@ -16,7 +16,7 @@ $nh_editorial_hero  = wp_parse_args(
 $nh_editorial_tag   = nh_editorial_heading_tag( $nh_editorial_hero['heading'] );
 $nh_editorial_thumb = nh_editorial_thumbnail( get_the_ID(), 'hero' );
 ?>
-<article <?php post_class( 'card card--hero' ); ?> id="post-<?php the_ID(); ?>">
+<article <?php post_class( 'card card--hero' ); ?>>
 	<a class="card__media" href="<?php the_permalink(); ?>" tabindex="-1" aria-hidden="true">
 		<?php if ( '' !== $nh_editorial_thumb ) : ?>
 			<?php echo $nh_editorial_thumb; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped by core (get_the_post_thumbnail). ?>

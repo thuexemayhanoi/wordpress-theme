@@ -2,7 +2,7 @@
 /**
  * Article card used by every list: archives, search, related articles, homepage.
  *
- * Arguments: heading (title tag, default h3), priority (bool, first card: eager image), category (bool),
+ * Arguments: heading (title tag, default h3), priority (bool, may claim the page's single LCP slot), category (bool),
  * excerpt (bool), phrase (search phrase whose words are highlighted in the title and excerpt).
  * The whole card is clickable through the title link; the image link is decorative and hidden from
  * assistive technology and the tab order, so there is exactly one link per card for them.
@@ -25,7 +25,7 @@ $nh_editorial_card  = wp_parse_args(
 $nh_editorial_tag   = nh_editorial_heading_tag( $nh_editorial_card['heading'] );
 $nh_editorial_thumb = nh_editorial_thumbnail( get_the_ID(), 'card', $nh_editorial_card['priority'] ? true : false );
 ?>
-<article <?php post_class( 'card card--post' ); ?> id="post-<?php the_ID(); ?>">
+<article <?php post_class( 'card card--post' ); ?>>
 	<a class="card__media" href="<?php the_permalink(); ?>" tabindex="-1" aria-hidden="true">
 		<?php if ( '' !== $nh_editorial_thumb ) : ?>
 			<?php echo $nh_editorial_thumb; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped by core (get_the_post_thumbnail). ?>

@@ -45,6 +45,13 @@ if ( $nh_editorial_posts_mode && is_paged() ) {
 
 $nh_editorial_featured = nh_editorial_get_featured_ids( 4 );
 
+// The latest list is known up front, so a topic section never repeats an article that list shows.
+if ( $nh_editorial_posts_mode ) {
+	$nh_editorial_latest_ids = array_map( 'intval', wp_list_pluck( $GLOBALS['wp_query']->posts, 'ID' ) );
+} else {
+	$nh_editorial_latest_ids = nh_editorial_get_latest_ids( (int) nh_editorial_option( 'nh_home_latest' ), $nh_editorial_featured );
+}
+
 get_template_part( 'template-parts/home/intro' );
 
 if ( ! $nh_editorial_posts_mode ) {
@@ -64,7 +71,7 @@ if ( ! $nh_editorial_posts_mode ) {
 
 get_template_part( 'template-parts/home/featured', null, array( 'ids' => $nh_editorial_featured ) );
 get_template_part( 'template-parts/home/hubs' );
-get_template_part( 'template-parts/home/topic-sections', null, array( 'skip' => $nh_editorial_featured ) );
+get_template_part( 'template-parts/home/topic-sections', null, array( 'skip' => array_merge( $nh_editorial_featured, $nh_editorial_latest_ids ) ) );
 ?>
 
 <section class="section section--latest" id="latest" aria-labelledby="latest-title">
@@ -96,7 +103,7 @@ get_template_part( 'template-parts/home/topic-sections', null, array( 'skip' => 
 				get_template_part( 'template-parts/components/empty-state', null, array( 'title' => __( 'No articles yet', 'nguyen-ha-editorial' ) ) );
 			}
 		} else {
-			$nh_editorial_latest = nh_editorial_posts_by_ids( nh_editorial_get_latest_ids( (int) nh_editorial_option( 'nh_home_latest' ), $nh_editorial_featured ) );
+			$nh_editorial_latest = nh_editorial_posts_by_ids( $nh_editorial_latest_ids );
 			if ( $nh_editorial_latest->have_posts() ) {
 				echo '<div class="grid grid--cards">';
 				while ( $nh_editorial_latest->have_posts() ) {

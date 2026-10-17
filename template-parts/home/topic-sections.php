@@ -2,7 +2,7 @@
 /**
  * Latest articles from the largest topics (top-level categories), one section each.
  *
- * Arguments: skip (post IDs already shown above, never repeated here).
+ * Arguments: skip (post IDs shown elsewhere on the page, never repeated here).
  *
  * @package nguyen-ha-editorial
  */

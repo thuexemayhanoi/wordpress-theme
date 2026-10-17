@@ -12,16 +12,20 @@ add_filter( 'should_load_separate_core_block_assets', '__return_true' );
 
 /**
  * Whether the next large image may claim the LCP slot (eager, high priority). Only the first caller
- * per request gets true, so exactly one image is prioritised and everything else stays lazy.
+ * for a given main query gets true, so exactly one image per page is prioritised and everything else
+ * stays lazy. The claim belongs to the main query object, so a long-running PHP process (or a test)
+ * that builds a new main query per page starts with a free slot.
  *
  * @return bool
  */
 function nh_editorial_claim_lcp() {
-	static $claimed = false;
-	if ( $claimed ) {
+	static $claimed_by = null;
+
+	$query = isset( $GLOBALS['wp_the_query'] ) ? $GLOBALS['wp_the_query'] : false;
+	if ( $claimed_by === $query ) {
 		return false;
 	}
-	$claimed = true;
+	$claimed_by = $query;
 	return true;
 }
 
@@ -112,3 +116,23 @@ function nh_editorial_thumbnail( $post_id, $context = 'card', $priority = null )
 
 	return get_the_post_thumbnail( $post_id, $size, nh_editorial_image_attributes( $context, $priority ) );
 }
+
+/**
+ * Avatars (comments, author box and author page) are small and secondary: never eager, never high
+ * priority. WordPress would leave the first few images of a page eager, which in a short article means
+ * the comment avatars.
+ *
+ * @param array  $attributes Loading optimization attributes.
+ * @param string $tag_name   Tag name.
+ * @param array  $attr       Image attributes.
+ * @param string $context    Where the image is printed.
+ * @return array
+ */
+function nh_editorial_lazy_avatars( $attributes, $tag_name, $attr, $context ) {
+	if ( 'img' === $tag_name && 'get_avatar' === $context && ! is_admin() ) {
+		$attributes['loading'] = 'lazy';
+		unset( $attributes['fetchpriority'] );
+	}
+	return $attributes;
+}
+add_filter( 'wp_get_loading_optimization_attributes', 'nh_editorial_lazy_avatars', 10, 4 );
