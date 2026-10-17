@@ -1,0 +1,880 @@
+# Copyright (C) 2026 Nguyen Ha Web Team
+# This file is distributed under the GPL-2.0-or-later.
+msgid ""
+msgstr ""
+"Project-Id-Version: Nguyen Ha SEO Companion 1.0.0\n"
+"Report-Msgid-Bugs-To: https://github.com/thuexemayhanoi/wordpress-theme/issues\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"POT-Creation-Date: 2026-10-17T05:55:44+00:00\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"X-Generator: WP-CLI 2.12.0\n"
+"X-Domain: nguyen-ha-seo-companion\n"
+
+#. Plugin Name of the plugin
+#: nguyen-ha-seo-companion.php
+msgid "Nguyen Ha SEO Companion"
+msgstr ""
+
+#. Plugin URI of the plugin
+#: nguyen-ha-seo-companion.php
+msgid "https://github.com/thuexemayhanoi/wordpress-theme"
+msgstr ""
+
+#. Description of the plugin
+#: nguyen-ha-seo-companion.php
+msgid "Companion plugin for the Nguyen Ha Editorial theme. Keeps SEO and editorial data independent of the theme: topic clusters, answer-first summary, FAQ and sources, verified business profile, schema extensions, internal search index and cache purging."
+msgstr ""
+
+#. Author of the plugin
+#: nguyen-ha-seo-companion.php
+msgid "Nguyen Ha Web Team"
+msgstr ""
+
+#. Author URI of the plugin
+#: nguyen-ha-seo-companion.php
+msgid "https://github.com/thuexemayhanoi"
+msgstr ""
+
+#: includes/admin/class-nh-seo-admin-assets.php:69
+msgid "Choose a logo"
+msgstr ""
+
+#: includes/admin/class-nh-seo-admin-assets.php:70
+msgid "Use this image"
+msgstr ""
+
+#: includes/admin/class-nh-seo-admin-assets.php:71
+msgid "No logo selected."
+msgstr ""
+
+#: includes/admin/class-nh-seo-admin-assets.php:72
+msgid "Item added."
+msgstr ""
+
+#: includes/admin/class-nh-seo-admin-assets.php:73
+msgid "Item removed."
+msgstr ""
+
+#: includes/admin/class-nh-seo-admin-assets.php:74
+msgid "Item moved."
+msgstr ""
+
+#: includes/admin/class-nh-seo-admin-assets.php:75
+msgid "The maximum number of items is reached."
+msgstr ""
+
+#: includes/admin/class-nh-seo-meta-box.php:62
+msgid "Answer, FAQ and sources"
+msgstr ""
+
+#: includes/admin/class-nh-seo-meta-box.php:88
+msgid "Everything here is optional. Empty fields are removed. The theme, or the plugin fallback, shows the answer, takeaways, FAQ and sources on the page."
+msgstr ""
+
+#: includes/admin/class-nh-seo-meta-box.php:92
+msgid "Answer first"
+msgstr ""
+
+#: includes/admin/class-nh-seo-meta-box.php:95
+#: includes/admin/class-nh-seo-settings-page.php:727
+#: includes/render/class-nh-seo-renderer.php:64
+msgid "Quick answer"
+msgstr ""
+
+#. translators: 1: characters used, 2: characters allowed.
+#: includes/admin/class-nh-seo-meta-box.php:97
+#, php-format
+msgid "%1$s of %2$s characters"
+msgstr ""
+
+#. translators: %s: maximum number of characters.
+#: includes/admin/class-nh-seo-meta-box.php:100
+#, php-format
+msgid "Up to %s characters."
+msgstr ""
+
+#: includes/admin/class-nh-seo-meta-box.php:103
+msgid "One or two sentences that answer the question of the article right away. Plain text."
+msgstr ""
+
+#: includes/admin/class-nh-seo-meta-box.php:107
+#: includes/admin/class-nh-seo-settings-page.php:728
+#: includes/render/class-nh-seo-renderer.php:87
+msgid "Key takeaways"
+msgstr ""
+
+#. translators: 1: lines used, 2: lines allowed.
+#: includes/admin/class-nh-seo-meta-box.php:109
+#, php-format
+msgid "%1$s of %2$s takeaways"
+msgstr ""
+
+#. translators: %s: maximum number of takeaways.
+#: includes/admin/class-nh-seo-meta-box.php:112
+#, php-format
+msgid "Up to %s takeaways."
+msgstr ""
+
+#. translators: %s: maximum number of characters per takeaway.
+#: includes/admin/class-nh-seo-meta-box.php:118
+#, php-format
+msgid "One takeaway per line, up to %s characters each. Only add them when the article really has key points."
+msgstr ""
+
+#: includes/admin/class-nh-seo-meta-box.php:124
+msgid "Content updated"
+msgstr ""
+
+#: includes/admin/class-nh-seo-meta-box.php:126
+msgid "The date the content was really revised, not the date of a small edit. Leave it empty when unsure. Future dates are ignored."
+msgstr ""
+
+#: includes/admin/class-nh-seo-meta-box.php:134
+#: includes/render/class-nh-seo-renderer.php:119
+msgid "Frequently asked questions"
+msgstr ""
+
+#: includes/admin/class-nh-seo-meta-box.php:135
+msgid "Questions people really ask about this topic. Answers may use basic HTML: links, paragraphs, bold, italic, lists and code."
+msgstr ""
+
+#: includes/admin/class-nh-seo-meta-box.php:136
+msgid "Add question"
+msgstr ""
+
+#. translators: %d: position of the question in the list.
+#: includes/admin/class-nh-seo-meta-box.php:138
+#, php-format
+msgid "Move question %d up"
+msgstr ""
+
+#. translators: %d: position of the question in the list.
+#: includes/admin/class-nh-seo-meta-box.php:140
+#, php-format
+msgid "Move question %d down"
+msgstr ""
+
+#. translators: %d: position of the question in the list.
+#: includes/admin/class-nh-seo-meta-box.php:142
+#, php-format
+msgid "Remove question %d"
+msgstr ""
+
+#: includes/admin/class-nh-seo-meta-box.php:147
+msgid "Question"
+msgstr ""
+
+#: includes/admin/class-nh-seo-meta-box.php:152
+msgid "Answer"
+msgstr ""
+
+#: includes/admin/class-nh-seo-meta-box.php:163
+#: includes/admin/class-nh-seo-settings-page.php:730
+#: includes/render/class-nh-seo-renderer.php:158
+msgid "Sources"
+msgstr ""
+
+#: includes/admin/class-nh-seo-meta-box.php:164
+msgid "References that support the article. Only http and https links are kept."
+msgstr ""
+
+#: includes/admin/class-nh-seo-meta-box.php:165
+msgid "Add source"
+msgstr ""
+
+#. translators: %d: position of the source in the list.
+#: includes/admin/class-nh-seo-meta-box.php:167
+#, php-format
+msgid "Move source %d up"
+msgstr ""
+
+#. translators: %d: position of the source in the list.
+#: includes/admin/class-nh-seo-meta-box.php:169
+#, php-format
+msgid "Move source %d down"
+msgstr ""
+
+#. translators: %d: position of the source in the list.
+#: includes/admin/class-nh-seo-meta-box.php:171
+#, php-format
+msgid "Remove source %d"
+msgstr ""
+
+#: includes/admin/class-nh-seo-meta-box.php:176
+msgid "Title"
+msgstr ""
+
+#: includes/admin/class-nh-seo-meta-box.php:181
+msgid "URL"
+msgstr ""
+
+#: includes/admin/class-nh-seo-meta-box.php:186
+msgid "Publisher"
+msgstr ""
+
+#. translators: %s: maximum number of items.
+#: includes/admin/class-nh-seo-meta-box.php:223
+#, php-format
+msgid "Up to %s items."
+msgstr ""
+
+#: includes/admin/class-nh-seo-meta-box.php:272
+msgid "Move up"
+msgstr ""
+
+#: includes/admin/class-nh-seo-meta-box.php:273
+msgid "Move down"
+msgstr ""
+
+#: includes/admin/class-nh-seo-meta-box.php:274
+msgid "Remove"
+msgstr ""
+
+#: includes/admin/class-nh-seo-meta-box.php:292
+msgid "Internal linking"
+msgstr ""
+
+#: includes/admin/class-nh-seo-meta-box.php:310
+#: includes/admin/class-nh-seo-meta-box.php:319
+msgid "Primary Topic Cluster"
+msgstr ""
+
+#: includes/admin/class-nh-seo-meta-box.php:312
+msgid "Automatic (the cluster with the lowest ID)"
+msgstr ""
+
+#: includes/admin/class-nh-seo-meta-box.php:317
+msgid "Decides the silo used for related and adjacent articles. Only clusters assigned to this post are listed."
+msgstr ""
+
+#: includes/admin/class-nh-seo-meta-box.php:320
+msgid "Assign Topic Clusters to this post and save it, then come back to choose the primary one."
+msgstr ""
+
+#. translators: %s: cluster alias written by an automated workflow.
+#: includes/admin/class-nh-seo-meta-box.php:329
+#, php-format
+msgid "The cluster alias \"%s\" sent by a workflow does not match any Topic Cluster yet. Create the cluster or enable automatic creation in the plugin settings."
+msgstr ""
+
+#: includes/admin/class-nh-seo-meta-box.php:337
+#: includes/admin/class-nh-seo-term-fields.php:56
+#: includes/admin/class-nh-seo-term-fields.php:80
+msgid "Pillar page ID"
+msgstr ""
+
+#: includes/admin/class-nh-seo-meta-box.php:354
+msgid "The published post or page that is the Pillar of this content. It overrides the Pillar of the topic. Find the ID in the address bar when you edit that page (post=123). Leave empty to use the Pillar of the topic."
+msgstr ""
+
+#: includes/admin/class-nh-seo-meta-box.php:359
+msgid "Topic listed by this Pillar or Hub page"
+msgstr ""
+
+#: includes/admin/class-nh-seo-meta-box.php:361
+msgid "Choose the category or Topic Cluster whose articles this page lists. Leave it empty for ordinary pages."
+msgstr ""
+
+#: includes/admin/class-nh-seo-meta-box.php:377
+msgid "Categories"
+msgstr ""
+
+#: includes/admin/class-nh-seo-meta-box.php:378
+#: includes/admin/class-nh-seo-settings-page.php:352
+#: includes/admin/class-nh-seo-settings-page.php:769
+#: includes/data/class-nh-seo-data-model.php:63
+msgid "Topic Clusters"
+msgstr ""
+
+#: includes/admin/class-nh-seo-meta-box.php:383
+#: includes/admin/class-nh-seo-settings-page.php:763
+msgid "None"
+msgstr ""
+
+#: includes/admin/class-nh-seo-meta-box.php:430
+msgid "Search and local"
+msgstr ""
+
+#: includes/admin/class-nh-seo-meta-box.php:433
+msgid "Search keywords"
+msgstr ""
+
+#: includes/admin/class-nh-seo-meta-box.php:435
+msgid "Extra words, separated by commas, that should find this content in the site search. Visitors never see them."
+msgstr ""
+
+#: includes/admin/class-nh-seo-meta-box.php:442
+msgid "This page has verified local-business context"
+msgstr ""
+
+#: includes/admin/class-nh-seo-meta-box.php:445
+msgid "Tick it only for pages about the real business, such as the contact or location page. It enables LocalBusiness structured data when the business profile is complete."
+msgstr ""
+
+#: includes/admin/class-nh-seo-meta-box.php:448
+msgid "The business profile is not complete yet, so nothing is output."
+msgstr ""
+
+#: includes/admin/class-nh-seo-meta-box.php:450
+msgid "Complete the business profile"
+msgstr ""
+
+#. translators: %s: the value typed in the Pillar page ID field.
+#: includes/admin/class-nh-seo-meta-box.php:552
+#, php-format
+msgid "The Pillar page ID \"%s\" was ignored. It must be the ID of another published, public post or page."
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:74
+msgid "Settings"
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:169
+msgid "Identity"
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:173
+msgid "Business name"
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:176
+msgid "The name customers know. Used in structured data and the contact block of the theme."
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:180
+msgid "Legal name"
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:183
+msgid "Optional. The registered company name, if it differs from the business name."
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:187
+msgid "Business type"
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:190
+msgid "The most specific schema.org type that is true for the business. When unsure, keep LocalBusiness."
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:194
+msgid "Website address"
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:196
+msgid "Optional. The official website of the business, starting with https://."
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:200
+msgid "Logo"
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:202
+msgid "Optional. An image from the media library. Nothing is output without a logo."
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:207
+msgid "Contact"
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:211
+msgid "Phone number"
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:214
+msgid "A number that customers can really call, with the country code."
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:218
+msgid "Email address"
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:220
+msgid "Optional. A public contact address."
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:225
+msgid "Address"
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:229
+msgid "Street address"
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:235
+msgid "City"
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:241
+msgid "State or region"
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:247
+msgid "Postal code"
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:253
+msgid "Country code"
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:256
+msgid "Two letters (ISO 3166-1), for example VN."
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:260
+msgid "Latitude"
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:263
+msgid "Optional. Decimal degrees between -90 and 90, copied from a map service."
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:267
+msgid "Longitude"
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:270
+msgid "Optional. Decimal degrees between -180 and 180."
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:275
+msgid "Opening hours and links"
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:279
+msgid "Opening hours"
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:282
+msgid "One rule per line: days, a space, then the opening and closing time, for example Mo-Su 09:00-21:00 or Sa,Su 10:00-12:30. Days are Mo Tu We Th Fr Sa Su. Lines in another format are ignored. Only enter hours that are accurate."
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:286
+msgid "Price range"
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:289
+msgid "Optional free text. Leave it empty when unsure."
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:293
+msgid "Map link"
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:295
+msgid "Optional. A link to the business on a map service."
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:299
+msgid "Social profiles"
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:302
+msgid "One profile address per line (http or https). Used to tell search engines which profiles belong to the business."
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:317
+msgid "Structured data"
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:321
+msgid "Structured data mode"
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:324
+msgid "Automatic (recommended)"
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:325
+#: includes/admin/class-nh-seo-settings-page.php:721
+msgid "Extras only: FAQ and local business next to another SEO plugin"
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:326
+#: includes/admin/class-nh-seo-settings-page.php:720
+msgid "Full: this plugin outputs the whole graph"
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:327
+#: includes/admin/class-nh-seo-settings-page.php:722
+#: includes/admin/class-nh-seo-settings-page.php:766
+msgid "Off"
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:329
+msgid "Automatic uses \"extras\" when another SEO plugin is active and \"full\" otherwise, so the page never gets two competing graphs."
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:333
+msgid "Local business on the home page"
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:335
+msgid "Output LocalBusiness data on the front page"
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:336
+msgid "Only used when the business profile is complete."
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:341
+msgid "Content"
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:345
+#: includes/admin/class-nh-seo-settings-page.php:766
+msgid "Fallback rendering"
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:347
+msgid "Show the quick answer, takeaways, FAQ and sources when the theme does not"
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:348
+msgid "Only the parts the active theme does not display itself are added to the article. FAQ structured data is only output when the FAQ is visible."
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:354
+msgid "Create Topic Clusters automatically from the cluster alias sent by publishing workflows"
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:355
+msgid "When off, an alias is only applied if a cluster with that slug or name already exists."
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:360
+msgid "Search and caching"
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:364
+msgid "Site search"
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:367
+msgid "Automatic: use the internal index when it is ready"
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:368
+msgid "WordPress default search"
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:369
+msgid "Internal index whenever it exists"
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:371
+msgid "Build the index in the Tools tab. Search falls back to the WordPress default whenever the index is not usable."
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:375
+msgid "Page caches"
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:377
+msgid "Purge page caches when content changes"
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:378
+msgid "Works with the supported cache plugins. No request leaves your server."
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:469
+msgid "Choose logo"
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:470
+msgid "Remove logo"
+msgstr ""
+
+#. translators: %s: comma separated list of field names.
+#: includes/admin/class-nh-seo-settings-page.php:535
+#, php-format
+msgid "These fields contained invalid or surplus values, which were not saved: %s."
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:579
+msgid "You are not allowed to change these settings."
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:617
+#: includes/admin/class-nh-seo-settings-page.php:768
+msgid "Business profile"
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:618
+msgid "General"
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:619
+#: includes/admin/class-nh-seo-settings-page.php:673
+msgid "Tools"
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:620
+#: includes/admin/class-nh-seo-settings-page.php:692
+msgid "Status"
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:622
+msgid "Settings sections"
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:652
+msgid "Enter only information that is accurate and publicly verifiable."
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:653
+msgid "Nothing here is pre-filled or guessed. Search engines and visitors rely on this data, so leave a field empty rather than approximate it. Structured data for a local business is only produced when the name, phone number, street address and city are filled in."
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:658
+msgid "The profile is complete."
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:659
+msgid "The profile is not complete yet."
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:675
+msgid "There are no tools available."
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:729
+msgid "FAQ"
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:731
+msgid "Update date"
+msgstr ""
+
+#. translators: %s: name of an editorial block, such as FAQ.
+#: includes/admin/class-nh-seo-settings-page.php:737
+#, php-format
+msgid "%s: shown by the theme"
+msgstr ""
+
+#. translators: %s: name of an editorial block, such as FAQ.
+#: includes/admin/class-nh-seo-settings-page.php:740
+#, php-format
+msgid "%s: shown by the plugin fallback"
+msgstr ""
+
+#. translators: %s: name of an editorial block, such as FAQ.
+#: includes/admin/class-nh-seo-settings-page.php:743
+#, php-format
+msgid "%s: not shown"
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:762
+msgid "Plugin version"
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:763
+msgid "SEO plugin detected"
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:764
+msgid "Structured data in effect"
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:765
+msgid "Theme support"
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:766
+msgid "On"
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:767
+msgid "Internal search index"
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:768
+msgid "Complete"
+msgstr ""
+
+#: includes/admin/class-nh-seo-settings-page.php:768
+msgid "Not complete"
+msgstr ""
+
+#. translators: %s: the value typed in the Pillar page ID field.
+#: includes/admin/class-nh-seo-term-fields.php:132
+#, php-format
+msgid "The Pillar page ID \"%s\" was ignored. It must be the ID of a published, public post or page."
+msgstr ""
+
+#: includes/admin/class-nh-seo-term-fields.php:161
+msgid "The published post or page that is the Pillar of this topic. Articles of the topic link to it. Find the ID in the address bar when you edit that page (post=123). Leave it empty when the topic has no Pillar."
+msgstr ""
+
+#: includes/admin/class-nh-seo-user-fields.php:49
+msgid "Author details for search engines"
+msgstr ""
+
+#: includes/admin/class-nh-seo-user-fields.php:50
+msgid "Shown in the author box and in the structured data of articles. Only fill in what is true and public: nothing is added automatically."
+msgstr ""
+
+#: includes/admin/class-nh-seo-user-fields.php:53
+msgid "Job title"
+msgstr ""
+
+#: includes/admin/class-nh-seo-user-fields.php:59
+msgid "Profile links"
+msgstr ""
+
+#: includes/admin/class-nh-seo-user-fields.php:62
+msgid "One address per line, for example the author's professional profile pages. Only http and https links are kept."
+msgstr ""
+
+#. translators: %d: number of profile links that were ignored.
+#: includes/admin/class-nh-seo-user-fields.php:99
+#, php-format
+msgid "%d profile link was ignored because it is not a valid http or https address."
+msgid_plural "%d profile links were ignored because they are not valid http or https addresses."
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/data/class-nh-seo-data-model.php:61
+msgctxt "taxonomy general name"
+msgid "Topic Clusters"
+msgstr ""
+
+#: includes/data/class-nh-seo-data-model.php:62
+msgctxt "taxonomy singular name"
+msgid "Topic Cluster"
+msgstr ""
+
+#: includes/data/class-nh-seo-data-model.php:64
+msgid "All Topic Clusters"
+msgstr ""
+
+#: includes/data/class-nh-seo-data-model.php:65
+msgid "Edit Topic Cluster"
+msgstr ""
+
+#: includes/data/class-nh-seo-data-model.php:66
+msgid "Update Topic Cluster"
+msgstr ""
+
+#: includes/data/class-nh-seo-data-model.php:67
+msgid "Add New Topic Cluster"
+msgstr ""
+
+#: includes/data/class-nh-seo-data-model.php:68
+msgid "New Topic Cluster Name"
+msgstr ""
+
+#: includes/data/class-nh-seo-data-model.php:69
+msgid "Search Topic Clusters"
+msgstr ""
+
+#: includes/data/class-nh-seo-data-model.php:70
+msgid "Popular Topic Clusters"
+msgstr ""
+
+#: includes/data/class-nh-seo-data-model.php:71
+msgid "Separate topic clusters with commas"
+msgstr ""
+
+#: includes/data/class-nh-seo-data-model.php:72
+msgid "Add or remove topic clusters"
+msgstr ""
+
+#: includes/data/class-nh-seo-data-model.php:73
+msgid "Choose from the most used topic clusters"
+msgstr ""
+
+#: includes/data/class-nh-seo-data-model.php:74
+msgid "No topic clusters found."
+msgstr ""
+
+#: includes/data/class-nh-seo-data-model.php:75
+msgid "No topic clusters"
+msgstr ""
+
+#: includes/data/class-nh-seo-data-model.php:76
+msgid "Topic clusters list navigation"
+msgstr ""
+
+#: includes/data/class-nh-seo-data-model.php:77
+msgid "Topic clusters list"
+msgstr ""
+
+#: includes/data/class-nh-seo-data-model.php:78
+msgid "&larr; Go to Topic Clusters"
+msgstr ""
+
+#: includes/data/class-nh-seo-data-model.php:86
+msgid "Groups articles into topics for internal linking. Clusters have no public pages of their own."
+msgstr ""
+
+#: includes/data/class-nh-seo-data-model.php:123
+msgid "ID of the published post or page that acts as the Pillar for this topic."
+msgstr ""
+
+#: includes/data/class-nh-seo-data-model.php:175
+msgid "Answer-first summary shown at the top of the article. Plain text, 800 characters."
+msgstr ""
+
+#: includes/data/class-nh-seo-data-model.php:185
+msgid "Key takeaways: up to 10 plain-text items of 300 characters."
+msgstr ""
+
+#: includes/data/class-nh-seo-data-model.php:200
+msgid "Frequently asked questions: up to 20 items with a question and an answer that may contain basic HTML."
+msgstr ""
+
+#: includes/data/class-nh-seo-data-model.php:221
+msgid "References: up to 15 items with a title, an http(s) URL and a publisher."
+msgstr ""
+
+#: includes/data/class-nh-seo-data-model.php:243
+msgid "The date (YYYY-MM-DD) the content was really updated. Invalid or future dates are dropped."
+msgstr ""
+
+#: includes/data/class-nh-seo-data-model.php:253
+msgid "Topic Cluster slug or name. It is synced to the Topic Cluster taxonomy."
+msgstr ""
+
+#: includes/data/class-nh-seo-data-model.php:263
+msgid "Term ID of the primary Topic Cluster. It must be assigned to the post to count."
+msgstr ""
+
+#: includes/data/class-nh-seo-data-model.php:273
+msgid "ID of the published post or page that is the Pillar of this article."
+msgstr ""
+
+#: includes/data/class-nh-seo-data-model.php:283
+msgid "Pages only. \"category:<id>\" or \"topic_cluster:<id>\": the topic this Pillar or Hub page lists."
+msgstr ""
+
+#: includes/data/class-nh-seo-data-model.php:293
+msgid "The page has verified local-business context."
+msgstr ""
+
+#: includes/data/class-nh-seo-data-model.php:303
+msgid "Extra comma separated keywords for the internal search index only."
+msgstr ""
+
+#: includes/functions.php:319
+msgid "(no title)"
+msgstr ""
+
+#: includes/functions.php:764
+msgid "Home"
+msgstr ""
+
+#. translators: %s: search query.
+#: includes/functions.php:849
+#, php-format
+msgid "Search results for: %s"
+msgstr ""
+
+#: includes/render/class-nh-seo-renderer.php:47
+msgid "Content updated:"
+msgstr ""
