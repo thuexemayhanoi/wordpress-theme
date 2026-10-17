@@ -238,14 +238,37 @@ test.describe('structured data analysis @once', () => {
       expect(judge(goodFacts({ robots: 3 })).head).toEqual(['3 robots meta tags']);
     });
 
-    test('JSON-LD count: exactly one script with a plugin on indexable pages, at most one elsewhere', () => {
-      expect(judge(goodFacts({ scripts: [] })).jsonld[0]).toContain('exactly one JSON-LD script');
+    test('JSON-LD count: exactly one graph with a plugin on indexable pages, at most one script elsewhere', () => {
+      expect(judge(goodFacts({ scripts: [] })).jsonld[0]).toContain('exactly one JSON-LD graph');
       expect(judge(goodFacts({ scripts: [JSON.stringify(yoastPost()), JSON.stringify({ '@type': 'Thing', '@id': '#x' })] })).jsonld.join(' ')).toContain('found 2');
       expect(judge(goodFacts({ scripts: [] }), { indexable: false }).jsonld, 'a plugin may print nothing on search/404').toEqual([]);
       expect(judge(goodFacts({ scripts: [JSON.stringify(yoastPost())] }), { indexable: false }).jsonld).toEqual([]);
       expect(judge(goodFacts({ scripts: [JSON.stringify(yoastPost()), JSON.stringify({ '@type': 'Thing', '@id': '#x' })] }), { indexable: false }).jsonld[0]).toContain('at most one');
       expect(judge(goodFacts({ scripts: [] }), { mode: 'none' }).jsonld).toEqual([]);
       expect(judge(goodFacts({ scripts: [JSON.stringify({ '@type': 'Thing', '@id': '#a' }), JSON.stringify({ '@type': 'Thing', '@id': '#b' })] }), { mode: 'none' }).jsonld[0]).toContain('at most one');
+    });
+
+    test('the companion plugin may add one script of its own that holds only FAQPage / LocalBusiness', () => {
+      const faqBlock = (id = `${SITE}/p/#faq`) => ({ '@context': 'https://schema.org', '@type': 'FAQPage', '@id': id, mainEntity: [{ '@type': 'Question', name: 'Is a helmet included?' }, { '@type': 'Question', name: 'Can I pay by card?' }] });
+      const visible = 'Is a helmet included? Can I pay by card?';
+
+      // The SEO plugin's graph plus a separate FAQPage block is the design: nothing is described twice.
+      expect(judge(goodFacts({ scripts: [JSON.stringify(yoastPost()), JSON.stringify(faqBlock())], bodyText: visible }))).toEqual(allClear);
+      // The same block as a @graph holding only a FAQPage is the same thing.
+      expect(judge(goodFacts({ scripts: [JSON.stringify(yoastPost()), JSON.stringify({ '@context': 'https://schema.org', '@graph': [faqBlock()] })], bodyText: visible })).jsonld).toEqual([]);
+
+      // A second script that describes anything else is a second graph.
+      const secondGraph = JSON.stringify({ '@context': 'https://schema.org', '@graph': [{ '@type': 'FAQPage', '@id': '#f' }, { '@type': 'Organization', '@id': '#o' }] });
+      expect(judge(goodFacts({ scripts: [JSON.stringify(yoastPost()), secondGraph] })).jsonld.join(' ')).toContain('found 2');
+      // Two extra blocks are one too many, and a FAQPage the graph already holds must not be printed again.
+      expect(judge(goodFacts({ scripts: [JSON.stringify(yoastPost()), JSON.stringify(faqBlock('#a')), JSON.stringify(faqBlock('#b'))], bodyText: visible })).jsonld.join(' ')).toContain('at most one allowed');
+      const graphWithFaq = yoastPost();
+      graphWithFaq['@graph'].push({ '@type': 'FAQPage', '@id': `${SITE}/p/#faq-in-graph`, mainEntity: [{ '@type': 'Question', name: 'Is a helmet included?' }] });
+      expect(judge(goodFacts({ scripts: [JSON.stringify(graphWithFaq), JSON.stringify(faqBlock())], bodyText: visible })).jsonld.join(' ')).toContain('FAQPage appears in scripts #1 and #2');
+      // Without an SEO plugin the companion plugin prints one graph, and a second script is still one too many.
+      expect(judge(goodFacts({ scripts: [JSON.stringify(yoastPost()), JSON.stringify(faqBlock())], bodyText: visible }), { mode: 'none' }).jsonld[0]).toContain('at most one');
+      // On a page that is not indexable nothing extra is expected either.
+      expect(judge(goodFacts({ scripts: [JSON.stringify(yoastPost()), JSON.stringify(faqBlock())], bodyText: visible }), { indexable: false }).jsonld[0]).toContain('at most one');
     });
 
     test('JSON-LD content: duplicates, forbidden trust signals and broken JSON are reported', () => {

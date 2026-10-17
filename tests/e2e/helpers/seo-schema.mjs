@@ -64,6 +64,33 @@ export function parseDocuments(scriptTexts) {
   });
 }
 
+/** Types the companion plugin may print in a script of its own, next to the graph of the SEO plugin. */
+export const EXTRA_ONLY_TYPES = ['FAQPage', 'LocalBusiness'];
+
+/** The nodes declared at the top of a document: the document itself, or the members of its @graph. */
+function topLevelNodes(doc) {
+  const { data } = doc;
+  if (Array.isArray(data)) {
+    return data.filter((item) => item && typeof item === 'object');
+  }
+  if (data && typeof data === 'object') {
+    return doc.isGraph ? data['@graph'].filter((item) => item && typeof item === 'object') : [data];
+  }
+  return [];
+}
+
+/**
+ * True for a script that holds nothing except FAQPage / LocalBusiness nodes: the separate block the companion plugin
+ * prints beside an SEO plugin's graph (it never edits that graph). Anything else is a graph of its own.
+ */
+export function isExtraDocument(doc) {
+  if (doc.error) {
+    return false;
+  }
+  const top = topLevelNodes(doc);
+  return top.length > 0 && top.every((node) => typesOf(node).length > 0 && typesOf(node).every((type) => EXTRA_ONLY_TYPES.includes(type)));
+}
+
 /** Normalise text for "is it visible on the page" comparisons. */
 export const squash = (text) => String(text).replace(/\s+/g, ' ').trim().toLowerCase();
 
@@ -310,9 +337,16 @@ export function judgeSeo(facts, { mode, indexable, homeUrl }) {
   const analysis = analyze(documents);
   problems.jsonld.push(...analysis.errors);
   if (withPlugin && indexable) {
-    // One @graph document, or at least exactly one script: what matters is that nothing is described twice.
-    if (analysis.documentCount !== 1) {
-      problems.jsonld.push(`${mode} must print exactly one JSON-LD script on an indexable page, found ${analysis.documentCount}`);
+    // The SEO plugin prints ONE graph. The companion plugin may add ONE more script of its own, but only one that
+    // holds nothing except FAQPage / LocalBusiness nodes; the checks below report it when that block repeats
+    // something the graph already describes. What matters is that nothing is described twice.
+    const graphs = documents.filter((doc) => !doc.error && !isExtraDocument(doc));
+    const extras = documents.filter(isExtraDocument);
+    if (graphs.length !== 1) {
+      problems.jsonld.push(`${mode} must print exactly one JSON-LD graph on an indexable page, found ${graphs.length}${extras.length ? ` (plus ${extras.length} FAQPage/LocalBusiness script(s))` : ''}`);
+    }
+    if (extras.length > 1) {
+      problems.jsonld.push(`${extras.length} extra FAQPage/LocalBusiness scripts (at most one allowed)`);
     }
   } else if (analysis.documentCount > 1) {
     problems.jsonld.push(`${analysis.documentCount} JSON-LD scripts (at most one allowed here)`);

@@ -46,6 +46,7 @@ pipeline can split them over jobs, each against its own site: `--project=mobile`
 | `NH_ALLOW_PROTECTED_LINKS` | unset | `1` accepts WordPress' default of listing password-protected posts ("Protected: title") in archives; the crawler then reports those links instead of failing on them. Links from core widgets (Recent Posts...) are always only reported: that is content the site owner put in a widget area, not theme output. |
 | `NH_E2E_REQUIRE_ALL` | unset | `1` turns an undiscoverable page type from a skip into a failure. |
 | `NH_SEO_PLUGIN` | unset | `yoast`, `rankmath` or `none` enables `seo-plugins.spec.mjs`; anything else skips it. |
+| `NH_E2E_JUNIT` | unset | A file path: adds a JUnit report there (CI reads it into the QA report). |
 
 Nothing is hard-coded to this machine: no absolute paths, every URL is discovered from the live DOM
 (`helpers/discover.mjs`) starting at the home page, and written to `.artifacts/routes.json` by `global-setup.mjs`.
@@ -77,7 +78,7 @@ and is *filtered out* of the other projects (it does not show up as "skipped"):
 | Tag | Runs on | Because |
 |---|---|---|
 | `@desktop-only` | desktop | hover, mega menu, wide TOC layout, print |
-| `@drawer` | mobile, tablet | the menu button / drawer navigation (<= 960px) |
+| `@drawer` | mobile, tablet | the menu button / drawer navigation (<= 1180px, the content width) |
 | `@touch` | mobile | needs a touch device |
 | `@mobile-only` | mobile | sets its own viewport width (320, 188, landscape) |
 | `@once` | desktop | does not depend on the viewport (crawler, breakpoint sweep, SEO) |

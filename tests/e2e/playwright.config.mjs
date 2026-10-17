@@ -11,7 +11,7 @@
  *  - three viewport projects. Tests that only make sense on one kind of layout carry a tag and are
  *    filtered per project (they are not reported as "skipped", they simply do not exist for that project):
  *      @desktop-only  needs the desktop navigation (hover, mega menu, wide TOC layout)   -> desktop
- *      @drawer        needs the mobile/tablet drawer navigation (<= 960px)               -> mobile, tablet
+ *      @drawer        needs the mobile/tablet drawer navigation (<= 1180px)              -> mobile, tablet
  *      @touch         needs a touch device                                               -> mobile
  *      @mobile-only   runs once and sets its own viewport width                          -> mobile
  *      @once          viewport independent, runs once                                    -> desktop
@@ -46,6 +46,8 @@ export default defineConfig({
     ['list'],
     ['html', { open: 'never', outputFolder: path.join(ARTIFACTS_DIR, 'report') }],
     ['json', { outputFile: path.join(ARTIFACTS_DIR, 'results.json') }],
+    // CI sets NH_E2E_JUNIT to a file path; tools/qa-report.py reads it next to the PHPUnit logs.
+    ...(process.env.NH_E2E_JUNIT ? [['junit', { outputFile: process.env.NH_E2E_JUNIT }]] : []),
   ],
 
   use: {

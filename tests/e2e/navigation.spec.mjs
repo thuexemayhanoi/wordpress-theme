@@ -10,7 +10,7 @@
  *    mirrors the hidden panel, one panel at a time, hover opens after an intent delay and closes when the
  *    pointer leaves, keyboard: Enter/Space opens, Tab enters the panel, Esc closes and returns focus, tabbing
  *    out closes;
- *  - mobile/tablet drawer (<= 960px): the menu button opens/closes it, every link is reachable and not
+ *  - mobile/tablet drawer (<= 1180px): the menu button opens/closes it, every link is reachable and not
  *    covered, sub menus expand independently, Esc closes and returns focus, keyboard activation moves focus
  *    into the menu, a click outside closes, the page stays attached and usable while it is open.
  */
