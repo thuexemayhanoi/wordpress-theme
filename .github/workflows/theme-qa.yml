@@ -554,11 +554,41 @@ jobs:
         if: ${{ !cancelled() }}
         run: node tests/e2e/summarize.mjs --markdown >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Show the page head of the home page the plugin printed
+      - name: Show what the plugin printed in the head of the home page
         if: ${{ failure() }}
         run: |
-          curl -fsS "$SITE_URL/" | sed -n '1,/<\/head>/p' | cut -c1-400 | head -150 || true
-          cat "$WP_DIR/wp-content/debug.log" "$WP_DIR/wp-content/php-error.log" "$RUNNER_TEMP/serve.log" || true
+          curl -fsS "$SITE_URL/" | sed -n '1,/<\/head>/p' | grep -iE '<title|canonical|<meta (name|property)=.(description|robots|og:|twitter:)|ld\+json|yoast|rank math|generator' | cut -c1-300 || true
+          cat "$WP_DIR/wp-content/debug.log" "$WP_DIR/wp-content/php-error.log" "$RUNNER_TEMP/serve.log" 2>/dev/null | grep -vE 'Accepted|Closing|Failed to poll|\[200\]' | tail -40 || true
+
+      - name: Probe the SEO plugin that stays silent or disagrees
+        if: ${{ failure() && matrix.seo != 'none' }}
+        continue-on-error: true
+        run: |
+          set +e
+          wp() { php "$RUNNER_TEMP/wp-cli.phar" --allow-root --path="$WP_DIR" "$@"; }
+          dir="$WP_DIR/wp-content/plugins/$([ '${{ matrix.seo }}' = yoast ] && echo wordpress-seo || echo seo-by-rank-math)"
+          echo "::group::options of the plugin"
+          wp option list --search='*rank*' --fields=option_name --format=csv | head -40
+          wp option list --search='*wpseo*' --fields=option_name --format=csv | head -20
+          echo "::endgroup::"
+          echo "::group::wp_head() under WP-CLI"
+          wp eval 'wp(); ob_start(); wp_head(); $h = ob_get_clean(); echo strlen( $h ), " bytes, mentions of the plugin: ", preg_match_all( "/rank math|yoast/i", $h ), "\n"; foreach ( explode( "\n", $h ) as $l ) { if ( preg_match( "/canonical|robots|ld\+json|rank math|yoast/i", $l ) ) { echo substr( $l, 0, 200 ), "\n"; } }'
+          echo "::endgroup::"
+          if [ '${{ matrix.seo }}' = rankmath ]; then
+            echo "::group::Rank Math: includes/frontend"
+            ls "$dir/includes" | head -60
+            ls "$dir/includes/frontend" | head -40
+            sed -n '1,150p' "$dir/includes/frontend/class-head.php" | cut -c1-170
+            echo "::endgroup::"
+            echo "::group::Rank Math: where setup state or the frontend is gated"
+            grep -rnE 'wizard|is_configured|registration|setup_mode|is_request|disable_integration' "$dir/includes/frontend" "$dir/includes/class-rank-math.php" "$dir/rank-math.php" | cut -c1-200 | head -60
+            echo "::endgroup::"
+          else
+            echo "::group::Yoast: breadcrumbs"
+            grep -rnE 'function generate_breadcrumbs|hide_in_schema|wpseo_breadcrumb_links' "$dir/src" | cut -c1-200 | head -30
+            sed -n '1,40p' "$dir/src/surfaces/meta-surface.php" | cut -c1-170
+            echo "::endgroup::"
+          fi
 
       - name: Upload the JUnit log
         if: ${{ always() }}
