@@ -259,6 +259,9 @@ jobs:
       - name: Seed the fixture content
         run: php "$RUNNER_TEMP/wp-cli.phar" --allow-root --path="$WP_DIR" eval-file tests/bin/seed-fixtures.php
 
+      - name: Readiness report and fingerprints before the visits (tools/staging-preflight.php, read-only)
+        run: php "$RUNNER_TEMP/wp-cli.phar" --allow-root --path="$WP_DIR" eval-file tools/staging-preflight.php content | tee "$RUNNER_TEMP/preflight-before.txt"
+
       - name: Serve the site
         run: |
           nohup bash tests/bin/serve.sh "$WP_DIR" 8080 > "$RUNNER_TEMP/serve.log" 2>&1 &
@@ -266,6 +269,11 @@ jobs:
 
       - name: Smoke test every page type
         run: python3 -I tests/bin/smoke.py "$SITE_URL" --log "$WP_DIR/wp-content/debug.log" --log "$WP_DIR/wp-content/php-error.log"
+
+      - name: Visiting the pages changed no post, term, option or rewrite rule
+        run: |
+          php "$RUNNER_TEMP/wp-cli.phar" --allow-root --path="$WP_DIR" eval-file tools/staging-preflight.php content > "$RUNNER_TEMP/preflight-after.txt"
+          diff <(sed -n '/^== Fingerprints/,$p' "$RUNNER_TEMP/preflight-before.txt") <(sed -n '/^== Fingerprints/,$p' "$RUNNER_TEMP/preflight-after.txt")
 
       - name: Show the PHP error log
         if: ${{ failure() }}

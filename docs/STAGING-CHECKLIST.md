@@ -9,6 +9,11 @@ Dùng danh sách này trên bản sao staging, hoặc trên production **khi the
 - [ ] Có sao lưu **mới** (CSDL + `wp-content`) tạo từ hPanel, đã xác nhận mở được; đã làm các bước 0.3 và 0.4 của [ROLLBACK.md](ROLLBACK.md).
 - [ ] Theme Glass còn nguyên trong `wp-content/themes/`.
 - [ ] Cài theme (ZIP hoặc Deployer, xem [DEPLOYMENT.md](DEPLOYMENT.md)) và, nếu muốn, plugin đồng hành; **chưa kích hoạt**.
+- [ ] Chạy báo cáo chỉ-đọc `tools/staging-preflight.php` (cần repository hoặc chép riêng tệp này lên máy chủ; nó không ghi gì và không kích hoạt gì) và **lưu kết quả**:
+  ```bash
+  wp eval-file tools/staging-preflight.php content headline="<H1 đã duyệt>" lead="<đoạn dẫn đã duyệt>"
+  ```
+  Tham số viết không có dấu gạch (WP-CLI từ chối `--tùy-chọn` lạ). Báo cáo kiểm tra phiên bản WordPress/PHP, theme đã cài đúng chưa, plugin SEO đang sở hữu SEO, cấu trúc danh mục, H1 so với văn bản đã duyệt, và in **dấu vân tay** của bài viết, trang, danh mục, gán danh mục, các tùy chọn được bảo vệ và quy tắc rewrite. Chạy lại **ngay sau khi kích hoạt** và **sau khi rollback**: các dấu vân tay phải giống hệt (nếu lệch, có thứ đã bị đổi). Mã thoát khác 0 khi có mục `FAIL`.
 - [ ] Snippet WPCode **#1192 "Homepage SEO Lock"** đang bật (nó khóa các tùy chọn `blogname`, `blogdescription`, `show_on_front`, `page_on_front`, `page_for_posts` và tiêu đề/mô tả/canonical trang chủ của Yoast). Theme này không ghi vào các tùy chọn đó và không in các thẻ đó.
 
 ## B. Cấu hình bắt buộc trước khi kích hoạt (khớp các giá trị đang được khóa)
@@ -50,6 +55,6 @@ Dùng baseline 525 trang trong `data/seo/protection-baseline.json` (repository `
 
 ## E. Kích hoạt và theo dõi
 
-- [ ] Kích hoạt trong cửa sổ ngắn; kiểm tra lại mục B.1 và C ngay lập tức trên production.
+- [ ] Kích hoạt trong cửa sổ ngắn; kiểm tra lại mục B.1 và C ngay lập tức trên production, và chạy lại `tools/staging-preflight.php` (dấu vân tay phải bằng lần chạy trước khi kích hoạt).
 - [ ] Theo dõi 24–48 giờ: Search Console (lập chỉ mục, Core Web Vitals thực tế), lần chạy `seo_protection.py` hằng ngày của `wp-aiwriter`, nhật ký lỗi PHP.
 - [ ] Nếu có bất thường: [ROLLBACK.md](ROLLBACK.md).

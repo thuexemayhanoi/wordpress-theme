@@ -68,6 +68,8 @@ WP_CORE_DIR=/đường/dẫn/wordpress vendor/bin/phpunit --testsuite plugin
 bash tools/package.sh && bash tools/verify-package.sh dist     # ZIP theme + ZIP plugin + manifest + SHA256SUMS
 ```
 
+Báo cáo sẵn sàng chỉ-đọc cho staging/production, kèm dấu vân tay nội dung để so sánh trước và sau khi kích hoạt: `wp eval-file tools/staging-preflight.php content` (xem [docs/STAGING-CHECKLIST.md](docs/STAGING-CHECKLIST.md)).
+
 Dựng site thử, nạp dữ liệu mẫu và chạy kiểm tra HTTP: `tests/bin/setup-site.sh`, `tests/bin/seed-fixtures.php`, `tests/bin/serve.sh`, `tests/bin/smoke.py` (xem [docs/TESTING.md](docs/TESTING.md)). Dữ liệu mẫu là dữ liệu giả trên tên miền `example.org`.
 
 GitHub Actions (`.github/workflows/theme-qa.yml`) chạy trên push vào `feature/**` và `main` và trên mọi pull request. Artifact phát hành (ZIP theme, ZIP plugin, manifest, báo cáo QA) chỉ được tạo khi mọi cổng bắt buộc đạt; workflow không tạo tag, không tạo GitHub Release, không đẩy nhánh và không liên hệ website production.
