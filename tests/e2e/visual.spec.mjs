@@ -37,7 +37,7 @@ for (const scheme of ['light', 'dark']) {
         if (type.status === 404) {
           guard.expectDocument404(page.url());
         }
-        await loadAllImages(page);
+        await loadAllImages(page, { paint: true });
 
         await page.screenshot({ path: shotPath(testInfo, `${slug(type.label)}-${scheme}.png`), fullPage: true, animations: 'disabled', caret: 'hide' });
 

@@ -24,6 +24,9 @@ import { ARTIFACTS_DIR, BASE_URL, VIEWPORTS } from './helpers/env.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const workers = Math.max(1, Number(process.env.NH_E2E_WORKERS || 3));
+// 0 by default. A CI job may set NH_E2E_RETRIES=1 to find out which tests are flaky: Playwright then reports
+// them as "flaky" and tests/e2e/summarize.mjs still exits 1 for them.
+const retries = Math.max(0, Number(process.env.NH_E2E_RETRIES || 0));
 
 export default defineConfig({
   // Specs live next to this config (tests/e2e/*.spec.mjs); shared code is in tests/e2e/helpers.
@@ -36,7 +39,7 @@ export default defineConfig({
   expect: { timeout: 8_000 },
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
-  retries: 0,
+  retries,
   workers,
 
   reporter: [

@@ -85,8 +85,14 @@ export async function typeInHeaderSearch(page, text, { delay = 35 } = {}) {
   return input;
 }
 
-/** Make every lazy image load: force eager loading and wait until each one has decoded. */
-export async function loadAllImages(page, timeout = 15_000) {
+/**
+ * Make every lazy image load: force eager loading and wait until each one has decoded.
+ *
+ * `paint: true` also walks down the page and back, the way a visitor does. Screenshots need it: Chromium
+ * paints an image that was lazy and has never been inside the viewport as an empty box in a full-page
+ * capture, even when it is decoded. Measurements do not need it, so it is off by default (about a second).
+ */
+export async function loadAllImages(page, { timeout = 15_000, paint = false } = {}) {
   await page.evaluate(() => {
     document.querySelectorAll('img[loading="lazy"]').forEach((img) => {
       img.loading = 'eager';
@@ -94,6 +100,18 @@ export async function loadAllImages(page, timeout = 15_000) {
   });
   await page.waitForFunction(() => [...document.images].every((img) => img.complete), null, { timeout });
   await page.evaluate(() => Promise.all([...document.images].map((img) => img.decode().catch(() => undefined))));
+  if (paint) {
+    await page.evaluate(async () => {
+      const frame = () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      const step = Math.max(300, Math.floor(window.innerHeight * 0.8));
+      for (let y = 0; y < document.documentElement.scrollHeight; y += step) {
+        window.scrollTo({ top: y, left: 0, behavior: 'instant' });
+        await frame();
+      }
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      await frame();
+    });
+  }
 }
 
 /**
