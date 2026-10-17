@@ -59,7 +59,7 @@ if [ -n "$THEME_ZIP" ]; then
 	unpack "$THEME_ZIP" "$WORK/theme"
 	ROOT="$WORK/theme/nguyen-ha-editorial"
 	[ -d "$ROOT" ] || fail "theme zip must contain the folder nguyen-ha-editorial"
-	for required in style.css functions.php index.php theme.json LICENSE README.md assets/css/critical.min.css assets/css/main.min.css assets/js/theme.min.js languages/nguyen-ha-editorial.pot languages/vi.mo; do
+	for required in style.css functions.php index.php theme.json screenshot.png LICENSE README.md assets/css/critical.min.css assets/css/main.min.css assets/js/theme.min.js languages/nguyen-ha-editorial.pot languages/vi.mo; do
 		[ -s "$ROOT/$required" ] || fail "theme zip lacks $required"
 	done
 	common_checks "$ROOT" "theme"

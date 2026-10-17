@@ -267,6 +267,13 @@ class NH_Test_Theme_Source extends NH_Unit_Test_Case {
 		$this->assertSame( $php[1], $theme->get( 'RequiresPHP' ) );
 	}
 
+	public function test_the_theme_has_a_screenshot_of_the_size_wordpress_recommends() {
+		$size = getimagesize( dirname( __DIR__, 3 ) . '/screenshot.png' );
+		$this->assertIsArray( $size, 'screenshot.png is shown in Appearance > Themes' );
+		$this->assertSame( array( 1200, 900 ), array( $size[0], $size[1] ) );
+		$this->assertLessThan( 1024 * 1024, filesize( dirname( __DIR__, 3 ) . '/screenshot.png' ) );
+	}
+
 	public function test_theme_json_is_valid() {
 		$data = json_decode( (string) file_get_contents( dirname( __DIR__, 3 ) . '/theme.json' ), true );
 		$this->assertIsArray( $data );
