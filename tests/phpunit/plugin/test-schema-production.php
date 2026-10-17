@@ -293,6 +293,55 @@ class NH_Test_Schema_Production extends NH_Schema_Test_Case {
 		}
 	}
 
+	public function test_the_theme_and_the_plugin_keep_the_same_faq_items_even_for_awkward_input() {
+		if ( ! function_exists( 'nh_editorial_clean_faq' ) ) {
+			$this->markTestSkipped( 'The active theme has no FAQ sanitizer to compare with.' );
+		}
+
+		$many = array();
+		for ( $i = 1; $i <= 25; $i++ ) {
+			$many[] = array(
+				'question' => 'Question ' . $i . '?',
+				'answer'   => '<p>Answer ' . $i . '</p>',
+			);
+		}
+		$pair  = static function ( $question, $answer ) {
+			return array(
+				'question' => $question,
+				'answer'   => $answer,
+			);
+		};
+		$cases = array(
+			'plain'                   => array( $pair( 'Is it simple?', '<p>Yes.</p>' ), $pair( 'Is it cheap?', 'Cheap enough.' ) ),
+			'empty question'          => array( $pair( '', '<p>Orphan answer</p>' ), $pair( 'Kept?', 'Yes' ) ),
+			'empty answer'            => array( $pair( 'No answer?', '' ), $pair( 'Kept?', 'Yes' ) ),
+			'whitespace only'         => array( $pair( '   ', " \n " ), $pair( 'Kept?', 'Yes' ) ),
+			'html in the question'    => array( $pair( 'Is <b>this</b> <script>alert(1)</script>safe?', '<p>Yes</p>' ) ),
+			'entities'                => array( $pair( 'Tom &amp; Jerry?', '<p>Cat &amp; mouse &lt;3</p>' ) ),
+			'disallowed answer html'  => array( $pair( 'Q?', '<p onclick="x()">A <script>1</script><iframe src="x"></iframe><a href="javascript:alert(1)">bad</a> <a href="https://example.org/x">good</a></p>' ) ),
+			'long question'           => array( $pair( str_repeat( 'Why ', 120 ) . '?', '<p>Short</p>' ) ),
+			'long answer'             => array( $pair( 'Q?', '<p>' . str_repeat( 'Long answer. ', 400 ) . '</p>' ) ),
+			'more items than allowed' => $many,
+			'not a list'              => 'just a string',
+			'missing keys'            => array( array( 'question' => 'Only a question' ), array( 'answer' => 'Only an answer' ) ),
+		);
+
+		// What a reader sees: the plain text of each question and answer, entities decoded.
+		$text = function ( $items ) {
+			$out = array();
+			foreach ( (array) $items as $item ) {
+				$out[] = array(
+					$this->squash( wp_strip_all_tags( html_entity_decode( (string) $item['question'] ) ) ),
+					$this->squash( wp_strip_all_tags( html_entity_decode( (string) $item['answer'] ) ) ),
+				);
+			}
+			return $out;
+		};
+		foreach ( $cases as $label => $raw ) {
+			$this->assertSame( $text( nh_editorial_clean_faq( $raw ) ), $text( nh_seo_sanitize_faq( $raw ) ), $label . ': the FAQPage must describe exactly the items the theme shows.' );
+		}
+	}
+
 	public function test_a_theme_that_does_not_declare_the_faq_and_a_switched_off_fallback_get_no_faq_markup() {
 		remove_theme_support( 'nguyen-ha-companion' );
 		$this->set_settings( array( 'fallback_render' => 0 ) );
