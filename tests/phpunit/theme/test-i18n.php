@@ -105,7 +105,12 @@ class NH_Test_I18n extends NH_Render_Test_Case {
 
 	public function test_every_plural_function_uses_the_theme_text_domain() {
 		$checked = 0;
-		foreach ( glob( NH_EDITORIAL_DIR . '{*.php,inc/*.php,template-parts/*/*.php,page-templates/*.php}', GLOB_BRACE ) as $file ) {
+		// No GLOB_BRACE: musl (Alpine) does not have it.
+		$files = array();
+		foreach ( array( '*.php', 'inc/*.php', 'template-parts/*/*.php', 'page-templates/*.php' ) as $pattern ) {
+			$files = array_merge( $files, (array) glob( NH_EDITORIAL_DIR . $pattern ) );
+		}
+		foreach ( $files as $file ) {
 			$code = (string) file_get_contents( $file );
 			if ( preg_match_all( '/\b(?:_n|_nx|_x|__|_e|_ex|esc_html__|esc_html_e|esc_attr__|esc_attr_e)\s*\((?:[^()]|\((?:[^()]|\([^()]*\))*\))*\)/s', $code, $calls ) ) {
 				foreach ( $calls[0] as $call ) {

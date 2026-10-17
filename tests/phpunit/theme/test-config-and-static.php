@@ -393,7 +393,8 @@ class NH_Test_Theme_Source extends NH_Unit_Test_Case {
 		foreach ( $this->theme_php_files() as $file ) {
 			$sources[ $file ] = (string) file_get_contents( $file );
 		}
-		foreach ( glob( $root . '/assets/src/{css,js}/*', GLOB_BRACE ) as $file ) {
+		// No GLOB_BRACE: musl (Alpine) does not have it.
+		foreach ( array_merge( (array) glob( $root . '/assets/src/css/*' ), (array) glob( $root . '/assets/src/js/*' ) ) as $file ) {
 			$sources[ $file ] = (string) file_get_contents( $file );
 		}
 

@@ -5,15 +5,35 @@
  *  3. prints the discovered routes so a CI log shows exactly what was tested.
  */
 import fs from 'node:fs';
+import http from 'node:http';
+import https from 'node:https';
 import { ARTIFACTS_DIR, BASE_URL, REQUIRE_ALL, ROUTES_FILE, SCREENSHOT_DIR } from './helpers/env.mjs';
 import { discoverRoutes } from './helpers/discover.mjs';
 import { PAGE_TYPES } from './helpers/routes.mjs';
 
+/**
+ * HTTP status of a URL, without following redirects. node:http on purpose: the built-in fetch (undici) of some Node 22
+ * releases throws an uncaught assertion (`assert(!this.paused)`) while it reads the answer of PHP's built-in server,
+ * which ended this setup before a single test ran on GitHub Actions.
+ */
+function statusOf(url) {
+  return new Promise((resolve, reject) => {
+    const client = url.startsWith('https:') ? https : http;
+    const request = client.get(url, { headers: { connection: 'close' }, timeout: 15_000 }, (response) => {
+      response.resume();
+      response.on('end', () => resolve(response.statusCode));
+      response.on('error', reject);
+    });
+    request.on('timeout', () => request.destroy(new Error('no answer within 15 s')));
+    request.on('error', reject);
+  });
+}
+
 export default async function globalSetup() {
   try {
-    const response = await fetch(`${BASE_URL}/`, { redirect: 'manual', signal: AbortSignal.timeout(15_000) });
-    if (response.status !== 200) {
-      throw new Error(`HTTP ${response.status}`);
+    const status = await statusOf(`${BASE_URL}/`);
+    if (status !== 200) {
+      throw new Error(`HTTP ${status}`);
     }
   } catch (error) {
     throw new Error(
