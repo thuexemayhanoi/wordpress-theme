@@ -21,7 +21,7 @@ $nh_editorial_thumb = nh_editorial_thumbnail( get_the_ID(), 'hero' );
 		<?php if ( '' !== $nh_editorial_thumb ) : ?>
 			<?php echo $nh_editorial_thumb; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped by core (get_the_post_thumbnail). ?>
 		<?php else : ?>
-			<span class="card__placeholder"><?php echo nh_editorial_icon( 'book' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Static SVG markup. ?></span>
+			<span class="card__placeholder"><?php echo nh_editorial_card_placeholder_label(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped by helper. ?></span>
 		<?php endif; ?>
 	</a>
 	<div class="card__body">

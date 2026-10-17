@@ -134,6 +134,7 @@ class NH_Test_Page_Images extends NH_Render_Test_Case {
 		$html = $this->render_url( get_category_link( $site['child'] ) );
 		$xp   = $this->xpath( $html );
 		$this->assertGreaterThan( 0, $xp->query( '//span[contains(@class,"card__placeholder")]' )->length );
+		$this->assertGreaterThan( 0, $xp->query( '//span[contains(@class,"card__placeholder")]/span[contains(@class,"chip")]' )->length, 'Missing images use a real topic label instead of a book icon.' );
 		foreach ( $xp->query( '//img' ) as $img ) {
 			$this->assertNotSame( '', trim( $img->getAttribute( 'src' ) ), 'no img without a source' );
 		}

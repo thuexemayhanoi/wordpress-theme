@@ -98,6 +98,25 @@ function nh_editorial_enqueue_assets() {
 add_action( 'wp_enqueue_scripts', 'nh_editorial_enqueue_assets' );
 
 /**
+ * Reduce Local Site Assistant Lite's floating launcher covering mobile article copy.
+ * The plugin owns the chat and its configuration; this only narrows and edge-docks its button.
+ *
+ * @return void
+ */
+function nh_editorial_mobile_assistant_clearance() {
+	$css = '@media(max-width:600px){#lsa-root.lsa-root[data-side="left"] > button.lsa-fab{left:auto!important;right:4px!important;width:44px!important;height:44px!important;min-width:44px!important;min-height:44px!important;padding:0!important}}';
+
+	foreach ( array( 'nh-editorial-critical', 'nh-editorial-critical-file', 'nh-editorial-main' ) as $handle ) {
+		if ( wp_style_is( $handle, 'enqueued' ) ) {
+			wp_add_inline_style( $handle, $css );
+			break;
+		}
+	}
+}
+add_action( 'wp_enqueue_scripts', 'nh_editorial_mobile_assistant_clearance', 20 );
+
+
+/**
  * Load the main stylesheet without blocking first paint when critical CSS is inlined.
  *
  * @param string $tag    Link tag.

@@ -18,6 +18,20 @@ function nh_editorial_heading_tag( $level ) {
 	return 'h' . max( 2, min( 4, $level ) );
 }
 
+
+/**
+ * An honest, topic-specific visual label when the post has no featured image.
+ * Never invent or reuse a photograph from another article.
+ *
+ * @return string Safe HTML.
+ */
+function nh_editorial_card_placeholder_label() {
+	$term  = nh_editorial_primary_category( get_post() );
+	$label = $term instanceof WP_Term ? $term->name : get_bloginfo( 'name' );
+
+	return '<span class="chip chip--accent">' . esc_html( $label ) . '</span>';
+}
+
 /**
  * Query that returns the given posts in the given order.
  *

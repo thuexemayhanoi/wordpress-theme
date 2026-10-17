@@ -1,6 +1,6 @@
 {
   "name": "nguyen-ha-editorial",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "private": true,
   "description": "Build and QA tooling for the Nguyen Ha Editorial WordPress theme (never loaded by WordPress itself).",
   "license": "GPL-2.0-or-later",
