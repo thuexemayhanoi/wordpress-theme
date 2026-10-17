@@ -11,6 +11,8 @@
  * @package nguyen-ha-editorial
  */
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * Behavior on the real category structure.
  */

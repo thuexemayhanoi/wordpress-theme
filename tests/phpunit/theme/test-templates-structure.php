@@ -6,6 +6,8 @@
  * @package nguyen-ha-editorial
  */
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * Every public context renders a valid, accessible document skeleton.
  */

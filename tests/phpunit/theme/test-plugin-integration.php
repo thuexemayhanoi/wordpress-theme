@@ -6,6 +6,8 @@
  * @package nguyen-ha-editorial
  */
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * Both components active, as on a production site.
  */

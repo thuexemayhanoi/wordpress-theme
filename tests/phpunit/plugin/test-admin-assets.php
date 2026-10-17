@@ -5,6 +5,8 @@
  * @package nguyen-ha-seo-companion
  */
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * NH_SEO_Admin_Assets and NH_SEO_Admin_Notices.
  */

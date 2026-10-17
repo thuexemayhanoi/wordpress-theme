@@ -5,6 +5,8 @@
  * @package nguyen-ha-seo-companion
  */
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * Create and update posts, pages and terms through rest_do_request() with every meta key.
  */

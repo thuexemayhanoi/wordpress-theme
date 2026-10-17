@@ -5,6 +5,8 @@
  * @package nguyen-ha-seo-companion
  */
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * Canonical trail and primary-category tests.
  */

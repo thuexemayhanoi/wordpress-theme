@@ -5,6 +5,8 @@
  * @package nguyen-ha-editorial
  */
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * Summary, takeaways, FAQ, sources and the real update date.
  */

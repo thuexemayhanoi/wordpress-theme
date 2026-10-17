@@ -5,6 +5,8 @@
  * @package nguyen-ha-editorial
  */
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * Images: one LCP candidate per page, everything else lazy, space reserved, responsive.
  */

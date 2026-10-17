@@ -13,6 +13,11 @@
  * @package nguyen-ha-editorial
  */
 
+// Test tooling: never runs through a web server.
+if ( 'cli' !== PHP_SAPI ) {
+	exit;
+}
+
 $nh_core_dir = getenv( 'WP_CORE_DIR' );
 if ( ! $nh_core_dir || ! is_dir( $nh_core_dir ) ) {
 	echo 'Set WP_CORE_DIR to an extracted WordPress directory before running PHPUnit.' . PHP_EOL;

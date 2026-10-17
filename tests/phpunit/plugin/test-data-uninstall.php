@@ -5,6 +5,8 @@
  * @package nguyen-ha-seo-companion
  */
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * NH_SEO_Uninstall and uninstall.php.
  */

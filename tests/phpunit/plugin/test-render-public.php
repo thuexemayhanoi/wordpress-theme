@@ -5,6 +5,8 @@
  * @package nguyen-ha-seo-companion
  */
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * The public renderers (summary, takeaways, FAQ, sources, updated) and the HTML builders behind them.
  */

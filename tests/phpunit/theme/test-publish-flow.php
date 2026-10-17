@@ -10,6 +10,8 @@
  * @package nguyen-ha-editorial
  */
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * Publishing through REST keeps every list, neighbour, search and cache current.
  */

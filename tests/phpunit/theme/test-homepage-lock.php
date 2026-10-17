@@ -11,6 +11,8 @@
  * @package nguyen-ha-editorial
  */
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * Homepage headline parity and the reminder notice.
  */

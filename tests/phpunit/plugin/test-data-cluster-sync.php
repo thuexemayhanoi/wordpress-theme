@@ -5,6 +5,8 @@
  * @package nguyen-ha-seo-companion
  */
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * The `nh_topic_cluster` alias becomes a term, an assignment and a primary cluster.
  */

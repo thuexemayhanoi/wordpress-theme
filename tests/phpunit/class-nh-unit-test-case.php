@@ -5,6 +5,8 @@
  * @package nguyen-ha-editorial
  */
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * WP_UnitTestCase plus helpers for pretty permalinks, template rendering and HTML inspection.
  */

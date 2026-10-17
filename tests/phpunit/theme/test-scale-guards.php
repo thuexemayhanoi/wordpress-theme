@@ -5,6 +5,8 @@
  * @package nguyen-ha-editorial
  */
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * Author archives are counted without SQL_CALC_FOUND_ROWS and still paginate correctly.
  */

@@ -5,6 +5,8 @@
  * @package nguyen-ha-seo-companion
  */
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * Registration of the Topic Cluster taxonomy and of every meta key of the data contract.
  */

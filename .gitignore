@@ -21,3 +21,7 @@ Thumbs.db
 
 # Release artifacts built by tools/package.sh.
 /dist/
+
+# Python bytecode from the tooling scripts.
+__pycache__/
+*.pyc

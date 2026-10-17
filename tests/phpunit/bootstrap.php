@@ -5,6 +5,11 @@
  * @package nguyen-ha-editorial
  */
 
+// Test tooling: never runs through a web server.
+if ( 'cli' !== PHP_SAPI ) {
+	exit;
+}
+
 $nh_root = dirname( __DIR__, 2 );
 
 require_once $nh_root . '/vendor/autoload.php';

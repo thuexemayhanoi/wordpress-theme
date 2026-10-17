@@ -5,6 +5,8 @@
  * @package nguyen-ha-editorial
  */
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * Settings schema, sanitizers, business profile access and social links.
  */
@@ -228,6 +230,26 @@ class NH_Test_Theme_Source extends NH_Unit_Test_Case {
 		return $files;
 	}
 
+	/**
+	 * Every PHP file of the repository: theme, companion plugin, tests and tooling (not dependencies).
+	 *
+	 * @return string[] Absolute paths.
+	 */
+	private function repository_php_files() {
+		$root  = dirname( __DIR__, 3 );
+		$files = array();
+		$it    = new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $root, FilesystemIterator::SKIP_DOTS ) );
+		foreach ( $it as $file ) {
+			$path = $file->getPathname();
+			if ( 'php' !== $file->getExtension() || preg_match( '#/(vendor|node_modules|\.git|\.claude|dist)/#', $path ) ) {
+				continue;
+			}
+			$files[] = $path;
+		}
+		sort( $files );
+		return $files;
+	}
+
 	public function test_version_constant_matches_style_header() {
 		$theme = wp_get_theme( 'nguyen-ha-editorial' );
 		$this->assertSame( NH_EDITORIAL_VERSION, $theme->get( 'Version' ) );
@@ -261,6 +283,36 @@ class NH_Test_Theme_Source extends NH_Unit_Test_Case {
 				basename( $file ) . ' must stop when loaded outside WordPress.'
 			);
 		}
+	}
+
+	/**
+	 * A deployment may copy the whole repository into the theme folder (docs/DEPLOYMENT.md), so even the tests,
+	 * the tooling and the companion plugin must stop when requested directly over the web.
+	 */
+	public function test_no_php_file_of_the_repository_runs_when_requested_directly() {
+		$files = $this->repository_php_files();
+		$this->assertGreaterThan( 100, count( $files ), 'the whole repository is scanned' );
+		foreach ( $files as $file ) {
+			$source = (string) file_get_contents( $file );
+			$this->assertMatchesRegularExpression(
+				"/defined\( 'ABSPATH' \)|Silence is golden|PHP_SAPI/",
+				$source,
+				substr( $file, strlen( dirname( __DIR__, 3 ) ) + 1 ) . ' must stop when requested directly.'
+			);
+		}
+	}
+
+	public function test_development_folders_are_closed_to_the_web_and_left_out_of_the_zip() {
+		$root       = dirname( __DIR__, 3 );
+		$attributes = (string) file_get_contents( $root . '/.gitattributes' );
+		foreach ( array( 'tests', 'tools', 'docs', 'plugins' ) as $folder ) {
+			$htaccess = (string) file_get_contents( "{$root}/{$folder}/.htaccess" );
+			$this->assertStringContainsString( 'Require all denied', $htaccess, "{$folder}/.htaccess (Apache 2.4, LiteSpeed)" );
+			$this->assertStringContainsString( 'Deny from all', $htaccess, "{$folder}/.htaccess (Apache 2.2)" );
+			$this->assertMatchesRegularExpression( '#^/' . $folder . '(/|\s)#m', $attributes, "{$folder} is left out of the installable zip" );
+		}
+		$this->assertMatchesRegularExpression( '#^/\.htaccess\s+export-ignore#m', $attributes, 'the root .htaccess guards the repository copy only' );
+		$this->assertFileExists( $root . '/.htaccess' );
 	}
 
 	public function test_no_dangerous_functions_in_theme_source() {
