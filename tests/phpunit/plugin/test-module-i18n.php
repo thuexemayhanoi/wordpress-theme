@@ -274,15 +274,30 @@ class NH_Test_Module_I18n extends NH_Unit_Test_Case {
 			return '';
 		};
 
-		$this->assertSame( 'Bài viết 99999999 không tồn tại.', $run( static function () use ( $command ) {
-			$command->purge( array(), array( 'post' => '99999999' ) );
-		} ) );
-		$this->assertSame( '--batch phải là một số nguyên dương (từ 10 đến 500).', $run( static function () use ( $command ) {
-			$command->reindex( array(), array( 'batch' => 'abc' ) );
-		} ) );
-		$this->assertSame( 'Hãy chỉ định bài viết bằng --post=<id>.', $run( static function () use ( $command ) {
-			$command->purge( array(), array() );
-		} ) );
+		$this->assertSame(
+			'Bài viết 99999999 không tồn tại.',
+			$run(
+				static function () use ( $command ) {
+					$command->purge( array(), array( 'post' => '99999999' ) );
+				}
+			)
+		);
+		$this->assertSame(
+			'--batch phải là một số nguyên dương (từ 10 đến 500).',
+			$run(
+				static function () use ( $command ) {
+					$command->reindex( array(), array( 'batch' => 'abc' ) );
+				}
+			)
+		);
+		$this->assertSame(
+			'Hãy chỉ định bài viết bằng --post=<id>.',
+			$run(
+				static function () use ( $command ) {
+					$command->purge( array(), array() );
+				}
+			)
+		);
 
 		// The keys of index-status are an interface for scripts and stay in English.
 		$command->index_status( array(), array( 'format' => 'json' ) );

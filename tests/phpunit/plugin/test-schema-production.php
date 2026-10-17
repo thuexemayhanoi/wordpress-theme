@@ -124,19 +124,19 @@ class NH_Test_Schema_Production extends NH_Schema_Test_Case {
 	/**
 	 * Owner of a callback: the file that defines it, or '' when it cannot be told.
 	 *
-	 * @param mixed $function A WordPress callback.
+	 * @param mixed $callback_function A WordPress callback.
 	 * @return string
 	 */
-	private function defined_in( $function ) {
+	private function defined_in( $callback_function ) {
 		try {
-			if ( is_array( $function ) ) {
-				return (string) ( new ReflectionMethod( $function[0], $function[1] ) )->getFileName();
+			if ( is_array( $callback_function ) ) {
+				return (string) ( new ReflectionMethod( $callback_function[0], $callback_function[1] ) )->getFileName();
 			}
-			if ( is_object( $function ) && ! $function instanceof Closure ) {
-				return (string) ( new ReflectionMethod( $function, '__invoke' ) )->getFileName();
+			if ( is_object( $callback_function ) && ! $callback_function instanceof Closure ) {
+				return (string) ( new ReflectionMethod( $callback_function, '__invoke' ) )->getFileName();
 			}
-			if ( $function instanceof Closure || is_string( $function ) ) {
-				return (string) ( new ReflectionFunction( $function ) )->getFileName();
+			if ( $callback_function instanceof Closure || is_string( $callback_function ) ) {
+				return (string) ( new ReflectionFunction( $callback_function ) )->getFileName();
 			}
 		} catch ( ReflectionException $e ) {
 			return '';
