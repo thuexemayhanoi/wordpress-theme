@@ -133,6 +133,7 @@ final class NH_SEO_Search_Indexer {
 				self::reindex_post( $post_id );
 			}
 		}
+		NH_SEO_Search_State::forget_drift();
 		NH_SEO_Search_State::bump_query_caches();
 	}
 

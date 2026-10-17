@@ -39,6 +39,16 @@ final class NH_SEO_Search_State {
 	const BREAKER_SECONDS = 600;
 
 	/**
+	 * Transient that remembers the last comparison of the index with the content, for the admin screens.
+	 */
+	const DRIFT_CACHE = 'nh_seo_search_drift';
+
+	/**
+	 * Seconds an admin screen may reuse that comparison.
+	 */
+	const DRIFT_CACHE_SECONDS = 300;
+
+	/**
 	 * Default state.
 	 *
 	 * @return array<string, mixed>
@@ -100,6 +110,7 @@ final class NH_SEO_Search_State {
 	 */
 	public static function reset() {
 		update_option( NH_SEO_Keys::OPTION_SEARCH_STATE, self::defaults(), false );
+		self::forget_drift();
 		return self::get();
 	}
 
@@ -143,11 +154,15 @@ final class NH_SEO_Search_State {
 	/**
 	 * How far the index is from the content, and what WP-Cron still has to do for it.
 	 *
-	 * Reads both tables and the cron queue: for the status line and WP-Cron, never for page views.
+	 * Comparing the two tables reads every public post: about 2 seconds on a site of 50,000 articles. Page views never
+	 * do it. An admin screen passes $allow_cache to reuse a comparison made in the last five minutes (a settings page
+	 * shows the status twice); everything else, WP-CLI included, compares afresh. Every comparison refreshes the
+	 * remembered one, and a rebuild, a clear or the repair at activation forget it.
 	 *
+	 * @param bool $allow_cache Reuse a recent comparison of the two tables.
 	 * @return array{missing: int, outdated: int, queued: int, overdue: int}
 	 */
-	public static function drift() {
+	public static function drift( $allow_cache = false ) {
 		$drift = array(
 			'missing'  => 0,
 			'outdated' => 0,
@@ -157,7 +172,24 @@ final class NH_SEO_Search_State {
 		if ( ! NH_SEO_Search_Index::table_exists() ) {
 			return $drift;
 		}
-		return array_merge( NH_SEO_Search_Index::drift(), NH_SEO_Search_Indexer::queued_updates() );
+
+		$tables = $allow_cache ? get_transient( self::DRIFT_CACHE ) : false;
+		if ( ! is_array( $tables ) || ! isset( $tables['missing'], $tables['outdated'] ) ) {
+			$tables = NH_SEO_Search_Index::drift();
+			set_transient( self::DRIFT_CACHE, $tables, self::DRIFT_CACHE_SECONDS );
+		}
+
+		// The WP-Cron queue is one option read: always current.
+		return array_merge( $drift, array_map( 'absint', array_intersect_key( $tables, $drift ) ), NH_SEO_Search_Indexer::queued_updates() );
+	}
+
+	/**
+	 * Forget the remembered comparison (the index or the content changed in a way that makes it wrong).
+	 *
+	 * @return void
+	 */
+	public static function forget_drift() {
+		delete_transient( self::DRIFT_CACHE );
 	}
 
 	/**
@@ -221,9 +253,10 @@ final class NH_SEO_Search_State {
 	/**
 	 * One-line, plain text status for the plugin's Status box and WP-CLI.
 	 *
+	 * @param bool $allow_cache Let the admin screens reuse a recent comparison of the index with the content (see drift()).
 	 * @return string
 	 */
-	public static function status_line() {
+	public static function status_line( $allow_cache = false ) {
 		$state = self::get();
 		$mode  = self::mode();
 
@@ -277,7 +310,7 @@ final class NH_SEO_Search_State {
 		}
 
 		if ( $state['ready'] && ! $state['building'] ) {
-			$drift = self::drift();
+			$drift = self::drift( $allow_cache );
 			if ( $drift['missing'] + $drift['outdated'] > 0 ) {
 				$line .= ' ' . sprintf(
 					/* translators: 1: number of published posts that have no row in the index, 2: number of posts edited after they were indexed. */

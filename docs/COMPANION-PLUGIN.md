@@ -211,8 +211,10 @@ leave it behind, and the plugin no longer calls such an index "Ready" without sa
   in one request wait in the WP-Cron queue. The status line and `index-status` show how many updates are queued
   and how many are more than an hour overdue, and recommend a rebuild.
 * *An import bypassed WordPress hooks*: the status line compares the two tables (posts missing from the index,
-  posts edited after they were indexed) every time it is shown in the Tools tab or by `index-status`. Page views
-  never run that comparison.
+  posts edited after they were indexed) when it is shown in the Tools tab or by `index-status`. Page views never
+  run that comparison. It reads every public post (about 2 seconds on 50,000 articles), so the admin screens reuse a
+  comparison made in the last five minutes (a rebuild, a clear and the repair at activation forget it) while
+  `wp nh-seo index-status` always compares afresh.
 
 On a network every site has its own table, queue and cron events: a post saved while another site is current
 (`switch_to_blog()`) is indexed, and its URLs purged, in the site that owns it, and a site that is deleted takes

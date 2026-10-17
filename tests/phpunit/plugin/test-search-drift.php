@@ -206,6 +206,28 @@ class NH_Test_Search_Drift extends NH_Search_Test_Case {
 		$this->assertTrue( NH_SEO_Search_State::is_active(), 'only the activation check, or the administrator, sets the index aside' );
 	}
 
+	public function test_the_admin_screens_reuse_a_recent_comparison_but_the_command_line_and_actions_never_do() {
+		$this->ready_index();
+		$this->assertStringNotContainsString( 'Out of step', NH_SEO_Search_State::status_line( true ), 'the first call compares and remembers' );
+
+		$this->post_without_row( 'Added a minute later' );
+		$this->record_sql();
+		$this->assertStringNotContainsString( 'Out of step', NH_SEO_Search_State::status_line( true ), 'a recent comparison is reused: a screen that shows the status twice asks the database once' );
+		$this->assertSame( array(), $this->sql_containing( 'post_modified_gmt > i.updated' ), 'no second comparison of the two tables' );
+		$this->stop_sql_log();
+
+		$this->assertStringContainsString( 'Posts missing from the index: 1.', NH_SEO_Search_State::status_line(), 'asking without the cache is always exact' );
+		$this->assertStringContainsString( 'Posts missing from the index: 1.', NH_SEO_Search_State::status_line( true ), 'and refreshes what the screens reuse' );
+		$this->assertSame( '1', $this->facts()['posts_missing'], '`wp nh-seo index-status` never uses the cache' );
+
+		$this->index_all();
+		$this->assertStringNotContainsString( 'Out of step', NH_SEO_Search_State::status_line( true ), 'a rebuild forgets the old comparison' );
+
+		$this->post_without_row( 'Added after the rebuild' );
+		NH_SEO_Search_Builder::clear();
+		$this->assertStringNotContainsString( 'Out of step', NH_SEO_Search_State::status_line( true ), 'clearing the index forgets it too (and there is nothing to compare)' );
+	}
+
 	public function test_the_status_line_reports_index_updates_that_wp_cron_has_not_run() {
 		$this->ready_index();
 		wp_schedule_single_event( time() - 2 * HOUR_IN_SECONDS, NH_SEO_Search_Indexer::CRON_IDS, array( array( 1 ) ) );

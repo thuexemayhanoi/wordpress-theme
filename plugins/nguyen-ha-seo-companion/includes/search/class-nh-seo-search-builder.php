@@ -64,6 +64,7 @@ final class NH_SEO_Search_Builder {
 
 		NH_SEO_Search_Index::truncate();
 		NH_SEO_Search_State::clear_breaker();
+		NH_SEO_Search_State::forget_drift();
 
 		$state = NH_SEO_Search_State::save(
 			array(
@@ -169,6 +170,7 @@ final class NH_SEO_Search_Builder {
 		$state = NH_SEO_Search_State::save( $changes );
 
 		if ( $done ) {
+			NH_SEO_Search_State::forget_drift();
 			NH_SEO_Search_State::bump_query_caches();
 		}
 

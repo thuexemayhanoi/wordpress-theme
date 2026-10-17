@@ -45,7 +45,7 @@ final class NH_SEO_Search_Admin {
 	 * @return string
 	 */
 	public static function filter_status( $status ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- Filter callback: the incoming value is replaced on purpose.
-		return NH_SEO_Search_State::status_line();
+		return NH_SEO_Search_State::status_line( true );
 	}
 
 	/**
@@ -69,7 +69,7 @@ final class NH_SEO_Search_Admin {
 			</p>
 			<p class="nh-seo-search-status" id="nh-seo-search-status" role="status" aria-live="polite">
 				<strong><?php esc_html_e( 'Status:', 'nguyen-ha-seo-companion' ); ?></strong>
-				<span id="nh-seo-search-status-text"><?php echo esc_html( NH_SEO_Search_State::status_line() ); ?></span>
+				<span id="nh-seo-search-status-text"><?php echo esc_html( NH_SEO_Search_State::status_line( true ) ); ?></span>
 			</p>
 			<p>
 				<progress id="nh-seo-search-progress" max="100" value="<?php echo esc_attr( (string) ( $state['ready'] ? 100 : 0 ) ); ?>" <?php echo ( $state['ready'] || ! $state['building'] ) ? 'hidden' : ''; ?>></progress>
