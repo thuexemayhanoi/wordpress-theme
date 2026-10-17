@@ -3,7 +3,7 @@ Theme Name: Nguyen Ha Editorial
 Theme URI: https://github.com/thuexemayhanoi/wordpress-theme
 Author: Nguyen Ha Web Team
 Author URI: https://github.com/thuexemayhanoi
-Description: Premium editorial magazine theme built for large content sites (thousands of articles): fast, accessible, SEO/AEO/GEO-ready and compatible with Yoast SEO and Rank Math. Topic hubs and pillars, mega menu, light and dark mode, table of contents, FAQ, author box and a related-articles engine. Works on its own; pairs with the Nguyen Ha SEO Companion plugin.
+Description: Premium editorial magazine theme for large content sites: topic hubs and pillars, mega menu, light and dark mode, table of contents, FAQ, author box and a related-articles engine. Presentation only: SEO titles, meta tags and structured data are left to your SEO plugin or to the Nguyen Ha SEO Companion plugin.
 Version: 2.0.0
 Requires at least: 6.3
 Tested up to: 7.1
@@ -12,7 +12,7 @@ Text Domain: nguyen-ha-editorial
 Domain Path: /languages
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
-Tags: blog, news, grid-layout, custom-logo, custom-menu, featured-images, threaded-comments, translation-ready, accessibility-ready, editor-style, wide-blocks, block-styles, two-columns
+Tags: blog, news, grid-layout, custom-logo, custom-menu, featured-images, threaded-comments, translation-ready, editor-style, wide-blocks, block-styles, two-columns
 
 All styles live in assets/css (built from assets/src/css). This file only carries the theme header,
 which WordPress requires. See README.md and docs/ for architecture and installation.
