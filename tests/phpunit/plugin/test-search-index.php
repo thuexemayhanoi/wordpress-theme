@@ -102,15 +102,20 @@ class NH_Test_Search_Index extends NH_Search_Test_Case {
 			$category = self::factory()->category->create( array( 'name' => 'Thuê xe máy' ) );
 			$cluster  = wp_insert_term( 'Xe số tự động', 'topic_cluster' );
 
+			$content = '<!-- wp:heading --><h2>Giấy tờ cần thiết</h2><!-- /wp:heading --><p>Bạn cần bằng lái và hộ chiếu. Bằng lái xe máy rất quan trọng.</p>[gallery ids="1"]<script>var hiddenscript = 1;</script>';
 			$post_id = $this->make_post(
 				array(
 					'post_title'    => 'Thuê xe máy Hà Nội: giá và thủ tục',
-					'post_content'  => '<!-- wp:heading --><h2>Giấy tờ cần thiết</h2><!-- /wp:heading --><p>Bạn cần bằng lái và hộ chiếu. Bằng lái xe máy rất quan trọng.</p>[gallery ids="1"]<script>var hiddenscript = 1;</script>',
+					'post_content'  => $content,
 					'post_excerpt'  => 'Tóm tắt thủ tục',
 					'post_category' => array( $category ),
 					'tags_input'    => array( 'Du lịch', 'Scooter' ),
 				)
 			);
+			// A network (multisite) strips scripts from posts saved without the unfiltered_html capability: store the raw content.
+			global $wpdb;
+			$wpdb->update( $wpdb->posts, array( 'post_content' => $content ), array( 'ID' => $post_id ) );
+			clean_post_cache( $post_id );
 			wp_set_object_terms( $post_id, array( (int) $cluster['term_id'] ), 'topic_cluster' );
 			update_post_meta( $post_id, NH_SEO_Keys::META_KEYWORDS, 'xe tay ga, đặt xe online' );
 			update_post_meta( $post_id, NH_SEO_Keys::META_SUMMARY, 'Câu trả lời nhanh' );

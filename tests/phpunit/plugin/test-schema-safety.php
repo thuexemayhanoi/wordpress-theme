@@ -97,6 +97,19 @@ class NH_Test_Schema_Safety extends NH_Schema_Test_Case {
 	 */
 	private function force_hostile_values() {
 		global $wpdb;
+
+		// On a network only super administrators may save unfiltered HTML, so the post fields are written raw too.
+		$wpdb->update(
+			$wpdb->posts,
+			array(
+				'post_title'   => 'Title ' . self::HOSTILE . ' Thuê xe máy Hà Nội',
+				'post_content' => 'Body <script>alert(3)</script> text ' . self::HOSTILE,
+				'post_excerpt' => 'Excerpt ' . self::HOSTILE,
+			),
+			array( 'ID' => $this->post_id )
+		);
+		clean_post_cache( $this->post_id );
+
 		$tag = get_term_by( 'name', 'tag-two', 'post_tag' );
 		$wpdb->update( $wpdb->terms, array( 'name' => 'Cat <b>bold</b> </script>' ), array( 'term_id' => $this->cat_id ) );
 		$wpdb->update( $wpdb->terms, array( 'name' => 'tag </script><i>x</i>' ), array( 'term_id' => $tag->term_id ) );
