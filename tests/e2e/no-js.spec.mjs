@@ -40,6 +40,21 @@ async function settleImages(page, { lazyToo = false, timeout = 8_000 } = {}) {
 }
 
 /**
+ * Click an element the way a visitor does: scroll it into the part of the screen the sticky header leaves free,
+ * then click. Playwright's own scrolling centres the element, which on a phone without JavaScript can be
+ * underneath a header that fills most of the screen. That defect has its own test ("a sticky header never
+ * takes more than a third of the screen"); it must not make every later test wait for a click timeout.
+ */
+async function clickClearOfHeader(page, locator) {
+  await locator.evaluate((el) => {
+    const header = document.querySelector('.site-header');
+    const clear = (header ? header.getBoundingClientRect().bottom : 0) + 24;
+    window.scrollBy({ top: el.getBoundingClientRect().top - clear, behavior: 'instant' });
+  });
+  await locator.click({ timeout: 5_000 });
+}
+
+/**
  * `openWithoutJs(url, overrides)` opens a page in a context with JavaScript switched off. Contexts are
  * closed, and the console/network guard is asserted, when the test ends (only if it otherwise passed).
  */
@@ -111,13 +126,13 @@ test.describe('navigation without JavaScript', () => {
         viewport: window.innerWidth,
       };
     });
-    expect(facts.brandTruncated, 'the site name is cut off with an ellipsis').toBe(false);
+    expect.soft(facts.brandTruncated, 'the site name is cut off with an ellipsis').toBe(false);
     if (facts.nav) {
       const besideBrand = facts.nav.top < facts.brand.bottom - 2;
-      expect(besideBrand && facts.nav.width < 200, `the nav is squeezed into a ${Math.round(facts.nav.width)}px column beside the brand`).toBe(false);
+      expect.soft(besideBrand && facts.nav.width < 200, `the nav is squeezed into a ${Math.round(facts.nav.width)}px column beside the brand`).toBe(false);
       const overlapX = Math.min(facts.brand.right, facts.nav.right) - Math.max(facts.brand.left, facts.nav.left);
       const overlapY = Math.min(facts.brand.bottom, facts.nav.bottom) - Math.max(facts.brand.top, facts.nav.top);
-      expect(overlapX > 1 && overlapY > 1, 'brand and nav overlap').toBe(false);
+      expect.soft(overlapX > 1 && overlapY > 1, 'brand and nav overlap').toBe(false);
     }
     note(testInfo, 'nojs-header', `header ${Math.round(facts.header.height)}px tall at ${facts.viewport}px wide`);
   });
@@ -131,7 +146,7 @@ test.describe('navigation without JavaScript', () => {
     });
     note(testInfo, 'nojs-sticky-header', `${facts.sticky ? 'sticky' : 'not sticky'} header is ${Math.round(facts.height)}px of a ${facts.viewport}px viewport (${Math.round((facts.height / facts.viewport) * 100)}%)`);
     if (facts.sticky) {
-      expect(facts.height, `the sticky header covers ${Math.round((facts.height / facts.viewport) * 100)}% of the viewport`).toBeLessThanOrEqual(facts.viewport / 3);
+      expect.soft(facts.height, `the sticky header covers ${Math.round((facts.height / facts.viewport) * 100)}% of the viewport`).toBeLessThanOrEqual(facts.viewport / 3);
     }
 
     // Behavioural proof: scroll a heading of the article to the middle of the screen and make sure what is
@@ -143,7 +158,7 @@ test.describe('navigation without JavaScript', () => {
       const top = document.elementFromPoint(box.left + 10, box.top + box.height / 2);
       return { onHeading: Boolean(top && (top === heading || heading.contains(top))), coveredBy: top ? top.closest('.site-header') ? 'the header' : top.tagName : 'nothing' };
     });
-    expect(hit.onHeading, `an article heading scrolled to the screen centre is covered by ${hit.coveredBy}`).toBe(true);
+    expect.soft(hit.onHeading, `an article heading scrolled to the screen centre is covered by ${hit.coveredBy}`).toBe(true);
   });
 
   test('top-level links are all visible and usable', async ({ openWithoutJs, routes }) => {
@@ -196,7 +211,10 @@ test.describe('navigation without JavaScript', () => {
           break;
         }
       }
-      expect(visible, `a visible search field on ${key} without JavaScript (the header panel is hidden)`).not.toBeNull();
+      expect.soft(visible, `a visible search field on ${key} without JavaScript (the header panel is hidden)`).not.toBeNull();
+      if (!visible) {
+        continue; // reported above; the other page type is still checked
+      }
       await visible.fill('helmet');
       await Promise.all([page.waitForURL(/[?&]s=helmet/), visible.press('Enter')]);
       await expect(page.locator('h1')).toContainText('“helmet”');
@@ -228,12 +246,12 @@ test.describe('content components without JavaScript', () => {
     if (wide) {
       note(testInfo, 'toc', 'on a wide screen the contents start collapsed without JavaScript (JS opens them at >= 1100px)');
     }
-    await page.locator('.toc__summary').click();
+    await clickClearOfHeader(page, page.locator('.toc__summary'));
     await expect(details).toHaveJSProperty('open', true);
 
     const link = page.locator('.toc__list a').nth(2);
     const id = decodeURIComponent((await link.getAttribute('href')).slice(1));
-    await link.click();
+    await clickClearOfHeader(page, link);
     await page.waitForTimeout(700); // smooth scrolling is CSS-only
     const landing = await page.evaluate((target) => {
       const el = document.getElementById(target);
@@ -249,7 +267,7 @@ test.describe('content components without JavaScript', () => {
     await expect(items.nth(0)).toHaveJSProperty('open', true);
     await expect(items.nth(0).locator('.faq__answer')).toBeVisible();
     await expect(items.nth(1).locator('.faq__answer')).toBeHidden();
-    await items.nth(1).locator('summary').click({ timeout: 5_000 });
+    await clickClearOfHeader(page, items.nth(1).locator('summary'));
     await expect(items.nth(1).locator('.faq__answer')).toBeVisible();
   });
 

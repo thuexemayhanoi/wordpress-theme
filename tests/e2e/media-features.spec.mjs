@@ -347,8 +347,9 @@ test.describe('text size and spacing', () => {
         await page.addStyleTag({ content: 'html{font-size:200% !important}' });
         await page.waitForTimeout(150);
 
+        // Soft assertions: every page and width is reported, not just the first one that fails.
         const overflow = await measureOverflow(page);
-        expect(overflow.scrollWidth, `${key} @${width}px with 200% text: ${JSON.stringify(overflow.offenders)}`).toBeLessThanOrEqual(overflow.innerWidth);
+        expect.soft(overflow.scrollWidth, `${key} @${width}px with 200% text: ${JSON.stringify(overflow.offenders)}`).toBeLessThanOrEqual(overflow.innerWidth);
 
         const header = await page.evaluate(() => {
           const rect = (selector) => {
@@ -358,22 +359,22 @@ test.describe('text size and spacing', () => {
           };
           return { header: rect('.site-header'), toggle: rect('.nav-toggle'), search: rect('.search-toggle'), brand: rect('.brand'), vh: window.innerHeight };
         });
-        expect(header.toggle.right, 'menu button inside the viewport').toBeLessThanOrEqual(width);
-        expect(header.search.left, 'search button inside the viewport').toBeGreaterThanOrEqual(0);
-        expect(header.brand.right, 'brand does not run under the buttons').toBeLessThanOrEqual(header.search.left + 1);
-        expect(header.header.height, `the sticky header must stay a small part of the screen (${Math.round(header.header.height)}px of ${header.vh}px)`).toBeLessThanOrEqual(header.vh * 0.35);
+        expect.soft(header.toggle.right, `${key} @${width}px: menu button inside the viewport`).toBeLessThanOrEqual(width);
+        expect.soft(header.search.left, `${key} @${width}px: search button inside the viewport`).toBeGreaterThanOrEqual(0);
+        expect.soft(header.brand.right, `${key} @${width}px: brand does not run under the buttons`).toBeLessThanOrEqual(header.search.left + 1);
+        expect.soft(header.header.height, `${key} @${width}px: the sticky header must stay a small part of the screen (${Math.round(header.header.height)}px of ${header.vh}px)`).toBeLessThanOrEqual(header.vh * 0.35);
 
         await page.locator('.nav-toggle').click();
         await expect(page.locator('#primary-navigation')).toHaveClass(/is-open/);
         const drawer = await page.locator('#primary-navigation').boundingBox();
-        expect(drawer.x + drawer.width, 'drawer inside the viewport').toBeLessThanOrEqual(width + 1);
+        expect.soft(drawer.x + drawer.width, `${key} @${width}px: drawer inside the viewport`).toBeLessThanOrEqual(width + 1);
         await page.locator('.nav-toggle').click();
 
         const { clipped, ellipsized } = await page.evaluate(clippedText);
         if (ellipsized.length > 0) {
           note(testInfo, 'ellipsis-200', `${key} @${width}px (by design, shortened with an ellipsis): ${ellipsized.join(' | ')}`);
         }
-        expect(clipped, `cut-off text at 200% (${key} @${width}px)`).toEqual([]);
+        expect.soft(clipped, `cut-off text at 200% (${key} @${width}px)`).toEqual([]);
       }
     }
   });

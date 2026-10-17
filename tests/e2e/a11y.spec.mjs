@@ -96,7 +96,8 @@ for (const scheme of ['light', 'dark']) {
       await expectNoViolations(page, testInfo, `megapanel-${scheme}`);
     });
 
-    test('header search open with suggestions listed', async ({ page, routes }, testInfo) => {
+    // The three states below have the same DOM and colours at 768px as at 375px, so the tablet project skips them.
+    test('header search open with suggestions listed', { tag: '@no-tablet' }, async ({ page, routes }, testInfo) => {
       await gotoReady(page, requireRoute(test, routes, 'home'));
       await openSearch(page);
       await typeInHeaderSearch(page, 'scooter');
@@ -105,7 +106,7 @@ for (const scheme of ['light', 'dark']) {
       await expectNoViolations(page, testInfo, `search-suggestions-${scheme}`);
     });
 
-    test('table of contents expanded', async ({ page, routes }, testInfo) => {
+    test('table of contents expanded', { tag: '@no-tablet' }, async ({ page, routes }, testInfo) => {
       await gotoReady(page, requireRoute(test, routes, 'singleRich'));
       const details = page.locator('.toc__details');
       if (!(await details.evaluate((el) => el.open))) {
@@ -116,7 +117,7 @@ for (const scheme of ['light', 'dark']) {
       await expectNoViolations(page, testInfo, `toc-${scheme}`);
     });
 
-    test('FAQ item opened', async ({ page, routes }, testInfo) => {
+    test('FAQ item opened', { tag: '@no-tablet' }, async ({ page, routes }, testInfo) => {
       await gotoReady(page, requireRoute(test, routes, 'singleRich'));
       const second = page.locator('.faq__item').nth(1);
       await second.locator('summary').click();

@@ -140,7 +140,8 @@ export async function measureOverflow(page) {
  * Facts about the focused element, evaluated inside the page. Returns null when nothing (or only the
  * document) has focus.
  *
- * "covered" counts how many of a 5x3 grid of points inside the visible part of the element are painted
+ * "covered" counts how many of a 5x3 grid of points inside each visible box of the element (one box per
+ * line for a link that wraps, so the gap between two lines is not mistaken for the element) are painted
  * over by something that is neither the element nor part of it (document.elementFromPoint decides what
  * is really on top). All points covered = entirely obscured (a WCAG 2.2 SC 2.4.11 failure); some =
  * partially obscured (allowed at AA, not at AAA 2.4.12).
@@ -154,15 +155,15 @@ export function describeFocus() {
   const rect = el.getBoundingClientRect();
   const width = document.documentElement.clientWidth;
   const height = window.innerHeight;
-  const visible = {
-    left: Math.max(rect.left, 0),
-    top: Math.max(rect.top, 0),
-    right: Math.min(rect.right, width),
-    bottom: Math.min(rect.bottom, height),
-  };
-  const w = visible.right - visible.left;
-  const h = visible.bottom - visible.top;
-  const inViewport = w > 0 && h > 0;
+  const boxes = [...el.getClientRects()]
+    .map((box) => ({
+      left: Math.max(box.left, 0),
+      top: Math.max(box.top, 0),
+      right: Math.min(box.right, width),
+      bottom: Math.min(box.bottom, height),
+    }))
+    .filter((box) => box.right - box.left > 0 && box.bottom - box.top > 0);
+  const inViewport = boxes.length > 0;
 
   const cls = typeof el.className === 'string' ? el.className.trim().split(/\s+/).slice(0, 2).join('.') : '';
   const text = (el.getAttribute('aria-label') || el.textContent || el.getAttribute('value') || '').trim().replace(/\s+/g, ' ').slice(0, 50);
@@ -175,11 +176,13 @@ export function describeFocus() {
   let covered = 0;
   let samples = 0;
   let coveredBy = '';
-  if (inViewport) {
+  for (const box of boxes) {
+    const w = box.right - box.left;
+    const h = box.bottom - box.top;
     for (let ix = 0; ix < 5; ix += 1) {
       for (let iy = 0; iy < 3; iy += 1) {
-        const x = visible.left + (w * (ix + 0.5)) / 5;
-        const y = visible.top + (h * (iy + 0.5)) / 3;
+        const x = box.left + (w * (ix + 0.5)) / 5;
+        const y = box.top + (h * (iy + 0.5)) / 3;
         const top = document.elementFromPoint(x, y);
         samples += 1;
         if (top && !(el.contains(top) || top.contains(el))) {

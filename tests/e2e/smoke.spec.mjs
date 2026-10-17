@@ -23,30 +23,33 @@ for (const type of PAGE_TYPES) {
       guard.expectDocument404(page.url());
     }
 
+    // Everything below is a soft assertion: one run reports every problem of the page, and a defect early in
+    // the list cannot hide a console error or a missing asset further down.
+
     // <html lang> is what screen readers and translators use to pick a language.
     const lang = await page.locator('html').getAttribute('lang');
-    expect(lang, '<html lang>').toMatch(/^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$/);
+    expect.soft(lang, '<html lang>').toMatch(/^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$/);
 
     // Exactly one h1, visible and not empty.
     const h1 = page.locator('h1');
-    await expect(h1, 'number of h1 elements').toHaveCount(1);
-    await expect(h1).toBeVisible();
-    expect((await h1.innerText()).trim().length, 'h1 text length').toBeGreaterThan(0);
+    await expect.soft(h1, 'number of h1 elements').toHaveCount(1);
+    const h1Text = (await h1.count()) > 0 ? (await h1.first().innerText()).trim() : '';
+    expect.soft(h1Text.length, 'h1 text length (visible text)').toBeGreaterThan(0);
 
-    expect((await page.title()).trim().length, 'document title length').toBeGreaterThan(0);
+    expect.soft((await page.title()).trim().length, 'document title length').toBeGreaterThan(0);
 
     // The viewport meta must not disable zooming (WCAG 1.4.4).
     const viewport = (await page.locator('meta[name="viewport"]').getAttribute('content')) || '';
-    expect(viewport).toContain('width=device-width');
-    expect(viewport).not.toMatch(/user-scalable\s*=\s*(no|0)/i);
-    expect(viewport).not.toMatch(/maximum-scale\s*=\s*1(\.0)?\b/i);
+    expect.soft(viewport).toContain('width=device-width');
+    expect.soft(viewport).not.toMatch(/user-scalable\s*=\s*(no|0)/i);
+    expect.soft(viewport).not.toMatch(/maximum-scale\s*=\s*1(\.0)?\b/i);
 
     // Landmarks: one banner, one main, one contentinfo; every <nav> has a distinguishing name.
-    await expect(page.locator('main#primary')).toHaveCount(1);
-    await expect(page.locator('body > header#masthead')).toHaveCount(1);
-    await expect(page.locator('footer#colophon')).toHaveCount(1);
+    await expect.soft(page.locator('main#primary')).toHaveCount(1);
+    await expect.soft(page.locator('body > header#masthead')).toHaveCount(1);
+    await expect.soft(page.locator('footer#colophon')).toHaveCount(1);
     const unnamedNavs = await page.locator('nav:not([aria-label]):not([aria-labelledby])').count();
-    expect(unnamedNavs, 'nav landmarks without an accessible name').toBe(0);
+    expect.soft(unnamedNavs, 'nav landmarks without an accessible name').toBe(0);
 
     // The skip link points at something that exists and can take focus (main has tabindex=-1).
     const skip = await page.evaluate(() => {
@@ -57,9 +60,9 @@ for (const type of PAGE_TYPES) {
       const target = document.querySelector(link.getAttribute('href'));
       return { found: true, href: link.getAttribute('href'), targetExists: Boolean(target), targetTabindex: target ? target.getAttribute('tabindex') : null };
     });
-    expect(skip.found, 'skip link exists').toBe(true);
-    expect(skip.targetExists, `skip link target ${skip.href} exists`).toBe(true);
-    expect(skip.targetTabindex, 'skip link target is programmatically focusable').toBe('-1');
+    expect.soft(skip.found, 'skip link exists').toBe(true);
+    expect.soft(skip.targetExists, `skip link target ${skip.href} exists`).toBe(true);
+    expect.soft(skip.targetTabindex, 'skip link target is programmatically focusable').toBe('-1');
 
     // ids are unique and aria references resolve (a broken aria-controls is invisible to sighted users).
     const integrity = await page.evaluate(() => {
@@ -82,13 +85,13 @@ for (const type of PAGE_TYPES) {
       });
       return { duplicates, dangling };
     });
-    expect(integrity.duplicates, 'duplicate ids').toEqual([]);
-    expect(integrity.dangling, 'aria references to missing ids').toEqual([]);
+    expect.soft(integrity.duplicates, 'duplicate ids').toEqual([]);
+    expect.soft(integrity.dangling, 'aria references to missing ids').toEqual([]);
 
     // The three theme assets are wired: inline critical CSS, deferred main CSS, one deferred script.
-    await expect(page.locator('style#nh-editorial-critical-inline-css')).toHaveCount(1);
-    await expect(page.locator('#nh-editorial-main-css')).toHaveCount(1);
-    await expect(page.locator('script#nh-editorial-js[src][defer]')).toHaveCount(1);
+    await expect.soft(page.locator('style#nh-editorial-critical-inline-css')).toHaveCount(1);
+    await expect.soft(page.locator('#nh-editorial-main-css')).toHaveCount(1);
+    await expect.soft(page.locator('script#nh-editorial-js[src][defer]')).toHaveCount(1);
 
     if (guard.state.stubbed.length > 0) {
       note(testInfo, 'third-party', `Gravatar avatar requests (WordPress core default), answered with a stub: ${guard.state.stubbed.length}`);

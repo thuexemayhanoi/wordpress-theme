@@ -271,7 +271,8 @@ for (const key of ['home', 'singleRich', 'categoryHub', 'singleComments']) {
 // Cumulative Layout Shift
 // ---------------------------------------------------------------------------------------------------
 for (const key of ['home', 'singleRich', 'categoryHub']) {
-  test(`${key}: layout shift (CLS) over three cold loads`, async ({ browser, routes }, testInfo) => {
+  // Measured at the two extremes (375 and 1440); 768px has the same markup as 375px and costs ~13s per page.
+  test(`${key}: layout shift (CLS) over three cold loads`, { tag: '@no-tablet' }, async ({ browser, routes }, testInfo) => {
     const url = requireRoute(test, routes, key);
     const runs = [];
 

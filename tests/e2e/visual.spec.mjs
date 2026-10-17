@@ -41,21 +41,21 @@ for (const scheme of ['light', 'dark']) {
 
         await page.screenshot({ path: shotPath(testInfo, `${slug(type.label)}-${scheme}.png`), fullPage: true, animations: 'disabled', caret: 'hide' });
 
-        // What a machine can see.
+        // What a machine can see. Soft assertions: every probe reports, whichever one fails first.
         const overflow = await measureOverflow(page);
-        expect(overflow.scrollWidth, `horizontal overflow: ${JSON.stringify(overflow.offenders)}`).toBeLessThanOrEqual(overflow.innerWidth);
+        expect.soft(overflow.scrollWidth, `horizontal overflow: ${JSON.stringify(overflow.offenders)}`).toBeLessThanOrEqual(overflow.innerWidth);
 
         const { clipped, ellipsized } = await page.evaluate(clippedText);
         if (ellipsized.length > 0) {
           note(testInfo, 'ellipsis', ellipsized.join(' | '));
         }
-        expect(clipped, 'text cut off by its container').toEqual([]);
+        expect.soft(clipped, 'text cut off by its container').toEqual([]);
 
-        expect(await page.evaluate(overlappingSiblings), 'siblings overlapping each other').toEqual([]);
-        expect(await page.evaluate(distortedImages), 'stretched or squashed images').toEqual([]);
+        expect.soft(await page.evaluate(overlappingSiblings), 'siblings overlapping each other').toEqual([]);
+        expect.soft(await page.evaluate(distortedImages), 'stretched or squashed images').toEqual([]);
 
         const brokenImages = await page.evaluate(() => [...document.images].filter((img) => img.naturalWidth === 0).map((img) => img.currentSrc || img.src));
-        expect(brokenImages, 'images that did not load').toEqual([]);
+        expect.soft(brokenImages, 'images that did not load').toEqual([]);
       });
     }
   });
