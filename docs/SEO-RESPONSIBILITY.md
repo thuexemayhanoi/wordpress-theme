@@ -34,6 +34,8 @@ Dữ liệu doanh nghiệp (tên, địa chỉ, điện thoại, giờ mở cử
 
 Phát hiện plugin SEO dùng hằng số/lớp đã nạp (không gọi vào mã của plugin khác): Yoast SEO (`WPSEO_VERSION`), Rank Math (`RANK_MATH_VERSION`/`RankMath`), All in One SEO, SEOPress, The SEO Framework, SmartCrawl, Slim SEO, Squirrly. Bộ lọc `nh_seo_detected_seo_plugin` và `nh_seo_schema_mode` cho phép ghi đè.
 
+**Giữ chế độ *auto* khi có plugin SEO.** Ép chế độ *full* trong lúc Yoast hoạt động sẽ in một đồ thị thứ hai (trùng `Organization`, `WebSite`…): đó là hành vi có chủ ý của lựa chọn thủ công, không phải lỗi.
+
 Không in gì cho 404, bản xem trước, bản nháp, nội dung riêng tư hoặc có mật khẩu; trong chế độ *extras* cũng không in cho trang kết quả tìm kiếm. JSON được mã hóa với `JSON_HEX_TAG`/`JSON_HEX_AMP` nên không giá trị nào đóng được thẻ `script`.
 
 ## 3. Điều theme bảo đảm (và test nào chứng minh)
@@ -58,3 +60,5 @@ Không in gì cho 404, bản xem trước, bản nháp, nội dung riêng tư ho
 
 - Bộ kiểm thử PHPUnit mô phỏng plugin SEO bằng hằng số/lớp giả để kiểm tra logic phát hiện; việc đối chiếu với **Yoast SEO và Rank Math thật** do job `seo-plugins` của GitHub Actions thực hiện (cài từ wordpress.org trên runner) — xem [TESTING.md](TESTING.md) để biết kết quả đã chạy. Môi trường phát triển này không truy cập được wordpress.org.
 - Phiên bản Yoast SEO của website thật (28.7) và cấu hình của nó chưa được đối chiếu; cần staging.
+- Đã kiểm tra thủ công qua HTTP trên site thử (WordPress 6.5.5) bằng cách định nghĩa hằng số `WPSEO_VERSION` trong một mu-plugin tạm: chế độ tự chuyển sang *extras*, trang chủ, bài thường, trang tĩnh, danh mục và tìm kiếm **không** in JSON-LD nào, chỉ bài có FAQ hiển thị in thêm một khối `FAQPage`; bỏ hằng số thì trở lại đồ thị đầy đủ (*full*). Đó là mô phỏng hằng số, không phải Yoast thật.
+- Không phát hiện được khối FAQ nằm trong template part hoặc shortcode; không nhận biết plugin SEO lạ nếu không có bộ lọc `nh_seo_detected_seo_plugin`; cấu trúc tùy chọn module của Rank Math Local SEO và hằng số của Yoast Local SEO lấy theo hiểu biết, chưa chạy với plugin thật.
