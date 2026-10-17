@@ -45,6 +45,8 @@ Hợp đồng nằm ở [DATA-CONTRACT.md](DATA-CONTRACT.md). Payload mẫu (m�
 ```
 Ngày cập nhật không được sau hôm nay (múi giờ site); `nh_faq` chỉ thành dữ liệu có cấu trúc khi chính các câu hỏi đó hiển thị trên trang; khóa lạ bị từ chối.
 
+Đọc lại qua REST: tài khoản có quyền sửa bài (Application Password của workflow) thấy mọi khóa `nh_*`; khách chỉ thấy các khóa công khai của bài đã xuất bản (không có `nh_keywords`, là ghi chú làm việc của biên tập viên) và **không thấy khóa nào** của bài đặt mật khẩu trừ khi gửi đúng mật khẩu (xem [DATA-CONTRACT.md](DATA-CONTRACT.md) mục 1).
+
 ## 4. Tác động khi kích hoạt theme mới lên các công cụ SEO của repo đó (cần theo dõi)
 
 Khi chủ sở hữu kích hoạt theme (không thuộc nhiệm vụ này), lần chạy `seo_protection.py --mode check` đầu tiên có thể báo:

@@ -128,11 +128,29 @@ class NH_Test_Search_Index extends NH_Search_Test_Case {
 
 		$this->assertTrue( NH_SEO_Search_Index::table_exists(), 'the first site has its table' );
 		switch_to_blog( $second );
+		NH_SEO_Search_Index::drop_table(); // A table left behind by an earlier run of a site with the same number.
 		$this->assertFalse( NH_SEO_Search_Index::table_exists(), 'a site without the table is not told it has one' );
 		$this->assertTrue( NH_SEO_Search_Index::ensure_table() );
 		$this->assertTrue( NH_SEO_Search_Index::table_exists() );
 		restore_current_blog();
 		$this->assertTrue( NH_SEO_Search_Index::table_exists() );
+	}
+
+	public function test_deleting_a_site_drops_its_index_table() {
+		global $wpdb;
+		$this->skipWithoutMultisite();
+		$second = self::factory()->blog->create();
+		switch_to_blog( $second );
+		NH_SEO_Search_Index::forget_table_state();
+		NH_SEO_Search_Index::ensure_table();
+		$table = NH_SEO_Search_Index::table();
+		restore_current_blog();
+		$this->assertSame( $table, $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) ), 'the site has the table' );
+
+		wpmu_delete_blog( $second, true );
+
+		$this->assertNull( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) ), 'the table went with the site' );
+		$this->assertSame( array( $table ), array_values( array_intersect( array( $table ), apply_filters( 'wpmu_drop_tables', array(), $second ) ) ), 'the table is registered with the drop filter' );
 	}
 
 	public function test_embedded_stop_word_list_equals_the_default_list_of_this_server() {

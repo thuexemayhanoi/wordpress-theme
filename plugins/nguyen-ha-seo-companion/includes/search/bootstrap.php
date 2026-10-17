@@ -4,7 +4,7 @@
  *
  * See docs/COMPANION-PLUGIN.md, "Module search".
  *
- *  table        {$wpdb->prefix}nh_search_index, created with dbDelta on `nh_seo_upgrade`
+ *  table        {$wpdb->prefix}nh_search_index, created with dbDelta on `nh_seo_upgrade`, dropped with its site (wpmu_drop_tables)
  *  option       nh_seo_search_state (state), transient nh_seo_search_off (ten-minute pause after a SQL error)
  *  cron hooks   nh_seo_search_reindex_term, nh_seo_search_reindex_ids (unscheduled on deactivation)
  *  tools panel  action nh_seo_render_tools_panel
@@ -63,7 +63,22 @@ function nh_seo_search_activate() {
 	NH_SEO_Search_Indexer::repair_after_gap();
 }
 
+/**
+ * A site deleted from a network takes its index table with it: core drops only its own tables.
+ *
+ * @param string[] $tables  Tables of the site that is being deleted.
+ * @param int      $site_id Site ID.
+ * @return string[]
+ */
+function nh_seo_search_drop_site_table( $tables, $site_id ) {
+	global $wpdb;
+	$tables   = (array) $tables;
+	$tables[] = $wpdb->get_blog_prefix( (int) $site_id ) . NH_SEO_Search_Index::TABLE_SUFFIX;
+	return $tables;
+}
+
 add_action( 'nh_seo_upgrade', 'nh_seo_search_upgrade' );
+add_filter( 'wpmu_drop_tables', 'nh_seo_search_drop_site_table', 10, 2 );
 add_action( 'nh_seo_activate', 'nh_seo_search_activate' );
 add_action( 'nh_seo_deactivate', array( 'NH_SEO_Search_Indexer', 'on_deactivate' ) );
 

@@ -215,7 +215,8 @@ leave it behind, and the plugin no longer calls such an index "Ready" without sa
   never run that comparison.
 
 On a network every site has its own table, queue and cron events: a post saved while another site is current
-(`switch_to_blog()`) is indexed, and its URLs purged, in the site that owns it.
+(`switch_to_blog()`) is indexed, and its URLs purged, in the site that owns it, and a site that is deleted takes
+its index table with it (the plugin adds the table to core's `wpmu_drop_tables` list).
 
 Measured on a private site with about 50,000 articles (the `tests/bin/seed-bulk.php` fixture plus a few
 rare-word posts; 50,016 posts and pages at build time). PHP built-in server, 4 cores shared with other test
