@@ -52,11 +52,19 @@ abstract class NH_Unit_Test_Case extends WP_UnitTestCase {
 	 * Enable pretty permalinks properly: the test suite registers taxonomies before the permalink
 	 * structure exists, so rewrite tags such as %category% must be registered again.
 	 *
-	 * @param string $structure Permalink structure.
+	 * The default structure can be changed for a whole run with the NH_TEST_PERMALINKS environment
+	 * variable (CI runs the suites with /%category%/%postname%/ and with the /%postname%/ structure of
+	 * the live site).
+	 *
+	 * @param string|null $structure Permalink structure.
 	 * @return void
 	 */
-	protected function use_permalinks( $structure = '/%category%/%postname%/' ) {
+	protected function use_permalinks( $structure = null ) {
 		global $wp_rewrite;
+		if ( null === $structure ) {
+			$from_env  = getenv( 'NH_TEST_PERMALINKS' );
+			$structure = $from_env ? $from_env : '/%category%/%postname%/';
+		}
 		$this->set_permalink_structure( $structure );
 		create_initial_taxonomies();
 		$wp_rewrite->flush_rules();

@@ -351,7 +351,7 @@ function nh_editorial_get_latest_ids( $count, array $exclude = array() ) {
  * @return string
  */
 function nh_editorial_wrap_tables( $content ) {
-	if ( is_admin() || ! is_singular() || false === stripos( $content, '<table' ) ) {
+	if ( is_admin() || is_feed() || ! is_singular() || false === stripos( $content, '<table' ) ) {
 		return $content;
 	}
 	// Nested or unbalanced tables cannot be wrapped safely with a simple pattern: leave them alone.

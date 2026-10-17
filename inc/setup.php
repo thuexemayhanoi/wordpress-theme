@@ -40,6 +40,15 @@ function nh_editorial_setup() {
 		array( 'search-form', 'comment-form', 'comment-list', 'gallery', 'caption', 'style', 'script', 'navigation-widgets' )
 	);
 
+	/*
+	 * The theme prints a visible breadcrumb that is the same trail the SEO plugin describes (see
+	 * docs/DATA-CONTRACT.md), so Yoast SEO may include its BreadcrumbList in its structured data even when
+	 * its own breadcrumb setting is off. It only adds a piece to Yoast's single graph: no second script.
+	 */
+	if ( apply_filters( 'nh_editorial_support_seo_breadcrumbs', true ) ) {
+		add_theme_support( 'yoast-seo-breadcrumbs' );
+	}
+
 	// Tells the companion plugin which editorial blocks this theme renders itself.
 	add_theme_support(
 		'nguyen-ha-companion',

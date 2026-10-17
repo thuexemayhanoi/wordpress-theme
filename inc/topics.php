@@ -466,6 +466,10 @@ function nh_editorial_get_hubs( $limit = 12 ) {
 			$top      = array();
 			$kids     = array();
 			$subtotal = array();
+			$by_id    = array();
+			foreach ( $terms as $term ) {
+				$by_id[ (int) $term->term_id ] = $term;
+			}
 			foreach ( $terms as $term ) {
 				$parent = (int) $term->parent;
 				if ( 0 === $parent ) {
@@ -473,10 +477,12 @@ function nh_editorial_get_hubs( $limit = 12 ) {
 				} else {
 					$kids[ $parent ][] = $term;
 				}
-				// Cheap ranking weight: direct counts of the term and its direct children.
-				$subtotal[ (int) $term->term_id ] = ( isset( $subtotal[ (int) $term->term_id ] ) ? $subtotal[ (int) $term->term_id ] : 0 ) + (int) $term->count;
-				if ( $parent ) {
-					$subtotal[ $parent ] = ( isset( $subtotal[ $parent ] ) ? $subtotal[ $parent ] : 0 ) + (int) $term->count;
+				// Ranking weight: the direct count of a term is added to itself and to every ancestor, so
+				// a hub whose articles all sit two or three levels down is ranked by its real size.
+				$cursor = (int) $term->term_id;
+				for ( $depth = 0; $cursor && isset( $by_id[ $cursor ] ) && $depth < 10; $depth++ ) {
+					$subtotal[ $cursor ] = ( isset( $subtotal[ $cursor ] ) ? $subtotal[ $cursor ] : 0 ) + (int) $term->count;
+					$cursor              = (int) $by_id[ $cursor ]->parent;
 				}
 			}
 
