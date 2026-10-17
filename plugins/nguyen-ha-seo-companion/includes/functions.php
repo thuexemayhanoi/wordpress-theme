@@ -272,7 +272,7 @@ function nh_seo_sanitize_flag( $value ) {
  */
 function nh_seo_sanitize_keywords( $value ) {
 	if ( is_array( $value ) ) {
-		$value = implode( ', ', array_filter( array_map( 'strval', $value ), 'is_scalar' ) );
+		$value = implode( ', ', array_map( 'strval', array_filter( $value, 'is_scalar' ) ) );
 	}
 	if ( ! is_scalar( $value ) ) {
 		return '';
@@ -288,7 +288,12 @@ function nh_seo_sanitize_keywords( $value ) {
  * @return int
  */
 function nh_seo_sanitize_pillar_id( $value ) {
-	$id = absint( $value );
+	// Only a positive integer or a string of digits is an ID: absint() would turn "12abc" into 12, "1e3" into 1000 and -5 into 5.
+	if ( is_string( $value ) ) {
+		$id = ctype_digit( trim( $value ) ) ? (int) trim( $value ) : 0;
+	} else {
+		$id = is_int( $value ) ? max( 0, $value ) : 0;
+	}
 	if ( ! $id ) {
 		return 0;
 	}

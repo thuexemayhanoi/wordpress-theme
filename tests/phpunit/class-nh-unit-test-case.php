@@ -11,6 +11,13 @@
 abstract class NH_Unit_Test_Case extends WP_UnitTestCase {
 
 	/**
+	 * The theme's companion-plugin declaration before the test (see tear_down()).
+	 *
+	 * @var array|bool
+	 */
+	private $companion_support = false;
+
+	/**
 	 * WP_UnitTestCase unregisters every registered meta key after each test, so the plugin's taxonomy and
 	 * meta (normally registered once on `init`) would only exist for the first test of a run. Register them
 	 * again before every test to keep tests independent of their execution order.
@@ -19,9 +26,26 @@ abstract class NH_Unit_Test_Case extends WP_UnitTestCase {
 	 */
 	public function set_up() {
 		parent::set_up();
+		$this->companion_support = get_theme_support( 'nguyen-ha-companion' );
 		if ( class_exists( 'NH_SEO_Data_Model' ) ) {
 			NH_SEO_Data_Model::register();
 		}
+	}
+
+	/**
+	 * Tests change the theme's `nguyen-ha-companion` declaration to check the handshake. WordPress does not
+	 * reset theme features between tests, so put the declaration back to keep tests independent.
+	 *
+	 * @return void
+	 */
+	public function tear_down() {
+		remove_theme_support( 'nguyen-ha-companion' );
+		if ( true === $this->companion_support ) {
+			add_theme_support( 'nguyen-ha-companion' );
+		} elseif ( is_array( $this->companion_support ) && $this->companion_support ) {
+			call_user_func_array( 'add_theme_support', array_merge( array( 'nguyen-ha-companion' ), $this->companion_support ) );
+		}
+		parent::tear_down();
 	}
 
 	/**

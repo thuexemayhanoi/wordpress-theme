@@ -328,11 +328,27 @@ final class NH_SEO_Data_Model {
 	 * @return int
 	 */
 	public static function sanitize_primary_cluster( $value ) {
-		$term_id = is_scalar( $value ) ? absint( $value ) : 0;
+		$term_id = self::sanitize_id( $value );
 		if ( ! $term_id ) {
 			return 0;
 		}
 		return get_term( $term_id, NH_SEO_Keys::TAXONOMY_CLUSTER ) instanceof WP_Term ? $term_id : 0;
+	}
+
+	/**
+	 * Strict ID parsing: a positive integer or a string of digits. 0 for anything else.
+	 *
+	 * Unlike absint(), "12abc" is not 12, "1e3" is not 1000 and -5 is not 5.
+	 *
+	 * @param mixed $value Raw value.
+	 * @return int
+	 */
+	public static function sanitize_id( $value ) {
+		if ( is_string( $value ) ) {
+			$value = trim( $value );
+			return ctype_digit( $value ) && strlen( $value ) < 19 ? (int) $value : 0;
+		}
+		return is_int( $value ) ? max( 0, $value ) : 0;
 	}
 
 	/**

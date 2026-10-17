@@ -184,6 +184,38 @@ class NH_Test_Data_Model extends NH_Unit_Test_Case {
 		$this->assertSame( NH_SEO_Keys::LIMIT_CLUSTER_ALIAS, strlen( get_post_meta( $post_id, 'nh_topic_cluster', true ) ) );
 	}
 
+	public function test_keywords_sanitizer_ignores_non_scalar_items_without_warnings() {
+		// Regression: nested arrays used to raise "Array to string conversion" and leak the text "Array".
+		$this->assertSame( 'one, two', nh_seo_sanitize_keywords( array( 'one', array( 'nested' ), 'two', new stdClass() ) ) );
+		$this->assertSame( 'a, b', nh_seo_sanitize_keywords( array( 'a, b', array() ) ) );
+		$this->assertSame( '', nh_seo_sanitize_keywords( array( array( 'only nested' ) ) ) );
+		$this->assertSame( '', nh_seo_sanitize_keywords( new stdClass() ) );
+
+		$post_id = self::factory()->post->create();
+		update_post_meta( $post_id, 'nh_keywords', array( 'x', array( 'y' ) ) );
+		$this->assertSame( 'x', get_post_meta( $post_id, 'nh_keywords', true ) );
+	}
+
+	public function test_ids_are_parsed_strictly() {
+		// Regression: absint() read "12abc" as 12, "1e3" as 1000 and -5 as 5, pointing at the wrong post.
+		$published = self::factory()->post->create( array( 'post_status' => 'publish' ) );
+
+		$this->assertSame( $published, nh_seo_sanitize_pillar_id( $published ) );
+		$this->assertSame( $published, nh_seo_sanitize_pillar_id( (string) $published ) );
+		$this->assertSame( $published, nh_seo_sanitize_pillar_id( " $published " ) );
+		foreach ( array( $published . 'abc', 'abc' . $published, $published . '.0', $published . 'e0', '-' . $published, '+' . $published, (float) $published, true, array( $published ), null, '', '१२' ) as $bad ) {
+			$this->assertSame( 0, nh_seo_sanitize_pillar_id( $bad ), wp_json_encode( $bad ) );
+		}
+		$this->assertSame( 0, nh_seo_sanitize_pillar_id( -$published ) );
+
+		$this->assertSame( 12, NH_SEO_Data_Model::sanitize_id( '12' ) );
+		$this->assertSame( 12, NH_SEO_Data_Model::sanitize_id( 12 ) );
+		$this->assertSame( 12, NH_SEO_Data_Model::sanitize_id( ' 12 ' ) );
+		foreach ( array( '12abc', '1e3', '-5', -5, '1.5', 1.5, true, null, '', array( 12 ), '99999999999999999999' ) as $bad ) {
+			$this->assertSame( 0, NH_SEO_Data_Model::sanitize_id( $bad ), wp_json_encode( $bad ) );
+		}
+	}
+
 	public function test_pillar_id_sanitizer_rejects_unpublished_targets() {
 		$post_id   = self::factory()->post->create();
 		$published = self::factory()->post->create( array( 'post_status' => 'publish' ) );
