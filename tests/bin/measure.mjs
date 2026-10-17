@@ -48,19 +48,19 @@ async function pages() {
   const list = [
     ['home', '/'],
     ['home page 2', '/page/2/'],
-    ['home page 50', '/page/50/'],
+    ['home page 50', '/page/50/', true],
     ['home last pages', '/page/' + (process.env.NH_LAST_PAGE || '400') + '/'],
     ['hub category', '/category/bulk-hub-1/'],
-    ['hub category page 20', '/category/bulk-hub-1/page/20/'],
+    ['hub category page 20', '/category/bulk-hub-1/page/20/', true],
     ['child category', '/category/bulk-hub-1/bulk-topic-1-1/'],
-    ['child category page 5', '/category/bulk-hub-1/bulk-topic-1-1/page/5/'],
+    ['child category page 5', '/category/bulk-hub-1/bulk-topic-1-1/page/5/', true],
     ['tag', '/tag/bulk-tag-1/'],
     ['author', '/author/bulk_author_1/'],
-    ['author page 100', '/author/bulk_author_1/page/100/'],
+    ['author page 100', '/author/bulk_author_1/page/100/', true],
     ['year archive', '/' + new Date().getFullYear() + '/'],
     ['search common word', '/?s=scooter'],
     ['search two words', '/?s=xe+m%C3%A1y'],
-    ['search page 5', '/?s=scooter&paged=5'],
+    ['search page 5', '/?s=scooter&paged=5', true],
     ['search rare word', '/?s=zzzzqqqq'],
     ['404', '/nothing-here-at-all/'],
   ];
@@ -70,11 +70,16 @@ async function pages() {
 }
 
 const rows = [];
-for (const [label, path] of await pages()) {
+for (const [label, path, deep] of await pages()) {
   const samples = [];
   for (let i = 0; i < runs; i++) samples.push(await hit(base + path));
   const cold = samples[0];
   const warm = samples.slice(1).reduce((best, s) => (s.total_ms < best.total_ms ? s : best));
+  if (deep && warm.status === 404) {
+    // A page number or archive that this site is too small to have is not a measurement.
+    rows.push({ label, path, status: 404, absent: true });
+    continue;
+  }
   rows.push({
     label,
     path,
@@ -96,6 +101,10 @@ if (asJson) {
   console.log('| page | status | KB | cold ms | warm ms | cold queries | warm queries | warm db ms | peak MB |');
   console.log('|---|---|---|---|---|---|---|---|---|');
   for (const r of rows) {
+    if (r.absent) {
+      console.log(`| ${r.label} | not present at this size | | | | | | | |`);
+      continue;
+    }
     console.log(`| ${r.label} | ${r.status} | ${r.kb} | ${r.cold_ms} | ${r.warm_ms} | ${r.cold_q} | ${r.warm_q} | ${r.warm_db_ms} | ${r.peak_mb} |`);
   }
   console.log('\nSlowest single query per page (warm):');
