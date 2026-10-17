@@ -104,7 +104,7 @@ add_action( 'wp_enqueue_scripts', 'nh_editorial_enqueue_assets' );
  * @return void
  */
 function nh_editorial_mobile_assistant_clearance() {
-	$css = '@media(max-width:600px){#lsa-root.lsa-root[data-side="left"] > button.lsa-fab{left:auto!important;right:4px!important;width:44px!important;height:44px!important;min-width:44px!important;min-height:44px!important;padding:0!important}}';
+	$css = '@media(max-width:600px){#lsa-root.lsa-root[data-side="left"] > button.lsa-fab{left:0!important;right:auto!important;width:44px!important;height:44px!important;min-width:44px!important;min-height:44px!important;padding:0!important}}';
 
 	foreach ( array( 'nh-editorial-critical', 'nh-editorial-critical-file', 'nh-editorial-main' ) as $handle ) {
 		if ( wp_style_is( $handle, 'enqueued' ) ) {
