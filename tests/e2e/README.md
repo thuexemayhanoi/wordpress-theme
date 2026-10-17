@@ -26,11 +26,11 @@ A CI job that wants to be told which tests are flaky can set `NH_E2E_RETRIES=1`;
 "flaky" and `summarize.mjs` still exits 1 for them.
 Default `workers` is 3 (the PHP built-in server used by `tests/bin/serve.sh` runs 4 workers on a 4 core machine).
 
-Timing: the 784 tests took 8.6 minutes (517 s) on 4 shared CPU cores with 3 workers while 156 of them failed (each
-failure also writes a trace and a screenshot), and 6.6 minutes (394 s) when nothing failed. Summed test time per
-project in the first run: mobile 484 s, desktop 489 s, tablet 228 s. The projects are independent, so a CI
-pipeline can split them over jobs, each against its own site: `--project=mobile`, `--project=tablet`,
-`--project=desktop`, or `--shard=1/3` (Playwright's own sharding, which also balances the tests).
+Timing: the 785 tests (780 pass, 5 skip when `NH_SEO_PLUGIN` is unset) take 6.5 minutes on 4 shared CPU cores with 3
+workers. The projects are independent, so CI splits them over jobs, each against its own site and with 2 workers:
+desktop 303 tests in 3.2 minutes, tablet 197 in 1.7 and mobile 285 in 1.9 (test time only; each job also needs a couple
+of minutes to install Chromium and seed the site). `--project=mobile|tablet|desktop` or
+`--shard=1/3` (Playwright's own sharding, which also balances the tests) split a run the same way.
 
 ### The site under test
 
