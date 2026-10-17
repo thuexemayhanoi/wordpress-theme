@@ -33,8 +33,9 @@ class NH_Test_Search_Index extends NH_Search_Test_Case {
 		$this->assertMatchesRegularExpression( '/FULLTEXT KEY `ft_all` \(`title_fold`,`tax_fold`,`body_fold`\)/', $create );
 		$this->assertMatchesRegularExpression( '/FULLTEXT KEY `ft_title` \(`title_fold`\)/', $create );
 		$this->assertMatchesRegularExpression( '/FULLTEXT KEY `ft_tax` \(`tax_fold`\)/', $create );
-		$this->assertMatchesRegularExpression( '/`post_id` bigint\(20\) unsigned NOT NULL/', $create );
-		$this->assertMatchesRegularExpression( '/`body_fold` longtext NOT NULL/', $create );
+		// MariaDB prints "bigint(20)" and no collation; MySQL 8 prints "bigint" and the collation of the column.
+		$this->assertMatchesRegularExpression( '/`post_id` bigint(\(20\))? unsigned NOT NULL/', $create );
+		$this->assertMatchesRegularExpression( '/`body_fold` longtext( COLLATE \w+)? NOT NULL/', $create );
 	}
 
 	public function test_create_table_is_idempotent_and_keeps_the_data() {
