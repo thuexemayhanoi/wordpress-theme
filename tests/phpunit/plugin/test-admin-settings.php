@@ -598,6 +598,9 @@ class NH_Test_Admin_Settings extends NH_Unit_Test_Case {
 	}
 
 	public function test_the_status_box_is_read_only_and_shows_the_defaults() {
+		// The search module hooks this filter at plugin load. This test is about the page's own default, which
+		// shows when no module supplies a status (the module's line is checked in test-search-admin.php).
+		remove_all_filters( 'nh_seo_search_status' );
 		$html  = $this->page( 'status' );
 		$xpath = $this->dom( $html );
 

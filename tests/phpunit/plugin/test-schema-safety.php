@@ -83,25 +83,94 @@ class NH_Test_Schema_Safety extends NH_Schema_Test_Case {
 			)
 		);
 
-		$this->force_hostile_names();
+		$this->force_hostile_values();
 		wp_set_current_user( 0 );
 	}
 
 	/**
-	 * Term names and display names are always filtered by WordPress on save. Write the hostile values straight
-	 * into the tables so that the module's own output escaping is what gets tested.
+	 * Term names and display names are always filtered by WordPress on save, and the companion plugin's own
+	 * data layer sanitizes its meta and options on save (and again on read). Write the hostile values straight
+	 * into the tables, as an import, a migration or a database edit could, so that the module's own output
+	 * escaping is what gets tested.
 	 *
 	 * @return void
 	 */
-	private function force_hostile_names() {
+	private function force_hostile_values() {
 		global $wpdb;
 		$tag = get_term_by( 'name', 'tag-two', 'post_tag' );
 		$wpdb->update( $wpdb->terms, array( 'name' => 'Cat <b>bold</b> </script>' ), array( 'term_id' => $this->cat_id ) );
 		$wpdb->update( $wpdb->terms, array( 'name' => 'tag </script><i>x</i>' ), array( 'term_id' => $tag->term_id ) );
 		$wpdb->update( $wpdb->users, array( 'display_name' => 'Evil ' . self::HOSTILE ), array( 'ID' => $this->author ) );
+
+		$this->raw_meta( $wpdb->postmeta, 'post_id', $this->post_id, NH_SEO_Keys::META_SUMMARY, 'Summary ' . self::HOSTILE );
+		$this->raw_meta(
+			$wpdb->postmeta,
+			'post_id',
+			$this->post_id,
+			NH_SEO_Keys::META_FAQ,
+			array(
+				array(
+					'question' => 'Q1 ' . self::HOSTILE,
+					'answer'   => '<p>A1 <script>alert(4)</script><a href="javascript:alert(5)" onclick="x()">link</a> ' . self::HOSTILE . '</p>',
+				),
+				array(
+					'question' => 'Q2',
+					'answer'   => 'A2 </script><script>alert(6)</script>',
+				),
+			)
+		);
+		$this->raw_meta( $wpdb->usermeta, 'user_id', $this->author, NH_SEO_Keys::USER_JOB_TITLE, 'Editor ' . self::HOSTILE );
+
+		$wpdb->delete( $wpdb->options, array( 'option_name' => NH_SEO_Keys::OPTION_BUSINESS ) );
+		$wpdb->insert(
+			$wpdb->options,
+			array(
+				'option_name'  => NH_SEO_Keys::OPTION_BUSINESS,
+				'option_value' => maybe_serialize(
+					$this->complete_profile(
+						array(
+							'name'     => 'Shop ' . self::HOSTILE,
+							'street'   => '1 Road </script>',
+							'locality' => 'City <b>x</b>',
+						)
+					)
+				),
+				'autoload'     => 'no',
+			)
+		);
+
 		clean_term_cache( array( $this->cat_id, $tag->term_id ), '', false );
 		clean_user_cache( $this->author );
 		wp_cache_flush();
+	}
+
+	/**
+	 * Replace a meta row by direct SQL, bypassing every sanitize callback.
+	 *
+	 * @param string $table     Meta table.
+	 * @param string $id_column Object ID column.
+	 * @param int    $id        Object ID.
+	 * @param string $key       Meta key.
+	 * @param mixed  $value     Value (serialized when it is an array).
+	 * @return void
+	 */
+	private function raw_meta( $table, $id_column, $id, $key, $value ) {
+		global $wpdb;
+		$wpdb->delete(
+			$table,
+			array(
+				$id_column => $id,
+				'meta_key' => $key,
+			)
+		);
+		$wpdb->insert(
+			$table,
+			array(
+				$id_column   => $id,
+				'meta_key'   => $key,
+				'meta_value' => maybe_serialize( $value ),
+			)
+		);
 	}
 
 	/**
@@ -169,9 +238,17 @@ class NH_Test_Schema_Safety extends NH_Schema_Test_Case {
 		$this->assertStringContainsString( '</script>', get_term( $this->cat_id, 'category' )->name );
 		$this->assertStringContainsString( '</script>', get_userdata( $this->author )->display_name );
 		$this->assertStringContainsString( '&lt;/script&gt;', (string) get_option( 'blogname' ), 'WordPress stores the site title entity-encoded.' );
-		$this->assertStringContainsString( '</script>', (string) get_post_meta( $this->post_id, NH_SEO_Keys::META_SUMMARY, true ) );
-		$this->assertStringContainsString( '</script>', (string) get_post_meta( $this->post_id, NH_SEO_Keys::META_FAQ, true )[0]['question'] );
-		$this->assertStringContainsString( '</script>', (string) get_option( NH_SEO_Keys::OPTION_BUSINESS )['street'] );
+
+		// The data layer's own fields, as stored by an import or a database edit (the save-time sanitizers are bypassed).
+		global $wpdb;
+		$stored = static function ( $table, $id_column, $id, $key ) use ( $wpdb ) {
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table and column names come from $wpdb and this test.
+			return (string) $wpdb->get_var( $wpdb->prepare( "SELECT meta_value FROM {$table} WHERE {$id_column} = %d AND meta_key = %s", $id, $key ) );
+		};
+		$this->assertStringContainsString( '</script>', $stored( $wpdb->postmeta, 'post_id', $this->post_id, NH_SEO_Keys::META_SUMMARY ) );
+		$this->assertStringContainsString( '</script>', $stored( $wpdb->postmeta, 'post_id', $this->post_id, NH_SEO_Keys::META_FAQ ) );
+		$this->assertStringContainsString( '</script>', $stored( $wpdb->usermeta, 'user_id', $this->author, NH_SEO_Keys::USER_JOB_TITLE ) );
+		$this->assertStringContainsString( '</script>', (string) $wpdb->get_var( $wpdb->prepare( "SELECT option_value FROM {$wpdb->options} WHERE option_name = %s", NH_SEO_Keys::OPTION_BUSINESS ) ) );
 	}
 
 	public function test_hostile_input_is_neutralised_in_the_full_graph() {

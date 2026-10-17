@@ -121,6 +121,44 @@ class NH_Test_Search_Admin extends NH_Search_Test_Case {
 		$this->assertSame( 2, substr_count( $html, 'type="button"' ), 'Buttons never submit the settings form.' );
 	}
 
+	/**
+	 * Render a tab of the plugin's settings page (the admin module's own entry points).
+	 *
+	 * @param string $tab Tab slug.
+	 * @return string
+	 */
+	private function settings_tab( $tab ) {
+		$_GET['tab'] = $tab;
+		NH_SEO_Settings_Page::register_settings();
+		ob_start();
+		NH_SEO_Settings_Page::render_page();
+		$html = ob_get_clean();
+		unset( $_GET['tab'] );
+		return $html;
+	}
+
+	public function test_the_settings_page_shows_the_panel_in_its_tools_tab_and_the_status_line_in_its_status_box() {
+		if ( ! class_exists( 'NH_SEO_Settings_Page' ) ) {
+			$this->markTestSkipped( 'The admin module is not loaded.' );
+		}
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+
+		$tools = $this->settings_tab( 'tools' );
+		$this->assertStringContainsString( 'id="nh-seo-search-panel"', $tools );
+		$this->assertStringContainsString( 'id="nh-seo-search-build"', $tools );
+		$this->assertStringNotContainsString( 'There are no tools available.', $tools );
+
+		$rows = NH_SEO_Settings_Page::status_rows();
+		$this->assertSame( NH_SEO_Search_State::status_line(), $rows['Internal search index'] );
+		$this->assertStringContainsString( 'Not built yet', $rows['Internal search index'] );
+
+		$this->posts( 3 );
+		$this->index_all();
+		$rows = NH_SEO_Settings_Page::status_rows();
+		$this->assertStringContainsString( 'Ready: 3 posts indexed', $rows['Internal search index'] );
+		$this->assertStringContainsString( esc_html( $rows['Internal search index'] ), $this->settings_tab( 'status' ) );
+	}
+
 	public function test_the_panel_prints_nothing_without_manage_options() {
 		foreach ( array( 'editor', 'author', 'subscriber', null ) as $role ) {
 			wp_set_current_user( $role ? self::factory()->user->create( array( 'role' => $role ) ) : 0 );

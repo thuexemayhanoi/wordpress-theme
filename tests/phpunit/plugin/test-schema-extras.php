@@ -622,6 +622,44 @@ class NH_Test_Schema_Extras extends NH_Schema_Test_Case {
 		$this->assertSame( array(), $this->blocks_at( $this->url() ) );
 	}
 
+	public function test_the_effective_mode_can_be_filtered_and_invalid_answers_are_ignored() {
+		$this->set_faq( $this->post_id, 2 );
+
+		$seen = array();
+		$spy  = static function ( $mode ) use ( &$seen ) {
+			$seen[] = $mode;
+			return $mode;
+		};
+		add_filter( 'nh_seo_schema_mode', $spy );
+		$this->assertSame( 'extras', nh_seo_schema_mode() );
+		$this->assertSame( array( 'extras' ), $seen, 'The filter receives the mode worked out from the setting and the detected SEO plugin.' );
+		remove_filter( 'nh_seo_schema_mode', $spy );
+
+		// The theme tests switch the plugin's structured data off with this filter.
+		add_filter(
+			'nh_seo_schema_mode',
+			static function () {
+				return 'off';
+			}
+		);
+		$this->assertSame( 'off', nh_seo_schema_mode() );
+		$this->assertSame( array(), $this->blocks_at( $this->url() ) );
+		remove_all_filters( 'nh_seo_schema_mode' );
+
+		// Anything that is not one of the three modes is ignored.
+		foreach ( array( 'FULL', 'graph', '', null, false, 7, array( 'off' ) ) as $bad ) {
+			add_filter(
+				'nh_seo_schema_mode',
+				static function () use ( $bad ) {
+					return $bad;
+				}
+			);
+			$this->assertSame( 'extras', nh_seo_schema_mode(), wp_json_encode( $bad ) );
+			remove_all_filters( 'nh_seo_schema_mode' );
+		}
+		$this->assertCount( 1, $this->blocks_at( $this->url() ), 'Back to the normal answer.' );
+	}
+
 	public function test_the_graph_filter_also_runs_in_extras_mode() {
 		$this->set_faq( $this->post_id, 2 );
 		add_filter(
