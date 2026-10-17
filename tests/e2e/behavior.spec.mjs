@@ -286,10 +286,12 @@ test.describe('table of contents', () => {
   });
 
   test.describe('with reduced motion (instant jumps)', () => {
-    test.use({ reducedMotion: 'reduce' });
+    // reducedMotion is not a first-class Playwright Test option: it goes through contextOptions.
+    test.use({ contextOptions: { reducedMotion: 'reduce' } });
 
     test('indicator, focus and position are still right after a TOC jump', async ({ page, routes }) => {
       await gotoReady(page, requireRoute(test, routes, 'singleRich'));
+      expect(await page.evaluate(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches), 'reduced motion is really emulated').toBe(true);
       await ensureOpen(page);
       const link = links(page).nth(3);
       const id = decodeURIComponent((await link.getAttribute('href')).slice(1));

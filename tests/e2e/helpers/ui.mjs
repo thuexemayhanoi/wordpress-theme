@@ -324,7 +324,7 @@ export async function newProjectContext(browser, testInfo, overrides = {}) {
     locale: use.locale,
     timezoneId: use.timezoneId,
     colorScheme: use.colorScheme,
-    reducedMotion: use.reducedMotion,
+    ...(use.contextOptions || {}),
     ...overrides,
   });
 }

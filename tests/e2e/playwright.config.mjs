@@ -51,7 +51,6 @@ export default defineConfig({
     // Fixed zone: post dates ("October 14, 2026") must not depend on the machine running the suite.
     timezoneId: 'Asia/Ho_Chi_Minh',
     colorScheme: 'light',
-    reducedMotion: 'no-preference',
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     video: 'off',
