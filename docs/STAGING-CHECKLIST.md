@@ -35,7 +35,7 @@ Dùng baseline 525 trang trong `data/seo/protection-baseline.json` (repository `
 - [ ] HTTP 200 (trang 404 thật trả 404), không chuyển hướng mới, URL/slug không đổi.
 - [ ] Đúng **một** `<link rel="canonical">`, bằng giá trị baseline.
 - [ ] `robots` meta đúng như baseline (`index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1`); không có `noindex` mới.
-- [ ] Chỉ **một** khối `application/ld+json` (đồ thị Yoast) và các kiểu giống baseline: `Article, BreadcrumbList, ImageObject, Organization, Person, WebPage, WebSite` (+ `SearchAction`). Không `Organization`, `WebSite` hay `BreadcrumbList` thứ hai. `FAQPage` chỉ khi FAQ hiển thị trên trang.
+- [ ] Một khối `application/ld+json` là đồ thị của Yoast, với các kiểu giống baseline: `Article, BreadcrumbList, ImageObject, Organization, Person, WebPage, WebSite` (+ `SearchAction`). Không `Organization`, `WebSite` hay `BreadcrumbList` thứ hai. Theme không in JSON-LD nào. Plugin đồng hành (chế độ *extras*, tự chọn khi phát hiện Yoast) chỉ thêm một khối **riêng** `FAQPage` cho bài có FAQ hiển thị trên trang (và `LocalBusiness` chỉ khi chủ sở hữu bật và hồ sơ đầy đủ); bài do workflow AI Writer đăng không có FAQ nên không có khối thêm nào.
 - [ ] `<title>` và meta description của trang chủ và một số bài đúng như trước.
 - [ ] H1 mỗi trang là đúng một phần tử, văn bản giống baseline.
 - [ ] Sitemap và `robots.txt` không đổi.
