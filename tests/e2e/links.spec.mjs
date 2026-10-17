@@ -20,7 +20,7 @@
  * Runs once (desktop project): it does not depend on the viewport.
  */
 import { test, expect } from './helpers/fixtures.mjs';
-import { ALLOW_PROTECTED_LINKS, BASE_ORIGIN, CRAWL_LIMIT, HIDDEN_TITLES } from './helpers/env.mjs';
+import { ALLOW_PROTECTED_LINKS, BASE_ORIGIN, CRAWL_LIMIT, HIDDEN_TITLES, OWN_BREADCRUMB } from './helpers/env.mjs';
 
 const SKIP_PATH = /^\/(wp-admin|wp-login\.php|wp-json|wp-content|wp-includes|xmlrpc\.php)(\/|$)|(^|\/)feed(\/|$)|\/trackback\/?$|\/embed\/?$|^\/comments\/feed/;
 const CONCURRENCY = 4;
@@ -362,9 +362,9 @@ test('crawl: internal links, hygiene, hidden content, canonicals, breadcrumbs, p
         const known = target ? seenLinks.get(target.href)?.record : null;
         if (target && known && known.status !== 200) problems.push(`${path}: breadcrumb link ${item.href} answers ${known.status}`);
       }
-      // With Yoast SEO the trail is Yoast's own list (the theme shows what Yoast declares as BreadcrumbList), so its wording
-      // and its categories are the plugin's settings: seo-plugins.spec.mjs compares the page with the BreadcrumbList instead.
-      if (process.env.NH_SEO_PLUGIN === 'yoast') {
+      // With Yoast SEO the trail is Yoast's own list, so its wording and its categories are the plugin's settings:
+      // seo-plugins.spec.mjs compares the page with the BreadcrumbList instead.
+      if (!OWN_BREADCRUMB) {
         continue;
       }
       // The visible current item names the page: same text as the h1 (not for search, whose h1 is a sentence).

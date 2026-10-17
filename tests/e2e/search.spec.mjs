@@ -12,7 +12,7 @@
  * filter, pagination, empty state; and no phrase may ever execute.
  */
 import { test, expect, requireRoute } from './helpers/fixtures.mjs';
-import { BASE_ORIGIN, HIDDEN_TITLES, NO_RESULT_TERM, SEARCH_TERM } from './helpers/env.mjs';
+import { BASE_ORIGIN, HIDDEN_TITLES, NO_RESULT_TERM, OWN_BREADCRUMB, SEARCH_TERM } from './helpers/env.mjs';
 import { gotoReady, measureOverflow, note, openSearch, typeInHeaderSearch } from './helpers/ui.mjs';
 
 const REST = '**/wp-json/wp/v2/search*';
@@ -309,7 +309,10 @@ test.describe('submitting a search', () => {
     await expect(page.locator('h1')).toHaveText('Results for “Tom & Jerry <3 "quotes"”');
     await expect(page.locator('.archive-header .search-field')).toHaveValue('Tom & Jerry <3 "quotes"');
     const crumb = await page.locator('.breadcrumbs__item--current').innerText();
-    expect(crumb, 'no double-encoded entities in the breadcrumb').toBe('Search results for: Tom & Jerry <3 "quotes"');
+    expect(crumb, 'no double-encoded entities in the breadcrumb').not.toMatch(/&(amp|lt|gt|quot|#\d+);/);
+    if (OWN_BREADCRUMB) {
+      expect(crumb, 'the theme names the phrase in the breadcrumb').toBe('Search results for: Tom & Jerry <3 "quotes"');
+    }
   });
 });
 
@@ -328,8 +331,14 @@ test.describe('results page', () => {
     const total = Number(metaText.split(' ')[0]);
     expect(total).toBeGreaterThan(0);
 
-    const crumbs = await page.locator('.breadcrumbs__item').allInnerTexts();
-    expect(crumbs.map((c) => c.trim())).toEqual(['Home', `Search results for: ${SEARCH_TERM}`]);
+    const crumbs = (await page.locator('.breadcrumbs__item').allInnerTexts()).map((c) => c.trim());
+    if (OWN_BREADCRUMB) {
+      expect(crumbs).toEqual(['Home', `Search results for: ${SEARCH_TERM}`]);
+    } else {
+      // Yoast's wording ("You searched for ...") and its Home text: two items, the phrase in the last one.
+      expect(crumbs).toHaveLength(2);
+      expect(crumbs[1]).toContain(SEARCH_TERM);
+    }
 
     // Highlighting: <mark> wraps the phrase words inside titles and excerpts, nowhere else.
     const marks = await page.locator('article.card mark').allInnerTexts();

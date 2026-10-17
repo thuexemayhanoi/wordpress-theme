@@ -27,6 +27,9 @@ export const SEARCH_TERM = process.env.NH_SEARCH_TERM || 'scooter';
 export const NO_RESULT_TERM = 'zzqxjkvnohit';
 export const CRAWL_LIMIT = Math.max(1, Number(process.env.NH_CRAWL_LIMIT || 300));
 export const REQUIRE_ALL = process.env.NH_E2E_REQUIRE_ALL === '1';
+// With Yoast SEO the visible breadcrumb is Yoast's own list (the theme shows what Yoast declares as BreadcrumbList), so
+// its wording and its categories are the plugin's settings; seo-plugins.spec.mjs compares it with the BreadcrumbList.
+export const OWN_BREADCRUMB = process.env.NH_SEO_PLUGIN !== 'yoast';
 // WordPress lists password-protected posts ("Protected: <title>") in its archives and widgets by default. The theme's
 // own components never do (docs/DATA-CONTRACT.md), and the crawler fails on a link to one. Set this to 1 to accept
 // WordPress' default: the links are then reported as an observation instead.

@@ -45,7 +45,7 @@ of minutes to install Chromium and seed the site). `--project=mobile|tablet|desk
 | `NH_CRAWL_LIMIT` | `300` | URL cap of the link crawler. |
 | `NH_ALLOW_PROTECTED_LINKS` | unset | `1` accepts WordPress' default of listing password-protected posts ("Protected: title") in archives; the crawler then reports those links instead of failing on them. Links from core widgets (Recent Posts...) are always only reported: that is content the site owner put in a widget area, not theme output. |
 | `NH_E2E_REQUIRE_ALL` | unset | `1` turns an undiscoverable page type from a skip into a failure. |
-| `NH_SEO_PLUGIN` | unset | `yoast`, `rankmath` or `none` enables `seo-plugins.spec.mjs`; anything else skips it. With `yoast` the crawl in `links.spec.mjs` no longer expects the current breadcrumb to equal the h1 or the last link to equal the topic chip: the trail is Yoast's own list, which `seo-plugins.spec.mjs` compares with the `BreadcrumbList`. |
+| `NH_SEO_PLUGIN` | unset | `yoast`, `rankmath` or `none` enables `seo-plugins.spec.mjs`; anything else skips it. With `yoast` the crawl in `links.spec.mjs` no longer expects the current breadcrumb to equal the h1 or the last link to equal the topic chip, and `search.spec.mjs` no longer expects the theme's wording ("Search results for: ...") in it: the trail is Yoast's own list, which `seo-plugins.spec.mjs` compares with the `BreadcrumbList`. |
 | `NH_E2E_JUNIT` | unset | A file path: adds a JUnit report there (CI reads it into the QA report). |
 
 Nothing is hard-coded to this machine: no absolute paths, every URL is discovered from the live DOM
