@@ -90,12 +90,13 @@ function nh_editorial_highlight( $text, $phrase ) {
 /**
  * Data attributes for the header search form: the REST route and the strings used by the script.
  *
- * Empty when suggestions are disabled or the REST API is unavailable.
+ * Empty when suggestions are disabled, or when the site is too large for the built-in search to answer
+ * one request per keystroke and no search index is active (see nh_editorial_search_is_too_heavy_for_suggestions()).
  *
  * @return string Safe attribute string (leading space) or ''.
  */
 function nh_editorial_search_suggest_attributes() {
-	if ( ! nh_editorial_option( 'nh_search_suggest' ) ) {
+	if ( ! nh_editorial_option( 'nh_search_suggest' ) || nh_editorial_search_is_too_heavy_for_suggestions() ) {
 		return '';
 	}
 

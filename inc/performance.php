@@ -136,3 +136,130 @@ function nh_editorial_lazy_avatars( $attributes, $tag_name, $attr, $context ) {
 	return $attributes;
 }
 add_filter( 'wp_get_loading_optimization_attributes', 'nh_editorial_lazy_avatars', 10, 4 );
+
+/**
+ * Published articles of an author, counted with a plain COUNT and kept in the fragment cache.
+ *
+ * @param int $author_id Author ID.
+ * @return int
+ */
+function nh_editorial_author_article_count( $author_id ) {
+	$author_id = absint( $author_id );
+
+	return (int) nh_editorial_cache_remember(
+		'author-count:' . $author_id,
+		static function () use ( $author_id ) {
+			return (int) count_user_posts( $author_id, 'post', true );
+		}
+	);
+}
+
+/**
+ * Whether the main query is a plain author archive that the fast counter may serve.
+ *
+ * Anything that narrows the query (taxonomy, meta, date, search, extra authors, other post types)
+ * keeps the core behavior, so the counter can never disagree with the query it replaces.
+ *
+ * @param WP_Query $query Main query.
+ * @return bool
+ */
+function nh_editorial_is_plain_author_archive( $query ) {
+	if ( is_admin() || is_user_logged_in() || ! $query->is_main_query() || ! $query->is_author() ) {
+		return false;
+	}
+	if ( ! in_array( (string) $query->get( 'post_type' ), array( '', 'post' ), true ) || '' !== (string) $query->get( 'post_status' ) ) {
+		return false;
+	}
+	foreach ( array( 's', 'cat', 'category_name', 'category__in', 'category__and', 'tag', 'tag_id', 'tag__in', 'tag__and', 'tax_query', 'meta_key', 'meta_value', 'meta_query', 'date_query', 'year', 'monthnum', 'day', 'm', 'w', 'post__in', 'post__not_in', 'post_parent', 'author__in', 'author__not_in', 'has_password' ) as $var ) {
+		$value = $query->get( $var );
+		if ( ! empty( $value ) ) {
+			return false;
+		}
+	}
+	return true;
+}
+
+/**
+ * Author archives: skip SQL_CALC_FOUND_ROWS.
+ *
+ * MySQL has no index that serves "this author's articles, newest first", so SQL_CALC_FOUND_ROWS must
+ * test every article of the author: 0.6 s for 10,000 articles by one author on a 50,000 article site,
+ * against 2 ms for the page itself and 2 ms for a COUNT. The total is read from the fragment cache
+ * (invalidated on publish, unpublish and delete) once the page's rows are known.
+ *
+ * @param WP_Query $query Query.
+ * @return void
+ */
+function nh_editorial_author_archive_query( $query ) {
+	if ( nh_editorial_is_plain_author_archive( $query ) && nh_editorial_cache_enabled() ) {
+		$query->set( 'no_found_rows', true );
+		$query->set( 'nh_counted_author', true );
+	}
+}
+add_action( 'pre_get_posts', 'nh_editorial_author_archive_query' );
+
+/**
+ * Supply the pagination totals of an author archive that was queried without SQL_CALC_FOUND_ROWS.
+ *
+ * @param WP_Post[] $posts Posts of the page.
+ * @param WP_Query  $query Query.
+ * @return WP_Post[]
+ */
+function nh_editorial_author_archive_totals( $posts, $query ) {
+	if ( ! $query->get( 'nh_counted_author' ) ) {
+		return $posts;
+	}
+
+	$author_id = (int) $query->get( 'author' );
+	$per_page  = (int) $query->get( 'posts_per_page' );
+	if ( $author_id < 1 || $per_page < 1 ) {
+		return $posts;
+	}
+
+	$total                = nh_editorial_author_article_count( $author_id );
+	$query->found_posts   = $total;
+	$query->max_num_pages = (int) ceil( $total / $per_page );
+	return $posts;
+}
+add_filter( 'the_posts', 'nh_editorial_author_archive_totals', 10, 2 );
+
+/**
+ * Whether the number of published articles is too large for the built-in search to answer a request
+ * per keystroke.
+ *
+ * WordPress searches titles, excerpts and bodies with LIKE '%word%', which reads every article:
+ * 60 ms at 10,000 articles, 2 to 3.5 s at 50,000. The companion plugin's search index removes that
+ * cost; without it the suggestions are switched off on large sites and the normal results page
+ * remains available.
+ *
+ * @return bool
+ */
+function nh_editorial_search_is_too_heavy_for_suggestions() {
+	/**
+	 * Filters the number of published articles above which the built-in search is considered too slow
+	 * for suggestions while typing. Zero disables the guard.
+	 *
+	 * @param int $limit Article count.
+	 */
+	$limit = (int) apply_filters( 'nh_editorial_suggest_article_limit', 15000 );
+	if ( $limit < 1 ) {
+		return false;
+	}
+
+	/**
+	 * Filters whether a fast search index (the companion plugin's) is serving the search.
+	 *
+	 * @param bool $active Whether an index is active.
+	 */
+	if ( apply_filters( 'nh_editorial_search_index_active', false ) ) {
+		return false;
+	}
+
+	$published = (int) nh_editorial_cache_remember(
+		'published-articles',
+		static function () {
+			return (int) wp_count_posts( 'post' )->publish;
+		}
+	);
+	return $published > $limit;
+}
