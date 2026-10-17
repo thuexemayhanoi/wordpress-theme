@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-17T06:04:32+00:00\n"
+"POT-Creation-Date: 2026-10-17T07:29:32+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: nguyen-ha-seo-companion\n"
@@ -686,6 +686,7 @@ msgid "On"
 msgstr ""
 
 #: includes/admin/class-nh-seo-settings-page.php:769
+#: includes/search/class-nh-seo-search-admin.php:66
 msgid "Internal search index"
 msgstr ""
 
@@ -734,6 +735,98 @@ msgid "%d profile link was ignored because it is not a valid http or https addre
 msgid_plural "%d profile links were ignored because they are not valid http or https addresses."
 msgstr[0] ""
 msgstr[1] ""
+
+#: includes/cli/class-nh-seo-cli-command.php:74
+msgid "The search mode is \"native\": the index is built, but searches do not use it."
+msgstr ""
+
+#: includes/cli/class-nh-seo-cli-command.php:77
+msgid "Indexing posts"
+msgstr ""
+
+#: includes/cli/class-nh-seo-cli-command.php:89
+msgid "The walk stopped before the last post. Run the command again."
+msgstr ""
+
+#. translators: %s: number of posts in the index.
+#: includes/cli/class-nh-seo-cli-command.php:97
+#, php-format
+msgid "Indexed %s posts. The index is ready."
+msgstr ""
+
+#. translators: 1: post types, 2: number of posts in the index.
+#: includes/cli/class-nh-seo-cli-command.php:106
+#, php-format
+msgid "Re-indexed the post types %1$s. The index now holds %2$s posts; whether it is ready is unchanged."
+msgstr ""
+
+#: includes/cli/class-nh-seo-cli-command.php:137
+msgid "--format must be table, json, csv or yaml."
+msgstr ""
+
+#: includes/cli/class-nh-seo-cli-command.php:173
+msgid "Specify the post with --post=<id>."
+msgstr ""
+
+#: includes/cli/class-nh-seo-cli-command.php:177
+msgid "--post must be a post ID (a positive whole number)."
+msgstr ""
+
+#. translators: %d: post ID.
+#: includes/cli/class-nh-seo-cli-command.php:186
+#, php-format
+msgid "Post %d does not exist."
+msgstr ""
+
+#: includes/cli/class-nh-seo-cli-command.php:195
+msgid "Nothing to purge for this post."
+msgstr ""
+
+#. translators: 1: post ID, 2: post status.
+#: includes/cli/class-nh-seo-cli-command.php:202
+#, php-format
+msgid "Post %1$d is \"%2$s\", not published: its own address is not part of the purge."
+msgstr ""
+
+#. translators: %s: number of URLs.
+#: includes/cli/class-nh-seo-cli-command.php:216
+#, php-format
+msgid "Dry run: %s URLs would be purged."
+msgstr ""
+
+#: includes/cli/class-nh-seo-cli-command.php:224
+msgid "Automatic purging is switched off in the settings; this explicit purge goes ahead."
+msgstr ""
+
+#. translators: %s: number of URLs.
+#: includes/cli/class-nh-seo-cli-command.php:230
+#, php-format
+msgid "Handed %s URLs to the page caches."
+msgstr ""
+
+#: includes/cli/class-nh-seo-cli-command.php:331
+msgid "--batch must be a positive whole number (10 to 500)."
+msgstr ""
+
+#. translators: %d: batch size actually used.
+#: includes/cli/class-nh-seo-cli-command.php:341
+#, php-format
+msgid "Batch size adjusted to %d (allowed: 10 to 500)."
+msgstr ""
+
+#: includes/cli/class-nh-seo-cli-command.php:358
+msgid "No post type is indexed."
+msgstr ""
+
+#: includes/cli/class-nh-seo-cli-command.php:368
+msgid "--post-type needs at least one post type."
+msgstr ""
+
+#. translators: 1: post type, 2: list of indexed post types.
+#: includes/cli/class-nh-seo-cli-command.php:376
+#, php-format
+msgid "The post type \"%1$s\" is not indexed. Indexed post types: %2$s."
+msgstr ""
 
 #: includes/data/class-nh-seo-data-model.php:61
 msgctxt "taxonomy general name"
@@ -861,16 +954,149 @@ msgstr ""
 msgid "(no title)"
 msgstr ""
 
-#: includes/functions.php:764
+#: includes/functions.php:773
 msgid "Home"
 msgstr ""
 
 #. translators: %s: search query.
-#: includes/functions.php:849
+#: includes/functions.php:858
 #, php-format
 msgid "Search results for: %s"
 msgstr ""
 
 #: includes/render/class-nh-seo-renderer.php:47
 msgid "Content updated:"
+msgstr ""
+
+#: includes/search/bootstrap.php:49
+#: includes/search/class-nh-seo-search-builder.php:60
+msgid "The index table could not be created. InnoDB full-text indexes need MySQL 5.6 or MariaDB 10.0.5 or newer."
+msgstr ""
+
+#: includes/search/class-nh-seo-search-admin.php:68
+msgid "Builds a table of folded words (accents removed, so \"Thuê xe máy\" matches \"thue xe may\") that makes search fast on large sites. Posts, pages and their settings are never changed. Until the index is complete, WordPress search is used."
+msgstr ""
+
+#: includes/search/class-nh-seo-search-admin.php:71
+msgid "Status:"
+msgstr ""
+
+#: includes/search/class-nh-seo-search-admin.php:78
+msgid "Build / rebuild index"
+msgstr ""
+
+#: includes/search/class-nh-seo-search-admin.php:79
+msgid "Clear index"
+msgstr ""
+
+#: includes/search/class-nh-seo-search-admin.php:82
+msgid "JavaScript is required to build the index from this page. You can also run \"wp nh-seo reindex\" with WP-CLI."
+msgstr ""
+
+#: includes/search/class-nh-seo-search-admin.php:102
+msgid "Starting…"
+msgstr ""
+
+#. translators: 1: posts indexed so far, 2: posts to index, 3: percent.
+#: includes/search/class-nh-seo-search-admin.php:104
+#, php-format
+msgid "Indexed %1$s of %2$s posts (%3$s%%)."
+msgstr ""
+
+#. translators: %s: number of posts.
+#: includes/search/class-nh-seo-search-admin.php:106
+#, php-format
+msgid "Done: %s posts indexed. Searches now use the index."
+msgstr ""
+
+#: includes/search/class-nh-seo-search-admin.php:107
+msgid "Clearing…"
+msgstr ""
+
+#: includes/search/class-nh-seo-search-admin.php:108
+msgid "The index was cleared. Native search is used."
+msgstr ""
+
+#: includes/search/class-nh-seo-search-admin.php:109
+msgid "Clear the search index? Searches use native WordPress search until you rebuild it."
+msgstr ""
+
+#: includes/search/class-nh-seo-search-admin.php:110
+msgid "Connection problem, trying again…"
+msgstr ""
+
+#: includes/search/class-nh-seo-search-admin.php:111
+msgid "The request failed. Nothing was lost: run the build again."
+msgstr ""
+
+#: includes/search/class-nh-seo-search-admin.php:112
+msgid "The index is still being built. Leave this page?"
+msgstr ""
+
+#: includes/search/class-nh-seo-search-admin.php:126
+msgid "Use a POST request."
+msgstr ""
+
+#: includes/search/class-nh-seo-search-admin.php:129
+msgid "You are not allowed to do this."
+msgstr ""
+
+#: includes/search/class-nh-seo-search-admin.php:132
+msgid "The security token expired. Reload the page and try again."
+msgstr ""
+
+#: includes/search/class-nh-seo-search-admin.php:177
+msgid "Unknown step."
+msgstr ""
+
+#: includes/search/class-nh-seo-search-builder.php:98
+msgid "Another index build has started. This one was stopped."
+msgstr ""
+
+#: includes/search/class-nh-seo-search-builder.php:101
+msgid "The index table does not exist and could not be created."
+msgstr ""
+
+#: includes/search/class-nh-seo-search-state.php:207
+msgid "Native WordPress search (the index is switched off in the settings)."
+msgstr ""
+
+#. translators: 1: time when the index is tried again, 2: database error message.
+#: includes/search/class-nh-seo-search-state.php:214
+#, php-format
+msgid "Index paused until %1$s after a database error; native search is used meanwhile. %2$s"
+msgstr ""
+
+#: includes/search/class-nh-seo-search-state.php:221
+msgid "The index table does not exist yet. Build the index in the Tools tab."
+msgstr ""
+
+#. translators: 1: posts indexed so far, 2: posts to index, 3: percent done.
+#: includes/search/class-nh-seo-search-state.php:229
+#, php-format
+msgid "Building: %1$s of %2$s posts indexed (%3$d%%). Native search is used until the build completes."
+msgstr ""
+
+#. translators: 1: number of posts indexed, 2: date and time of the last build.
+#: includes/search/class-nh-seo-search-state.php:237
+#, php-format
+msgid "Ready: %1$s posts indexed (last build %2$s). Searches use the index."
+msgstr ""
+
+#: includes/search/class-nh-seo-search-state.php:239
+msgid "unknown"
+msgstr ""
+
+#. translators: %s: number of posts in the index.
+#: includes/search/class-nh-seo-search-state.php:244
+#, php-format
+msgid "Index mode: searches use the index even though the build is not complete (%s posts indexed)."
+msgstr ""
+
+#: includes/search/class-nh-seo-search-state.php:248
+msgid "Not built yet: native search is used until the index is built (Tools tab)."
+msgstr ""
+
+#: includes/search/class-nh-seo-search-state.php:252
+msgid "A taxonomy change affected more posts than could be refreshed automatically: rebuild the index."
 msgstr ""
