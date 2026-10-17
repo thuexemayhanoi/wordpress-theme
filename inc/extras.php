@@ -159,18 +159,20 @@ function nh_editorial_clean_date( $raw ) {
 	return $date > new DateTime( 'tomorrow', wp_timezone() ) ? '' : $value;
 }
 
+wp_cache_add_non_persistent_groups( array( 'nh_editorial_extras' ) );
+
 /**
- * Editorial extras of a post, validated. Cached for the request.
+ * Editorial extras of a post, validated. Cached for the request and dropped whenever its meta changes.
  *
  * @param int $post_id Post ID (defaults to the current post).
  * @return array{summary: string, takeaways: string[], faq: array, sources: array, updated: string}
  */
 function nh_editorial_get_extras( $post_id = 0 ) {
-	static $cache = array();
-
 	$post_id = $post_id ? absint( $post_id ) : (int) get_the_ID();
-	if ( isset( $cache[ $post_id ] ) ) {
-		return $cache[ $post_id ];
+
+	$cached = wp_cache_get( $post_id, 'nh_editorial_extras' );
+	if ( is_array( $cached ) ) {
+		return $cached;
 	}
 
 	$takeaways = get_post_meta( $post_id, 'nh_takeaways', true );
@@ -188,7 +190,7 @@ function nh_editorial_get_extras( $post_id = 0 ) {
 		}
 	}
 
-	$cache[ $post_id ] = array(
+	$extras = array(
 		'summary'   => nh_editorial_clean_text( get_post_meta( $post_id, 'nh_summary', true ), 800 ),
 		'takeaways' => $clean_takeaways,
 		'faq'       => nh_editorial_clean_faq( get_post_meta( $post_id, 'nh_faq', true ) ),
@@ -196,8 +198,37 @@ function nh_editorial_get_extras( $post_id = 0 ) {
 		'updated'   => nh_editorial_clean_date( get_post_meta( $post_id, 'nh_content_updated', true ) ),
 	);
 
-	return $cache[ $post_id ];
+	wp_cache_set( $post_id, $extras, 'nh_editorial_extras' );
+	return $extras;
 }
+
+/**
+ * Drop the cached extras of a post when one of the nh_* meta keys changes.
+ *
+ * @param int|int[] $meta_id   Meta ID(s).
+ * @param int       $object_id Post ID.
+ * @param string    $meta_key  Meta key.
+ * @return void
+ */
+function nh_editorial_flush_extras_on_meta( $meta_id, $object_id, $meta_key ) {
+	if ( 0 === strpos( (string) $meta_key, 'nh_' ) ) {
+		wp_cache_delete( absint( $object_id ), 'nh_editorial_extras' );
+	}
+}
+add_action( 'added_post_meta', 'nh_editorial_flush_extras_on_meta', 10, 3 );
+add_action( 'updated_post_meta', 'nh_editorial_flush_extras_on_meta', 10, 3 );
+add_action( 'deleted_post_meta', 'nh_editorial_flush_extras_on_meta', 10, 3 );
+
+/**
+ * Drop the cached extras when the post cache is cleared.
+ *
+ * @param int $post_id Post ID.
+ * @return void
+ */
+function nh_editorial_flush_extras_on_clean( $post_id ) {
+	wp_cache_delete( absint( $post_id ), 'nh_editorial_extras' );
+}
+add_action( 'clean_post_cache', 'nh_editorial_flush_extras_on_clean' );
 
 /**
  * The real update date of an article, or null when there is nothing meaningful to show.

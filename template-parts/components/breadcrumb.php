@@ -5,6 +5,8 @@
  * @package nguyen-ha-editorial
  */
 
+defined( 'ABSPATH' ) || exit;
+
 $nh_editorial_crumbs = nh_editorial_breadcrumb_items();
 if ( count( $nh_editorial_crumbs ) < 2 ) {
 	return;

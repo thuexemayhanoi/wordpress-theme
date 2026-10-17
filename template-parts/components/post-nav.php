@@ -7,6 +7,8 @@
  * @package nguyen-ha-editorial
  */
 
+defined( 'ABSPATH' ) || exit;
+
 $nh_editorial_adjacent = isset( $args['adjacent'] ) && is_array( $args['adjacent'] ) ? $args['adjacent'] : array();
 $nh_editorial_prev     = ! empty( $nh_editorial_adjacent['prev'] ) && nh_editorial_is_linkable( $nh_editorial_adjacent['prev'] ) ? (int) $nh_editorial_adjacent['prev'] : 0;
 $nh_editorial_next     = ! empty( $nh_editorial_adjacent['next'] ) && nh_editorial_is_linkable( $nh_editorial_adjacent['next'] ) ? (int) $nh_editorial_adjacent['next'] : 0;

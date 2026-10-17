@@ -10,6 +10,8 @@
  * @package nguyen-ha-editorial
  */
 
+defined( 'ABSPATH' ) || exit;
+
 $nh_editorial_faq = isset( $args['faq'] ) && is_array( $args['faq'] ) ? $args['faq'] : array();
 if ( empty( $nh_editorial_faq ) ) {
 	return;

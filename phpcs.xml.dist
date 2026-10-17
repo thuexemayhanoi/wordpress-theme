@@ -8,6 +8,7 @@
 	<exclude-pattern>/node_modules/*</exclude-pattern>
 	<exclude-pattern>/assets/*</exclude-pattern>
 	<exclude-pattern>/.git/*</exclude-pattern>
+	<exclude-pattern>/.claude/*</exclude-pattern>
 
 	<!-- How to scan. -->
 	<arg value="sp"/>
@@ -49,6 +50,9 @@
 
 	<!-- Test tooling follows the PHPUnit/WP test-suite naming conventions rather than the theme ones. -->
 	<rule ref="WordPress.Files.FileName">
+		<exclude-pattern>/tests/*</exclude-pattern>
+	</rule>
+	<rule ref="Generic.Files.OneObjectStructurePerFile">
 		<exclude-pattern>/tests/*</exclude-pattern>
 	</rule>
 	<rule ref="Squiz.Commenting.FunctionComment.Missing">

@@ -8,6 +8,8 @@
  * @package nguyen-ha-editorial
  */
 
+defined( 'ABSPATH' ) || exit;
+
 $nh_editorial_form    = isset( $args ) && is_array( $args ) ? $args : array();
 $nh_editorial_id      = wp_unique_id( 'search-field-' );
 $nh_editorial_label   = ! empty( $nh_editorial_form['aria_label'] ) ? $nh_editorial_form['aria_label'] : __( 'Search articles', 'nguyen-ha-editorial' );

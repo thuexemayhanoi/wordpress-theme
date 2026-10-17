@@ -55,12 +55,12 @@ function nh_editorial_toc_filter( $content ) {
 
 	$content = preg_replace_callback(
 		'#<h([23])((?:\s[^>]*)?)>(.*?)</h\1>#is',
-		static function ( $match ) use ( &$used, &$items, &$counter ) {
-			$level = (int) $match[1];
-			$attrs = $match[2];
-			$text  = trim( html_entity_decode( wp_strip_all_tags( $match[3] ), ENT_QUOTES, 'UTF-8' ) );
+		static function ( $heading ) use ( &$used, &$items, &$counter ) {
+			$level = (int) $heading[1];
+			$attrs = $heading[2];
+			$text  = trim( html_entity_decode( wp_strip_all_tags( $heading[3] ), ENT_QUOTES, 'UTF-8' ) );
 			if ( '' === $text ) {
-				return $match[0];
+				return $heading[0];
 			}
 			++$counter;
 
@@ -85,7 +85,7 @@ function nh_editorial_toc_filter( $content ) {
 				'level' => $level,
 			);
 
-			return '<h' . $level . $attrs . '>' . $match[3] . '</h' . $level . '>';
+			return '<h' . $level . $attrs . '>' . $heading[3] . '</h' . $level . '>';
 		},
 		$content
 	);
@@ -106,7 +106,7 @@ function nh_editorial_prepare_article() {
 	nh_editorial_toc_store( array() );
 
 	add_filter( 'the_content', 'nh_editorial_toc_filter', 20 );
-	$content = apply_filters( 'the_content', get_the_content( null, false ) );
+	$content = apply_filters( 'the_content', get_the_content( null, false ) ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core hook.
 	remove_filter( 'the_content', 'nh_editorial_toc_filter', 20 );
 
 	$content = str_replace( ']]>', ']]&gt;', $content );

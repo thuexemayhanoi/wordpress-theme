@@ -8,6 +8,8 @@
  * @package nguyen-ha-editorial
  */
 
+defined( 'ABSPATH' ) || exit;
+
 $nh_editorial_silo   = isset( $args['silo'] ) && is_array( $args['silo'] ) ? $args['silo'] : null;
 $nh_editorial_pillar = isset( $args['pillar'] ) && is_array( $args['pillar'] ) ? $args['pillar'] : null;
 $nh_editorial_hub    = isset( $args['hub'] ) && is_array( $args['hub'] ) ? $args['hub'] : null;

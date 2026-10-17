@@ -6,6 +6,8 @@
  * @package nguyen-ha-editorial
  */
 
+defined( 'ABSPATH' ) || exit;
+
 if ( ! is_active_sidebar( 'article-sidebar' ) ) {
 	return;
 }

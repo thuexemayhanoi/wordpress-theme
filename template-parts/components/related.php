@@ -7,6 +7,8 @@
  * @package nguyen-ha-editorial
  */
 
+defined( 'ABSPATH' ) || exit;
+
 $nh_editorial_post_id = isset( $args['post_id'] ) ? absint( $args['post_id'] ) : (int) get_the_ID();
 $nh_editorial_ids     = nh_editorial_get_related_ids( $nh_editorial_post_id );
 if ( empty( $nh_editorial_ids ) ) {

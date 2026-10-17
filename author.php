@@ -5,6 +5,8 @@
  * @package nguyen-ha-editorial
  */
 
+defined( 'ABSPATH' ) || exit;
+
 get_header();
 
 global $wp_query;

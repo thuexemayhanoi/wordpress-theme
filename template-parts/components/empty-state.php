@@ -7,7 +7,9 @@
  * @package nguyen-ha-editorial
  */
 
-$nh_editorial_empty = wp_parse_args(
+defined( 'ABSPATH' ) || exit;
+
+$nh_editorial_empty  = wp_parse_args(
 	isset( $args ) && is_array( $args ) ? $args : array(),
 	array(
 		'title'  => __( 'Nothing found', 'nguyen-ha-editorial' ),

@@ -143,7 +143,8 @@ function nh_editorial_is_linkable( $post ) {
  */
 function nh_editorial_describe_pillar( $pillar_id, $exclude = 0 ) {
 	$pillar_id = absint( $pillar_id );
-	if ( ! $pillar_id || $pillar_id === absint( $exclude ) || ! nh_editorial_is_linkable( $pillar_id ) ) {
+	$exclude   = absint( $exclude );
+	if ( ! $pillar_id || $pillar_id === $exclude || ! nh_editorial_is_linkable( $pillar_id ) ) {
 		return null;
 	}
 	return array(

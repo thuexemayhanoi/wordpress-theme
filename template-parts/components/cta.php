@@ -7,6 +7,8 @@
  * @package nguyen-ha-editorial
  */
 
+defined( 'ABSPATH' ) || exit;
+
 $nh_editorial_cta = nh_editorial_cta();
 if ( empty( $nh_editorial_cta ) ) {
 	return;

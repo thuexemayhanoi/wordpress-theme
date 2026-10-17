@@ -8,6 +8,8 @@
  * @package nguyen-ha-editorial
  */
 
+defined( 'ABSPATH' ) || exit;
+
 get_header();
 
 global $wp_query;
@@ -82,7 +84,19 @@ if ( mb_strlen( $nh_editorial_phrase ) >= 2 ) {
 				</li>
 				<?php foreach ( $nh_editorial_hubs as $nh_editorial_hub ) : ?>
 					<li>
-						<a class="chip<?php echo $nh_editorial_active === $nh_editorial_hub['id'] ? ' is-active' : ''; ?>" href="<?php echo esc_url( add_query_arg( array( 's' => rawurlencode( $nh_editorial_phrase ), 'cat' => $nh_editorial_hub['id'] ), home_url( '/' ) ) ); ?>"<?php echo $nh_editorial_active === $nh_editorial_hub['id'] ? ' aria-current="true"' : ''; ?>><?php echo esc_html( $nh_editorial_hub['name'] ); ?></a>
+						<a class="chip<?php echo $nh_editorial_active === $nh_editorial_hub['id'] ? ' is-active' : ''; ?>" href="
+						<?php
+						echo esc_url(
+							add_query_arg(
+								array(
+									's'   => rawurlencode( $nh_editorial_phrase ),
+									'cat' => $nh_editorial_hub['id'],
+								),
+								home_url( '/' )
+							)
+						);
+						?>
+										"<?php echo $nh_editorial_active === $nh_editorial_hub['id'] ? ' aria-current="true"' : ''; ?>><?php echo esc_html( $nh_editorial_hub['name'] ); ?></a>
 					</li>
 				<?php endforeach; ?>
 			</ul>

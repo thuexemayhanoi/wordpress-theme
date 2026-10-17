@@ -6,6 +6,8 @@
  * @package nguyen-ha-editorial
  */
 
+defined( 'ABSPATH' ) || exit;
+
 get_header();
 
 $nh_editorial_latest = nh_editorial_posts_by_ids( nh_editorial_get_latest_ids( 3 ) );

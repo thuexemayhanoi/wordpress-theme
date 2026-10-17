@@ -8,6 +8,8 @@
  * @package nguyen-ha-editorial
  */
 
+defined( 'ABSPATH' ) || exit;
+
 $nh_editorial_headline = (string) nh_editorial_option( 'nh_home_headline' );
 $nh_editorial_headline = '' !== $nh_editorial_headline ? $nh_editorial_headline : get_bloginfo( 'name' );
 $nh_editorial_subline  = (string) nh_editorial_option( 'nh_home_subline' );

@@ -5,6 +5,8 @@
  * @package nguyen-ha-editorial
  */
 
+defined( 'ABSPATH' ) || exit;
+
 $nh_editorial_hubs = nh_editorial_get_hubs( 8 );
 if ( empty( $nh_editorial_hubs ) ) {
 	return;

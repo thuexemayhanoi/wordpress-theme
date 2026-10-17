@@ -302,7 +302,8 @@ function nh_editorial_option( $key ) {
 /**
  * Verified business profile supplied by the companion plugin (empty array without it).
  *
- * Only known keys are returned, as plain strings/arrays; callers must escape on output.
+ * Always returns the complete shape (every key present, empty when unknown), only known keys, as plain
+ * strings/arrays; callers must escape on output.
  *
  * @return array<string, mixed>
  */
@@ -314,7 +315,7 @@ function nh_editorial_business() {
 	 */
 	$profile = apply_filters( 'nguyen_ha_business_profile', array() );
 	if ( ! is_array( $profile ) ) {
-		return array();
+		$profile = array();
 	}
 
 	$scalar = array( 'name', 'legal_name', 'phone', 'email', 'street', 'locality', 'region', 'postal', 'country', 'has_map', 'url', 'price_range' );

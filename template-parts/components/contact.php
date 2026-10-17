@@ -8,6 +8,8 @@
  * @package nguyen-ha-editorial
  */
 
+defined( 'ABSPATH' ) || exit;
+
 $nh_editorial_business = isset( $args['business'] ) && is_array( $args['business'] ) ? $args['business'] : array();
 if ( empty( $nh_editorial_business ) ) {
 	return;

@@ -7,6 +7,8 @@
  * @package nguyen-ha-editorial
  */
 
+defined( 'ABSPATH' ) || exit;
+
 $nh_editorial_hub = isset( $args['hub'] ) && is_array( $args['hub'] ) ? $args['hub'] : array();
 if ( empty( $nh_editorial_hub ) ) {
 	return;

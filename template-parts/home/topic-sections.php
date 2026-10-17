@@ -7,6 +7,8 @@
  * @package nguyen-ha-editorial
  */
 
+defined( 'ABSPATH' ) || exit;
+
 $nh_editorial_count = (int) nh_editorial_option( 'nh_home_pillars' );
 if ( $nh_editorial_count < 1 ) {
 	return;

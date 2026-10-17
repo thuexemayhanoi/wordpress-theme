@@ -7,6 +7,8 @@
  * @package nguyen-ha-editorial
  */
 
+defined( 'ABSPATH' ) || exit;
+
 $nh_editorial_extras = isset( $args['extras'] ) && is_array( $args['extras'] ) ? $args['extras'] : array();
 $nh_editorial_answer = isset( $nh_editorial_extras['summary'] ) ? (string) $nh_editorial_extras['summary'] : '';
 $nh_editorial_points = isset( $nh_editorial_extras['takeaways'] ) ? (array) $nh_editorial_extras['takeaways'] : array();

@@ -13,6 +13,8 @@
  * @package nguyen-ha-editorial
  */
 
+defined( 'ABSPATH' ) || exit;
+
 get_header();
 
 $nh_editorial_posts_mode = is_home();

@@ -66,16 +66,16 @@ function nh_editorial_filled_icons() {
 /**
  * Markup for one decorative icon that references the sprite.
  *
- * @param string $name  Icon name.
- * @param string $class Extra CSS classes.
+ * @param string $name    Icon name.
+ * @param string $classes Extra CSS classes.
  * @return string Safe HTML.
  */
-function nh_editorial_icon( $name, $class = '' ) {
+function nh_editorial_icon( $name, $classes = '' ) {
 	$paths = nh_editorial_icon_paths();
 	if ( ! isset( $paths[ $name ] ) ) {
 		return '';
 	}
-	$classes = trim( 'icon icon--' . sanitize_html_class( $name ) . ' ' . $class );
+	$classes = trim( 'icon icon--' . sanitize_html_class( $name ) . ' ' . $classes );
 	return '<svg class="' . esc_attr( $classes ) . '" width="20" height="20" aria-hidden="true" focusable="false"><use href="#nh-i-' . esc_attr( $name ) . '"></use></svg>';
 }
 

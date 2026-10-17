@@ -68,13 +68,13 @@ function nh_editorial_reading_time( $post = null ) {
 /**
  * Visible <time> element, the one place that formats dates for people and machines.
  *
- * @param string $iso   Machine readable date (ISO 8601 or Y-m-d).
- * @param string $label Human readable date.
- * @param string $class Extra CSS class.
+ * @param string $iso     Machine readable date (ISO 8601 or Y-m-d).
+ * @param string $label   Human readable date.
+ * @param string $classes Extra CSS classes.
  * @return string Safe HTML.
  */
-function nh_editorial_time_tag( $iso, $label, $class = '' ) {
-	return '<time class="' . esc_attr( trim( 'meta__time ' . $class ) ) . '" datetime="' . esc_attr( $iso ) . '">' . esc_html( $label ) . '</time>';
+function nh_editorial_time_tag( $iso, $label, $classes = '' ) {
+	return '<time class="' . esc_attr( trim( 'meta__time ' . $classes ) ) . '" datetime="' . esc_attr( $iso ) . '">' . esc_html( $label ) . '</time>';
 }
 
 /**

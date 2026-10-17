@@ -6,6 +6,8 @@
  * @package nguyen-ha-editorial
  */
 
+defined( 'ABSPATH' ) || exit;
+
 $nh_editorial_business = nh_editorial_business();
 $nh_editorial_social   = nh_editorial_social_links();
 $nh_editorial_privacy  = get_privacy_policy_url();

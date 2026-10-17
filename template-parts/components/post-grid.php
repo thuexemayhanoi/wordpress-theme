@@ -9,7 +9,9 @@
  * @package nguyen-ha-editorial
  */
 
-$nh_editorial_grid = wp_parse_args(
+defined( 'ABSPATH' ) || exit;
+
+$nh_editorial_grid  = wp_parse_args(
 	isset( $args ) && is_array( $args ) ? $args : array(),
 	array(
 		'heading' => 'h2',

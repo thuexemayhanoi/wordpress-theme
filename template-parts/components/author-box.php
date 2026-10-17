@@ -7,6 +7,8 @@
  * @package nguyen-ha-editorial
  */
 
+defined( 'ABSPATH' ) || exit;
+
 $nh_editorial_profile = isset( $args['profile'] ) && is_array( $args['profile'] ) ? $args['profile'] : array();
 if ( empty( $nh_editorial_profile ) ) {
 	return;

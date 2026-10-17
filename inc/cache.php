@@ -183,18 +183,40 @@ add_action( 'deleted_post', 'nh_editorial_cache_on_delete' );
 /**
  * Term assignments.
  *
- * @param int    $object_id Object ID.
- * @param array  $terms     Terms.
- * @param array  $tt_ids    Term taxonomy IDs.
- * @param string $taxonomy  Taxonomy.
+ * WordPress fires this hook on every save, even when nothing changed, and drafts are not public, so
+ * only a real change on published content invalidates the cache.
+ *
+ * @param int    $object_id  Object ID.
+ * @param array  $terms      Terms.
+ * @param array  $tt_ids     Term taxonomy IDs.
+ * @param string $taxonomy   Taxonomy.
+ * @param bool   $append     Whether the terms were appended to the existing ones.
+ * @param array  $old_tt_ids Term taxonomy IDs before the change (empty when appending).
  * @return void
  */
-function nh_editorial_cache_on_set_terms( $object_id, $terms, $tt_ids, $taxonomy ) {
-	if ( in_array( $taxonomy, nh_editorial_cache_taxonomies(), true ) ) {
-		nh_editorial_cache_bump();
+function nh_editorial_cache_on_set_terms( $object_id, $terms, $tt_ids, $taxonomy, $append = false, $old_tt_ids = array() ) {
+	if ( ! in_array( $taxonomy, nh_editorial_cache_taxonomies(), true ) ) {
+		return;
 	}
+
+	$post = get_post( $object_id );
+	if ( $post instanceof WP_Post && 'publish' !== $post->post_status ) {
+		return;
+	}
+
+	if ( ! $append ) {
+		$new = array_map( 'intval', (array) $tt_ids );
+		$old = array_map( 'intval', (array) $old_tt_ids );
+		sort( $new );
+		sort( $old );
+		if ( $new === $old ) {
+			return;
+		}
+	}
+
+	nh_editorial_cache_bump();
 }
-add_action( 'set_object_terms', 'nh_editorial_cache_on_set_terms', 10, 4 );
+add_action( 'set_object_terms', 'nh_editorial_cache_on_set_terms', 10, 6 );
 
 /**
  * Term create, edit, delete.

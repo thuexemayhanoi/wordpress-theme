@@ -122,6 +122,27 @@ function nh_editorial_ensure_contrast( $color, $background, $minimum, $toward ) 
 }
 
 /**
+ * Adjust a brand color until it is readable both on the page background and on its own soft tint
+ * (chips, hover states and callouts draw accent text on that tint, which is slightly darker).
+ *
+ * @param string $color      Starting color.
+ * @param string $paper      Page background.
+ * @param string $toward     Color to mix toward (#000000 on light pages, #ffffff on dark pages).
+ * @param float  $tint_ratio How far the soft tint is mixed toward the page background.
+ * @return string
+ */
+function nh_editorial_ensure_accent( $color, $paper, $toward, $tint_ratio ) {
+	for ( $step = 0; $step <= 40; $step++ ) {
+		$candidate = nh_editorial_mix( $color, $toward, $step / 40 );
+		$tint      = nh_editorial_mix( $candidate, $paper, $tint_ratio );
+		if ( nh_editorial_contrast_ratio( $candidate, $paper ) >= 4.5 && nh_editorial_contrast_ratio( $candidate, $tint ) >= 4.5 ) {
+			return $candidate;
+		}
+	}
+	return $toward;
+}
+
+/**
  * Accent tokens for both color modes.
  *
  * @param string $accent Brand color chosen by the owner.
@@ -132,8 +153,8 @@ function nh_editorial_accent_tokens( $accent ) {
 	$paper_dark  = '#121826';
 	$ink         = '#0b1220';
 
-	$light_accent = nh_editorial_ensure_contrast( $accent, $paper_light, 4.5, '#000000' );
-	$dark_accent  = nh_editorial_ensure_contrast( $accent, $paper_dark, 4.5, '#ffffff' );
+	$light_accent = nh_editorial_ensure_accent( $accent, $paper_light, '#000000', 0.92 );
+	$dark_accent  = nh_editorial_ensure_accent( $accent, $paper_dark, '#ffffff', 0.82 );
 
 	$on_light = nh_editorial_contrast_ratio( '#ffffff', $light_accent ) >= nh_editorial_contrast_ratio( $ink, $light_accent ) ? '#ffffff' : $ink;
 	$on_dark  = nh_editorial_contrast_ratio( '#ffffff', $dark_accent ) >= nh_editorial_contrast_ratio( $ink, $dark_accent ) ? '#ffffff' : $ink;

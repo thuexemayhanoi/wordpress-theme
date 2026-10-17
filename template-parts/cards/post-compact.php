@@ -7,12 +7,14 @@
  * @package nguyen-ha-editorial
  */
 
+defined( 'ABSPATH' ) || exit;
+
 $nh_editorial_compact = wp_parse_args(
 	isset( $args ) && is_array( $args ) ? $args : array(),
 	array( 'heading' => 'h3' )
 );
-$nh_editorial_tag   = nh_editorial_heading_tag( $nh_editorial_compact['heading'] );
-$nh_editorial_thumb = nh_editorial_thumbnail( get_the_ID(), 'thumb', false );
+$nh_editorial_tag     = nh_editorial_heading_tag( $nh_editorial_compact['heading'] );
+$nh_editorial_thumb   = nh_editorial_thumbnail( get_the_ID(), 'thumb', false );
 ?>
 <article <?php post_class( 'card card--compact' ); ?> id="post-<?php the_ID(); ?>">
 	<a class="card__media" href="<?php the_permalink(); ?>" tabindex="-1" aria-hidden="true">

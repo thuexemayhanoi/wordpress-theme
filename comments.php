@@ -5,6 +5,8 @@
  * @package nguyen-ha-editorial
  */
 
+defined( 'ABSPATH' ) || exit;
+
 if ( post_password_required() ) {
 	return;
 }

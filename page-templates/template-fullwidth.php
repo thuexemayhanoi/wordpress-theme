@@ -9,6 +9,8 @@
  * @package nguyen-ha-editorial
  */
 
+defined( 'ABSPATH' ) || exit;
+
 get_header();
 
 while ( have_posts() ) {

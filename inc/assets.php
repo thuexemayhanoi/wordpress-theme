@@ -110,8 +110,11 @@ function nh_editorial_style_loader_tag( $tag, $handle, $href ) {
 		return $tag;
 	}
 
+	// The stylesheet is enqueued with wp_enqueue_style(); only its tag is rewritten to load without blocking.
+	// phpcs:disable WordPress.WP.EnqueuedResources.NonEnqueuedStylesheet
 	return '<link rel="stylesheet" id="nh-editorial-main-css" href="' . esc_url( $href ) . '" media="print" onload="this.media=\'all\';this.onload=null;">' . "\n"
 		. '<noscript><link rel="stylesheet" href="' . esc_url( $href ) . '"></noscript>' . "\n";
+	// phpcs:enable WordPress.WP.EnqueuedResources.NonEnqueuedStylesheet
 }
 add_filter( 'style_loader_tag', 'nh_editorial_style_loader_tag', 10, 3 );
 

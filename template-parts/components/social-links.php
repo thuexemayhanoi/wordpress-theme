@@ -7,6 +7,8 @@
  * @package nguyen-ha-editorial
  */
 
+defined( 'ABSPATH' ) || exit;
+
 $nh_editorial_links = isset( $args['links'] ) && is_array( $args['links'] ) ? $args['links'] : array();
 if ( empty( $nh_editorial_links ) ) {
 	return;

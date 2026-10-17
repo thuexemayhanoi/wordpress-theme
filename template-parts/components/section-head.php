@@ -8,6 +8,8 @@
  * @package nguyen-ha-editorial
  */
 
+defined( 'ABSPATH' ) || exit;
+
 $nh_editorial_head = wp_parse_args(
 	isset( $args ) && is_array( $args ) ? $args : array(),
 	array(
