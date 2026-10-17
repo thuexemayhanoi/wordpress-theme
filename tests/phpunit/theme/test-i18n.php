@@ -84,7 +84,9 @@ class NH_Test_I18n extends NH_Render_Test_Case {
 
 		$this->assertSame( 'Chuyển đến nội dung', __( 'Skip to content', 'nguyen-ha-editorial' ) );
 		$this->assertSame( 'Trang chủ', __( 'Home', 'nguyen-ha-editorial' ) );
+		/* translators: %s: number of articles. */
 		$this->assertSame( '5 bài viết', sprintf( _n( '%s article', '%s articles', 5, 'nguyen-ha-editorial' ), '5' ) );
+		/* translators: %s: number of articles. */
 		$this->assertSame( '1 bài viết', sprintf( _n( '%s article', '%s articles', 1, 'nguyen-ha-editorial' ), '1' ) );
 
 		$site = $this->build_site();

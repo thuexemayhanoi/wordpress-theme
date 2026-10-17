@@ -208,6 +208,10 @@ class NH_Test_Topics extends NH_Unit_Test_Case {
 	}
 
 	public function test_silo_prefers_cluster_then_alias_then_category() {
+		// With the companion plugin active an alias is turned into a real term; this test covers the
+		// theme's own alias fallback, which is what a site without the plugin relies on.
+		add_filter( 'nh_seo_cluster_can_create_term', '__return_false' );
+
 		$post_id = self::factory()->post->create( array( 'post_category' => array( $this->leaf ) ) );
 		$silo    = nh_editorial_get_silo( $post_id );
 		$this->assertSame( 'category:' . $this->leaf, $silo['id'] );
