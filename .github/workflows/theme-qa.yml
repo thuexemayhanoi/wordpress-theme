@@ -209,14 +209,21 @@ jobs:
           retention-days: 14
 
   min-wp:
-    name: Site smoke test (WordPress ${{ matrix.wp }})
+    name: Site smoke test (WordPress ${{ matrix.wp }}, companion plugin ${{ matrix.plugin == '1' && 'active' || 'inactive' }})
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
-        # 6.3 is the minimum the theme header declares ("Requires at least"); 6.5 is a mid-range release.
-        wp: ['6.3.5', '6.5.5']
+        # 6.3 is the minimum the theme header declares ("Requires at least"); 6.5 is a mid-range release. The
+        # theme must also work alone, so the oldest release runs once more without the companion plugin.
+        include:
+          - wp: '6.3.5'
+            plugin: '1'
+          - wp: '6.5.5'
+            plugin: '1'
+          - wp: '6.3.5'
+            plugin: '0'
     services:
       mysql:
         image: mysql:8.0
@@ -248,19 +255,24 @@ jobs:
           php "$RUNNER_TEMP/wp-cli.phar" --allow-root core download --path="$RUNNER_TEMP/wp" --version="${{ matrix.wp }}"
           echo "WP_DIR=$RUNNER_TEMP/wp" >> "$GITHUB_ENV"
 
-      - name: Provision the site (theme and companion plugin active, permalinks of the live site)
+      - name: Provision the site (theme active, companion plugin as in the matrix, permalinks of the live site)
         env:
           WP_CLI: php ${{ runner.temp }}/wp-cli.phar
           DB_USER: root
           DB_PASS: root
           PERMALINKS: /%postname%/
+          WITH_PLUGIN: ${{ matrix.plugin }}
         run: bash tests/bin/setup-site.sh "$WP_DIR" "$SITE_URL" wp_site
 
       - name: Seed the fixture content
         run: php "$RUNNER_TEMP/wp-cli.phar" --allow-root --path="$WP_DIR" eval-file tests/bin/seed-fixtures.php
 
       - name: Readiness report and fingerprints before the visits (tools/staging-preflight.php, read-only)
-        run: php "$RUNNER_TEMP/wp-cli.phar" --allow-root --path="$WP_DIR" eval-file tools/staging-preflight.php content | tee "$RUNNER_TEMP/preflight-before.txt"
+        run: |
+          status=0
+          php "$RUNNER_TEMP/wp-cli.phar" --allow-root --path="$WP_DIR" eval-file tools/staging-preflight.php content > "$RUNNER_TEMP/preflight-before.txt" || status=$?
+          cat "$RUNNER_TEMP/preflight-before.txt"
+          exit "$status"
 
       - name: Serve the site
         run: |
