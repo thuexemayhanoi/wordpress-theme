@@ -12,7 +12,7 @@
  *   - a request to any host other than the site and Gravatar (the theme promises no third-party requests);
  *   - a console warning printed by the theme's own init wrapper ("Nguyen Ha Editorial:").
  * Third-party hosts are never really contacted: Gravatar (WordPress core avatars) is answered with a
- * 1x1 GIF, everything else is blocked and reported. That keeps the suite deterministic and offline-safe.
+ * 1x1 PNG, everything else is blocked and reported. That keeps the suite deterministic and offline-safe.
  *
  * A test that breaks something on purpose (aborting the REST route, say) declares it with
  * guard.allow({ failed, response, console }); nothing is silenced globally.
@@ -21,8 +21,11 @@ import { test as base, expect } from '@playwright/test';
 import { BASE_ORIGIN } from './env.mjs';
 import { loadRoutes } from './routes.mjs';
 
-/** 1x1 transparent GIF. */
-const PIXEL_GIF = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64');
+/**
+ * 1x1 opaque slate-blue PNG that stands in for a Gravatar avatar. Opaque on purpose: a transparent stub would
+ * hide layout defects in screenshots (a squashed avatar would look like nothing at all).
+ */
+const AVATAR_STUB = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGOo6loAAAMmAaXaPJHbAAAAAElFTkSuQmCC', 'base64');
 
 /** Hosts the theme is expected to contact: WordPress core avatars only. */
 const STUBBED_THIRD_PARTY = [/(^|\.)gravatar\.com$/i];
@@ -90,7 +93,7 @@ export async function installGuard(context) {
       const url = new URL(route.request().url());
       if (STUBBED_THIRD_PARTY.some((pattern) => pattern.test(url.hostname))) {
         state.stubbed.push(url.href);
-        await route.fulfill({ status: 200, contentType: 'image/gif', body: PIXEL_GIF });
+        await route.fulfill({ status: 200, contentType: 'image/png', body: AVATAR_STUB });
         return;
       }
       blockedUrls.add(url.href);

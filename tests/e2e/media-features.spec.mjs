@@ -16,7 +16,7 @@ import { spawnSync } from 'node:child_process';
 import { test, expect, requireRoute } from './helpers/fixtures.mjs';
 import { SCREENSHOT_DIR } from './helpers/env.mjs';
 import { slug } from './helpers/routes.mjs';
-import { attachJson, gotoReady, jumpTo, measureOverflow, note, settleScroll } from './helpers/ui.mjs';
+import { attachJson, clippedText, gotoReady, jumpTo, measureOverflow, note, settleScroll } from './helpers/ui.mjs';
 
 const hasPdftotext = spawnSync('pdftotext', ['-v'], { encoding: 'utf8' }).status !== null;
 
@@ -338,37 +338,6 @@ test.describe('print @desktop-only', () => {
 // ---------------------------------------------------------------------------------------------------
 // Text size, text spacing, landscape phone
 // ---------------------------------------------------------------------------------------------------
-/**
- * Elements whose text is cut off (overflow hidden/clip with content that does not fit), minus designed
- * clamps and ellipses; those are returned separately as `ellipsized` for the report.
- */
-function clippedText() {
-  const designed = ['.card__excerpt', '.screen-reader-text', '.skip-link'];
-  const ellipsisByDesign = ['.brand__name', '.breadcrumbs__item--current span'];
-  const found = [];
-  const ellipsized = [];
-  document.querySelectorAll('body *').forEach((el) => {
-    if (designed.some((selector) => el.matches(selector) || el.closest('.screen-reader-text'))) {
-      return;
-    }
-    const cs = getComputedStyle(el);
-    const clips = /(hidden|clip)/.test(cs.overflowX) || /(hidden|clip)/.test(cs.overflowY);
-    if (!clips || !el.textContent.trim()) {
-      return;
-    }
-    const box = el.getBoundingClientRect();
-    if (box.width < 2 || box.height < 2) {
-      return;
-    }
-    if (el.scrollWidth > el.clientWidth + 1 || el.scrollHeight > el.clientHeight + 1) {
-      const cls = typeof el.className === 'string' ? el.className.trim().split(/\s+/)[0] : '';
-      const entry = `${el.tagName.toLowerCase()}${cls ? '.' + cls : ''} "${el.textContent.trim().slice(0, 30)}" (${el.scrollWidth}x${el.scrollHeight} in ${el.clientWidth}x${el.clientHeight})`;
-      (ellipsisByDesign.some((selector) => el.matches(selector)) ? ellipsized : found).push(entry);
-    }
-  });
-  return { clipped: [...new Set(found)].slice(0, 12), ellipsized: [...new Set(ellipsized)].slice(0, 6) };
-}
-
 test.describe('text size and spacing', () => {
   test('text at 200%: no overflow, header controls usable, nothing cut off (WCAG 1.4.4) @mobile-only', async ({ page, routes }, testInfo) => {
     for (const key of ['home', 'singleRich']) {

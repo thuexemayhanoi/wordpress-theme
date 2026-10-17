@@ -328,3 +328,90 @@ export async function newProjectContext(browser, testInfo, overrides = {}) {
     ...overrides,
   });
 }
+
+/**
+ * Elements whose text is cut off (overflow hidden/clip with content that does not fit), minus designed
+ * clamps and ellipses; those are returned separately as `ellipsized` for the report.
+ */
+export function clippedText() {
+  const designed = ['.card__excerpt', '.screen-reader-text', '.skip-link'];
+  const ellipsisByDesign = ['.brand__name', '.breadcrumbs__item--current span'];
+  const found = [];
+  const ellipsized = [];
+  document.querySelectorAll('body *').forEach((el) => {
+    if (designed.some((selector) => el.matches(selector) || el.closest('.screen-reader-text'))) {
+      return;
+    }
+    const cs = getComputedStyle(el);
+    const clips = /(hidden|clip)/.test(cs.overflowX) || /(hidden|clip)/.test(cs.overflowY);
+    if (!clips || !el.textContent.trim()) {
+      return;
+    }
+    const box = el.getBoundingClientRect();
+    if (box.width < 2 || box.height < 2) {
+      return;
+    }
+    if (el.scrollWidth > el.clientWidth + 1 || el.scrollHeight > el.clientHeight + 1) {
+      const cls = typeof el.className === 'string' ? el.className.trim().split(/\s+/)[0] : '';
+      const entry = `${el.tagName.toLowerCase()}${cls ? '.' + cls : ''} "${el.textContent.trim().slice(0, 30)}" (${el.scrollWidth}x${el.scrollHeight} in ${el.clientWidth}x${el.clientHeight})`;
+      (ellipsisByDesign.some((selector) => el.matches(selector)) ? ellipsized : found).push(entry);
+    }
+  });
+  return { clipped: [...new Set(found)].slice(0, 12), ellipsized: [...new Set(ellipsized)].slice(0, 6) };
+}
+
+
+/**
+ * Siblings that overlap each other in normal flow (a layout collision): any two in-flow children of the
+ * same parent with a pair of boxes that intersect by more than 25% of the smaller one. Boxes are compared
+ * fragment by fragment (getClientRects), so an inline link that wraps onto two lines does not "overlap" the
+ * text that follows it. Absolutely positioned children (stretched links, badges) and deliberate small
+ * negative margins (< 25%) are not collisions. Runs in the page.
+ */
+export function overlappingSiblings() {
+  const found = [];
+  const label = (el) => {
+    const cls = typeof el.className === 'string' ? el.className.trim().split(/\s+/)[0] : '';
+    return `${el.tagName.toLowerCase()}${cls ? '.' + cls : ''}`;
+  };
+  const fragments = (el) => [...el.getClientRects()].filter((r) => r.width > 4 && r.height > 4);
+  document.querySelectorAll('body *').forEach((parent) => {
+    if (parent.closest('.screen-reader-text, svg, [hidden]') || getComputedStyle(parent).display === 'none') {
+      return;
+    }
+    const kids = [...parent.children].filter((el) => {
+      const cs = getComputedStyle(el);
+      return cs.display !== 'none' && cs.visibility === 'visible' && cs.position !== 'absolute' && cs.position !== 'fixed' && !el.matches('.screen-reader-text, script, style, svg') && fragments(el).length > 0;
+    });
+    for (let i = 0; i < kids.length; i += 1) {
+      for (let j = i + 1; j < kids.length; j += 1) {
+        for (const a of fragments(kids[i])) {
+          for (const b of fragments(kids[j])) {
+            const w = Math.min(a.right, b.right) - Math.max(a.left, b.left);
+            const h = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+            if (w > 1 && h > 1 && (w * h) / Math.min(a.width * a.height, b.width * b.height) > 0.25) {
+              found.push(`${label(parent)} > ${label(kids[i])} x ${label(kids[j])} overlap ${Math.round(w)}x${Math.round(h)}px`);
+            }
+          }
+        }
+      }
+    }
+  });
+  return [...new Set(found)].slice(0, 12);
+}
+
+/** Images drawn with a different aspect ratio than the file (stretched or squashed). Runs in the page. */
+export function distortedImages() {
+  return [...document.images]
+    .filter((img) => img.complete && img.naturalWidth > 0 && getComputedStyle(img).objectFit === 'fill')
+    .filter((img) => {
+      const box = img.getBoundingClientRect();
+      if (box.width < 8 || box.height < 8) {
+        return false;
+      }
+      const natural = img.naturalWidth / img.naturalHeight;
+      const drawn = box.width / box.height;
+      return Math.abs(natural - drawn) / natural > 0.03;
+    })
+    .map((img) => `${(img.currentSrc || img.src).split('/').pop()} drawn ${Math.round(img.getBoundingClientRect().width)}x${Math.round(img.getBoundingClientRect().height)} for a ${img.naturalWidth}x${img.naturalHeight} file`);
+}
