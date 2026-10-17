@@ -665,10 +665,19 @@ function nh_seo_detect_seo_plugin() {
  */
 function nh_seo_schema_mode() {
 	$settings = nh_seo_get_settings();
-	if ( 'auto' !== $settings['schema_mode'] ) {
-		return $settings['schema_mode'];
+	$mode     = $settings['schema_mode'];
+	if ( 'auto' === $mode ) {
+		$mode = '' !== nh_seo_detect_seo_plugin() ? 'extras' : 'full';
 	}
-	return '' !== nh_seo_detect_seo_plugin() ? 'extras' : 'full';
+
+	/**
+	 * Filters the effective schema mode. Return "off" to print no structured data at all (the theme's tests do
+	 * that to look at the theme's own output). Anything but full, extras or off is ignored.
+	 *
+	 * @param string $mode full | extras | off, from the setting and the detected SEO plugin.
+	 */
+	$filtered = apply_filters( 'nh_seo_schema_mode', $mode );
+	return ( is_string( $filtered ) && in_array( $filtered, array( 'full', 'extras', 'off' ), true ) ) ? $filtered : $mode;
 }
 
 /**
