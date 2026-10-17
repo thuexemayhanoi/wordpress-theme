@@ -23,7 +23,7 @@ Chi tiết: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/SEO-RESPONSIBILI
 ## Tính năng (chỉ những gì đã có mã và có test)
 
 - **Trang:** trang chủ kiểu tạp chí (chế độ "bài mới nhất" và "trang tĩnh"), hub/danh mục cha–con, trang Pillar, bài viết, trang tĩnh (mặc định, rộng, pillar), tìm kiếm, tác giả, lưu trữ, 404, đính kèm, phân trang.
-- **Điều hướng:** header cố định (tắt được), mega menu cha–con truy cập được bằng bàn phím, menu di động, menu dự phòng dựng từ cây danh mục khi chưa gán menu, breadcrumb theo danh mục chính.
+- **Điều hướng:** header cố định (tắt được), mega menu cha–con truy cập được bằng bàn phím, menu di động, menu dự phòng dựng từ cây danh mục khi chưa gán menu, breadcrumb luôn trùng `BreadcrumbList` mà công cụ tìm kiếm đọc (theo danh sách của Yoast khi có Yoast; nếu không thì theo danh mục chính).
 - **Bài viết:** mục lục H2/H3 dựng phía máy chủ, thời gian đọc, tóm tắt/ý chính/FAQ/nguồn (chỉ khi có dữ liệu thật), hộp tác giả (chỉ từ dữ liệu người dùng đã nhập), bài liên quan theo tầng cluster → danh mục → danh mục cha, bài trước/sau trong cùng silo, hộp chủ đề/pillar, CTA do chủ sở hữu cấu hình.
 - **Tìm kiếm:** tìm kiếm của WordPress có tô sáng từ khóa, gợi ý khi gõ qua REST có sẵn của lõi (không dịch vụ ngoài); plugin đồng hành có thể thêm chỉ mục FULLTEXT cho site lớn.
 - **Giao diện:** sáng/tối (tôn trọng cài đặt hệ thống), responsive, một màu nhấn tùy chỉnh được kiểm tra độ tương phản WCAG AA, `prefers-reduced-motion`, `forced-colors`, bản in.

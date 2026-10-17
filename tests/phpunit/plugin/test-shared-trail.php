@@ -147,6 +147,31 @@ class NH_Test_Shared_Trail extends NH_Unit_Test_Case {
 		$this->assertSame( get_month_link( 2024, 3 ), $this->last_url(), 'page 2 names the first page' );
 	}
 
+	public function test_the_search_crumb_is_the_address_the_visitor_reached() {
+		update_option( 'posts_per_page', 1 );
+		self::factory()->post->create( array( 'post_title' => 'Handy scooter one' ) );
+		self::factory()->post->create( array( 'post_title' => 'Handy scooter two' ) );
+		$plain  = home_url( '/?s=handy' );
+		$pretty = get_search_link( 'handy' );
+		$this->assertNotSame( $plain, $pretty, 'With pretty permalinks the two addresses of the same results differ.' );
+
+		// Both addresses show the same results, and a BreadcrumbList names the one that was requested: a crawler that
+		// reads /?s=handy must not be told that the page is /search/handy/.
+		$cases = array(
+			'query argument'           => array( $plain, $plain ),
+			'pretty address'           => array( $pretty, $pretty ),
+			'query argument, tracking' => array( $plain . '&utm_source=newsletter', $plain ),
+			'pretty address, tracking' => array( $pretty . '?utm_source=newsletter', $pretty ),
+			'query argument, page 2'   => array( $plain . '&paged=2', $plain ),
+			'pretty address, page 2'   => array( $pretty . 'page/2/', $pretty ),
+		);
+		foreach ( $cases as $label => $case ) {
+			$this->go_to( $case[0] );
+			$this->assertTrue( is_search(), $label );
+			$this->assertSame( $case[1], $this->last_url(), $label );
+		}
+	}
+
 	public function test_trail_for_page_includes_published_ancestors() {
 		$root = self::factory()->post->create(
 			array(

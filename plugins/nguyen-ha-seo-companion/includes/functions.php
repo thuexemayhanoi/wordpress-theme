@@ -769,11 +769,12 @@ function nh_seo_get_primary_category( $post = null ) {
 }
 
 /**
- * Canonical URL of the current archive (first page, no tracking or other foreign query arguments).
+ * Canonical URL of the current archive or search results (first page, no tracking or other foreign query arguments).
  *
  * The core function get_pagenum_link() keeps whatever query string the visitor sent (utm_source, ref...) and HTML-escapes it, so every
  * campaign link would become its own entity in structured data. Date and post type archives are built from their
- * query instead; anything else falls back to the paged link without arguments that are not WordPress query variables.
+ * query instead; anything else (term, author, search) falls back to the paged link of the address the visitor
+ * reached, without the arguments that are not WordPress query variables.
  * Same algorithm as nh_editorial_archive_url() in the theme (docs/DATA-CONTRACT.md section 4).
  *
  * @return string
@@ -907,10 +908,12 @@ function nh_seo_breadcrumb_trail() {
 			);
 		}
 	} elseif ( is_search() ) {
+		// The address the visitor reached, not get_search_link(): /?s=word and /search/word/ show the same results, and a
+		// BreadcrumbList that names the other one points a crawler at a second URL for the page it is reading.
 		$trail[] = array(
 			/* translators: %s: search query. */
 			'name' => sprintf( __( 'Search results for: %s', 'nguyen-ha-seo-companion' ), get_search_query( false ) ),
-			'url'  => get_search_link( get_search_query( false ) ),
+			'url'  => nh_seo_archive_url(),
 		);
 	} elseif ( is_archive() ) {
 		$trail[] = array(

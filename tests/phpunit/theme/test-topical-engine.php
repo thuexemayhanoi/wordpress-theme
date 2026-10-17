@@ -819,6 +819,34 @@ class NH_Test_Breadcrumb_Parity extends NH_Unit_Test_Case {
 		}
 	}
 
+	public function test_the_search_crumb_is_the_address_the_visitor_reached_in_both_trails() {
+		// 12 matches: a second page of results exists.
+		for ( $i = 1; $i <= 12; $i++ ) {
+			self::factory()->post->create( array( 'post_title' => 'Handy scooter ' . $i ) );
+		}
+		$plain  = home_url( '/?s=handy' );
+		$pretty = get_search_link( 'handy' );
+		$this->assertNotSame( $plain, $pretty, 'The site has pretty permalinks, so the two addresses differ.' );
+
+		$addresses = array(
+			'query argument'                   => array( $plain, $plain ),
+			'pretty address'                   => array( $pretty, $pretty ),
+			'query argument, tracking'         => array( $plain . '&utm_source=newsletter&ref=abc', $plain ),
+			'pretty address, tracking'         => array( $pretty . '?utm_source=newsletter', $pretty ),
+			'query argument, second page'      => array( $plain . '&paged=2', $plain ),
+			'pretty address, second page'      => array( $pretty . 'page/2/', $pretty ),
+			'pretty address, second page, utm' => array( $pretty . 'page/2/?utm_medium=mail', $pretty ),
+		);
+		foreach ( $addresses as $label => $case ) {
+			$this->go_to( $case[0] );
+			$this->assertTrue( is_search(), $label );
+			$items = $this->assert_parity( $label );
+			$last  = end( $items );
+			$this->assertSame( $case[1], $last['url'], $label . ': the crumb is the page itself, first page, without tracking' );
+			$this->assertSame( 'Search results for: handy', $last['name'], $label );
+		}
+	}
+
 	public function test_front_page_and_404_have_no_trail() {
 		$this->go_to( home_url( '/' ) );
 		$this->assertSame( array(), $this->assert_parity( 'front page' ) );

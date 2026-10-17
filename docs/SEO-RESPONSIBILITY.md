@@ -15,7 +15,7 @@ Nguyên tắc: **mỗi đầu ra SEO có đúng một chủ sở hữu**. Trên 
 | JSON-LD: đồ thị (`Organization`, `WebSite`, `WebPage`, `Article`, `Person`, `BreadcrumbList`, `ImageObject`, `SearchAction`) | Plugin SEO (một đồ thị) | Plugin đồng hành, chế độ *full* (một đồ thị tối thiểu) | Không |
 | JSON-LD: `FAQPage` | Plugin đồng hành, khối **riêng**, chỉ khi bài có ≥ 2 câu hỏi **hiển thị trên trang** và không có khối FAQ của Yoast/Rank Math trong nội dung | Gộp vào đồ thị *full* với cùng điều kiện | Không |
 | JSON-LD: `LocalBusiness` | Chỉ khi hồ sơ doanh nghiệp **đầy đủ, do chủ sở hữu nhập**, bài/trang trang chủ được bật, và không có plugin Local SEO | Như bên trái | Không |
-| Breadcrumb hiển thị | Theme (HTML có `aria-label`, không microdata) | Theme | Có (phần nhìn thấy) |
+| Breadcrumb hiển thị | Theme dựng HTML (có `aria-label`, không microdata) **từ danh sách mà Yoast khai báo** (theme đọc `YoastSEO()->meta->for_current_page()->breadcrumbs`), nên trang và `BreadcrumbList` luôn là một danh sách | Theme tự dựng (cùng đường dẫn với `nh_seo_breadcrumb_trail()` của plugin) | Có (phần nhìn thấy) |
 | `BreadcrumbList` JSON-LD | Yoast (theme khai báo `yoast-seo-breadcrumbs` để Yoast giữ nó) | Đồ thị *full* của plugin đồng hành | Không |
 | Đánh giá, xếp hạng, giá, ưu đãi | Không ai | Không ai | Không (có test quét mã nguồn) |
 
@@ -45,7 +45,8 @@ Không in gì cho 404, bản xem trước, bản nháp, nội dung riêng tư ho
 | Mã nguồn theme không chứa `application/ld+json`, `rel="canonical"`, `name="description"`, `og:`, `twitter:`, `robots`, `hreflang` | `NH_Test_Theme_Source::test_the_theme_never_prints_seo_owned_markup` |
 | Trang thực tế không có meta description, Open Graph, JSON-LD do theme in; tối đa một canonical (của lõi) | `NH_Test_Homepage_Lock`, `NH_Test_Template_Structure` |
 | Không có `noindex` mới, không đổi URL/slug/ID/cha của danh mục, không ghi tùy chọn site | `NH_Test_No_Content_Mutation` (so sánh trước/sau khi hiển thị 16 loại trang) |
-| Đúng một H1 mỗi trang, không nhảy cấp tiêu đề, breadcrumb khớp `nh_seo_breadcrumb_trail()` của plugin | `NH_Test_Template_Structure`, `NH_Test_Breadcrumb_Parity` |
+| Đúng một H1 mỗi trang, không nhảy cấp tiêu đề | `NH_Test_Template_Structure` |
+| Breadcrumb hiển thị = `BreadcrumbList`: theo danh sách của Yoast khi Yoast in nó; bằng `nh_seo_breadcrumb_trail()` khi plugin đồng hành ở chế độ *full* hoặc không có plugin SEO; crumb tìm kiếm là địa chỉ khách đang xem | `NH_Test_Breadcrumb_Source`, `NH_Test_Breadcrumb_Parity`; với Yoast thật: job `seo-plugins` của CI (`tests/e2e/seo-plugins.spec.mjs`) |
 | Plugin và theme không in trùng đồ thị khi có Yoast; FAQPage chỉ khi FAQ hiển thị | `test-schema-*` (plugin), `NH_Test_Plugin_Integration` (bài viết, trang, trang Pillar, trang toàn chiều rộng và trang chủ tĩnh: câu hỏi trong JSON-LD bằng đúng câu hỏi hiển thị trên trang) |
 | Bài đăng qua REST (AI Writer) không đổi `content.rendered` và đúng danh mục | `NH_Test_Publish_Flow` |
 

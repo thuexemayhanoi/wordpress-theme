@@ -71,19 +71,31 @@ cluster → primary category → parent category (with children) → top-level c
 
 ## 4. Breadcrumb (visible in the theme, structured data in the plugin)
 
-Both implement the same trail (`nh_seo_breadcrumb_trail()` is the reference):
+Whoever prints the `BreadcrumbList` owns the trail, and the page shows the same list:
+
+* An SEO plugin that prints it (Yoast SEO): the theme shows the plugin's own crumbs, read from
+  `YoastSEO()->meta->for_current_page()->breadcrumbs` (`nh_editorial_seo_plugin_breadcrumbs()`), minus the crumbs the
+  plugin hides from its structured data. They follow the plugin's settings: a fresh Yoast lists no category for a
+  post and says "You searched for …"; choose a taxonomy for breadcrumbs in Yoast to get the category path in both
+  places. The filter `nh_editorial_seo_plugin_crumbs` hands over the crumbs of another SEO plugin;
+  `nh_editorial_breadcrumbs_follow_seo_plugin` (false) keeps the theme's own trail.
+* The companion plugin in *full* mode, or no plugin at all: both build the same trail
+  (`nh_seo_breadcrumb_trail()` is the reference; the theme's builder is `nh_editorial_own_breadcrumb_items()`), below.
 
 * Single post: Home › ancestors of the primary category › primary category › title.
 * Page: Home › published ancestor pages › title.
 * Category / hierarchical taxonomy archive: Home › ancestors › term. Tag / other taxonomy: Home › term.
-* Author: Home › author. Search: Home › "Search results". Date archive: Home › archive title.
+* Author: Home › author. Search: Home › "Search results for: …", whose URL is the address the visitor reached
+  (`/?s=word` or `/search/word/`), not a second form of it. Date archive: Home › archive title.
 * Front page and 404: no trail. Paged archives never add "Page N".
 * The URL of an archive crumb is the archive itself: no "page N" and none of the visitor's query string
   (`?utm_source=…`, `?ref=…`) — date and post type archives are built from their query, anything else from the paged
   link minus the arguments that are not WordPress query variables (`nh_seo_archive_url()` in the plugin,
   `nh_editorial_archive_url()` in the theme: the same algorithm).
 
-A PHPUnit parity test asserts that the theme's trail equals the plugin's trail.
+A PHPUnit parity test asserts that the theme's own trail equals the plugin's trail; `NH_Test_Breadcrumb_Source` covers
+the trail taken from the SEO plugin, and the `seo-plugins` job of the CI workflow compares the visible breadcrumb with
+the `BreadcrumbList` that the real Yoast SEO prints.
 
 ## 5. User meta
 

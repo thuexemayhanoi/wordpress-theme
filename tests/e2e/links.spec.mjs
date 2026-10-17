@@ -362,6 +362,11 @@ test('crawl: internal links, hygiene, hidden content, canonicals, breadcrumbs, p
         const known = target ? seenLinks.get(target.href)?.record : null;
         if (target && known && known.status !== 200) problems.push(`${path}: breadcrumb link ${item.href} answers ${known.status}`);
       }
+      // With Yoast SEO the trail is Yoast's own list (the theme shows what Yoast declares as BreadcrumbList), so its wording
+      // and its categories are the plugin's settings: seo-plugins.spec.mjs compares the page with the BreadcrumbList instead.
+      if (process.env.NH_SEO_PLUGIN === 'yoast') {
+        continue;
+      }
       // The visible current item names the page: same text as the h1 (not for search, whose h1 is a sentence).
       const h1 = stripTags((record.html.match(/<h1\b[^>]*>([\s\S]*?)<\/h1>/) || [])[1] || '');
       const isProtected = /class=["'][^"']*\bpost-password-form\b/.test(record.html); // core prefixes "Protected:" to the h1
