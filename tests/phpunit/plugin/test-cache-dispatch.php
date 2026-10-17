@@ -217,6 +217,45 @@ class NH_Test_Cache_Dispatch extends NH_Cache_Test_Case {
 		$this->assertSame( 0, $counter, 'No listener: the action is not even fired.' );
 	}
 
+	public function test_a_post_saved_in_another_site_is_resolved_in_that_site() {
+		$this->skipWithoutMultisite();
+		$second = self::factory()->blog->create();
+
+		switch_to_blog( $second );
+		$elsewhere = self::factory()->post->create(
+			array(
+				'post_title'  => 'Saved while another site was current',
+				'post_status' => 'publish',
+			)
+		);
+		$url       = get_permalink( $elsewhere );
+		restore_current_blog();
+
+		// The first site has a different post under the same number: a lookup in the wrong site finds that one.
+		if ( ! get_post( $elsewhere ) ) {
+			self::factory()->post->create(
+				array(
+					'import_id'   => $elsewhere,
+					'post_title'  => 'Same number on the first site',
+					'post_status' => 'publish',
+				)
+			);
+		}
+		$here = (string) get_permalink( $elsewhere );
+		$this->assertNotSame( $url, $here );
+
+		NH_SEO_Cache::reset();
+		switch_to_blog( $second );
+		NH_SEO_Cache::queue_post( $elsewhere );
+		restore_current_blog();
+
+		$this->assertSame( array(), NH_SEO_Cache::pending()['posts'], 'the queue of the first site is empty' );
+		$urls = NH_SEO_Cache::collect();
+		$this->assertContains( $url, $urls, 'the post is resolved in the site that saved it' );
+		$this->assertNotContains( $here, $urls, 'the unrelated post of the first site is not purged' );
+		$this->assertNotSame( $second, get_current_blog_id(), 'the request is back on the first site' );
+	}
+
 	public function test_a_failing_cache_plugin_does_not_stop_the_others() {
 		$this->install_simulated_cache_plugins();
 		$litespeed = $this->spy_on_litespeed();

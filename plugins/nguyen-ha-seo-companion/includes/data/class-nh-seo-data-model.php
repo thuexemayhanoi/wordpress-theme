@@ -36,6 +36,59 @@ final class NH_SEO_Data_Model {
 	public static function init() {
 		add_action( 'init', array( __CLASS__, 'register_taxonomy' ), 5 );
 		add_action( 'init', array( __CLASS__, 'register_meta' ), 6 );
+
+		foreach ( self::POST_TYPES as $post_type ) {
+			add_filter( 'rest_prepare_' . $post_type, array( __CLASS__, 'filter_rest_post_meta' ), 10, 3 );
+		}
+		add_filter( 'rest_' . NH_SEO_Keys::TAXONOMY_CLUSTER . '_query', array( __CLASS__, 'filter_rest_cluster_query' ) );
+	}
+
+	/**
+	 * REST: keep editorial fields away from readers who must not see them.
+	 *
+	 * The keywords are an editor's working note (the editor screen says visitors never see them), and a
+	 * password-protected post keeps everything behind its password, including the summary, the takeaways, the FAQ and
+	 * the sources (core only hides the body). A user who can edit the post, such as the publishing workflow, still
+	 * sees every field; so does a reader who sends the post password, checked the way core checks it for the body.
+	 *
+	 * @param WP_REST_Response $response Response.
+	 * @param WP_Post          $post     Post.
+	 * @param WP_REST_Request  $request  Request.
+	 * @return WP_REST_Response
+	 */
+	public static function filter_rest_post_meta( $response, $post, $request ) {
+		if ( ! $response instanceof WP_REST_Response || ! $post instanceof WP_Post || current_user_can( 'edit_post', $post->ID ) ) {
+			return $response;
+		}
+		$data = $response->get_data();
+		if ( ! is_array( $data ) || ! isset( $data['meta'] ) || ! is_array( $data['meta'] ) ) {
+			return $response;
+		}
+
+		$given  = isset( $request['password'] ) && is_scalar( $request['password'] ) ? (string) $request['password'] : '';
+		$locked = '' !== $post->post_password && ! ( '' !== $given && hash_equals( $post->post_password, $given ) );
+
+		foreach ( array_keys( $data['meta'] ) as $key ) {
+			if ( NH_SEO_Keys::META_KEYWORDS === $key || ( $locked && 0 === strpos( (string) $key, 'nh_' ) ) ) {
+				unset( $data['meta'][ $key ] );
+			}
+		}
+		$response->set_data( $data );
+		return $response;
+	}
+
+	/**
+	 * REST: the names of clusters that only draft posts use are not for visitors. Clusters are created from a hidden
+	 * field when a post is saved, drafts included, and core lists every term of a REST-enabled taxonomy to anyone.
+	 *
+	 * @param array $args Query arguments of the terms request.
+	 * @return array
+	 */
+	public static function filter_rest_cluster_query( $args ) {
+		if ( ! current_user_can( 'edit_posts' ) ) {
+			$args['hide_empty'] = true;
+		}
+		return $args;
 	}
 
 	/**

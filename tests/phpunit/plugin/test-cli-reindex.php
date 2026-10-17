@@ -268,7 +268,7 @@ class NH_Test_CLI_Reindex extends NH_Search_Test_Case {
 		$this->assertSame( array( 'key', 'value' ), $fields );
 		$facts = wp_list_pluck( $rows, 'value', 'key' );
 		$this->assertSame(
-			array( 'status', 'mode', 'used_for_searches', 'ready', 'building', 'table', 'posts_in_index', 'posts_at_last_build', 'last_run', 'paused_until', 'last_error', 'rebuild_recommended' ),
+			array( 'status', 'mode', 'used_for_searches', 'ready', 'building', 'table', 'posts_in_index', 'posts_at_last_build', 'posts_missing', 'posts_outdated', 'wp_cron_updates_queued', 'wp_cron_updates_overdue', 'last_run', 'paused_until', 'last_error', 'rebuild_recommended' ),
 			array_keys( $facts )
 		);
 		$this->assertSame( 'auto', $facts['mode'] );

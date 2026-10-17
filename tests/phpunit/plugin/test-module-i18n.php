@@ -304,7 +304,7 @@ class NH_Test_Module_I18n extends NH_Unit_Test_Case {
 		// The keys of index-status are an interface for scripts and stay in English.
 		$command->index_status( array(), array( 'format' => 'json' ) );
 		$rows = wp_list_pluck( $out->tables[0][1], 'value', 'key' );
-		$this->assertSame( array( 'status', 'mode', 'used_for_searches', 'ready', 'building', 'table', 'posts_in_index', 'posts_at_last_build', 'last_run', 'paused_until', 'last_error', 'rebuild_recommended' ), array_keys( $rows ) );
+		$this->assertSame( array( 'status', 'mode', 'used_for_searches', 'ready', 'building', 'table', 'posts_in_index', 'posts_at_last_build', 'posts_missing', 'posts_outdated', 'wp_cron_updates_queued', 'wp_cron_updates_overdue', 'last_run', 'paused_until', 'last_error', 'rebuild_recommended' ), array_keys( $rows ) );
 		$this->assertContains( $rows['used_for_searches'], array( 'yes', 'no' ) );
 	}
 }

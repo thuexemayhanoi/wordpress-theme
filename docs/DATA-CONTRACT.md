@@ -27,17 +27,29 @@ Naming rules: public keys use the `nh_` prefix; options and hooks use `nh_seo_` 
 Sanitization and limits are implemented once in `plugins/nguyen-ha-seo-companion/includes/functions.php`
 (`nh_seo_sanitize_*`). The theme re-validates on read and escapes on output.
 
+**Who can read these fields over REST.** Published posts and pages show every key to everyone, with two
+exceptions that follow what a visitor can see on the site:
+
+* `nh_keywords` is an editor's working note (the editor screen says visitors never see it): REST shows it only
+  to users who can edit that post, such as the publishing workflow.
+* A password-protected post or page keeps **all** `nh_*` keys behind its password, as core does for the body: they
+  are removed from the response unless the request carries the right `password` parameter (or the user can edit the
+  post). Core protects only `content` and `excerpt`.
+
 ## 2. Taxonomy `topic_cluster`
 
 * Flat, **non-public** (no front-end URLs, not in sitemaps, no archives): clusters group content
   for internal linking only, so they cannot cannibalize category pages.
-* REST: `/wp/v2/topic_clusters`; the post field is `topic_clusters` (array of term IDs).
+* REST: `/wp/v2/topic_clusters`; the post field is `topic_clusters` (array of term IDs). Visitors and subscribers
+  get only clusters that a published post uses (clusters are created from a hidden field when any post is saved,
+  drafts included, and core would list every term of a REST-enabled taxonomy); people who can edit posts see all.
 * Term meta `nh_pillar_id` (int) links a cluster (and a `category`) to its Pillar page.
 * **Primary cluster** of a post: `nh_primary_cluster` if that term is assigned to the post, otherwise
   the assigned term with the lowest term ID.
 * **Alias sync**: saving `nh_topic_cluster` (slug or name) finds the term by slug, then name; when it
   does not exist and the setting *Auto-create clusters* is on, the term is created. The term is added
-  to the post and stored as `nh_primary_cluster`. Existing terms are never removed.
+  to the post and stored as `nh_primary_cluster`. Existing terms are never removed. The alias is applied once, when it
+  is written or changed (backslashes in the name included), so later saves never override an editor's choice.
 
 ## 3. Silo, Hub and Pillar resolution (theme)
 
@@ -66,6 +78,10 @@ Both implement the same trail (`nh_seo_breadcrumb_trail()` is the reference):
 * Category / hierarchical taxonomy archive: Home › ancestors › term. Tag / other taxonomy: Home › term.
 * Author: Home › author. Search: Home › "Search results". Date archive: Home › archive title.
 * Front page and 404: no trail. Paged archives never add "Page N".
+* The URL of an archive crumb is the archive itself: no "page N" and none of the visitor's query string
+  (`?utm_source=…`, `?ref=…`) — date and post type archives are built from their query, anything else from the paged
+  link minus the arguments that are not WordPress query variables (`nh_seo_archive_url()` in the plugin,
+  `nh_editorial_archive_url()` in the theme: the same algorithm).
 
 A PHPUnit parity test asserts that the theme's trail equals the plugin's trail.
 
@@ -107,6 +123,12 @@ The plugin renders a fallback block (through `the_content`) **only for features 
 declare** and only when *Fallback rendering* is on. Structured data (`FAQPage`) is emitted only when
 the FAQ is visible (`nh_seo_faq_is_visible()`): structured data must never describe invisible content.
 
+The theme keeps that promise on every template that shows a post or page: the single post, the page, the Pillar
+page, the full width page and the static front page print the FAQ they are given (a PHPUnit test renders each of
+them and compares the questions in the page with the questions in the JSON-LD). A child theme or page builder
+that renders a template without the FAQ answers `false` through the filter `nh_seo_faq_is_visible( bool $visible,
+int $post_id )` for those posts.
+
 ## 8. REST examples (AI Writer)
 
 ```jsonc
@@ -147,5 +169,7 @@ automatically; page-cache plugins are purged by the plugin (`nh_seo_purge_urls`)
 | `nh_seo_breadcrumb_trail` | filter | plugin | Adjust the canonical trail. |
 | `nh_seo_schema_graph` | filter | plugin | Last-mile edit of the JSON-LD graph. |
 | `nh_seo_purge_urls` | action | plugin | URLs that must be purged from page caches. |
+| `nh_seo_faq_is_visible` | filter | plugin | Withdraw the claim that a post's FAQ is shown (a template that hides it). |
+| `nh_seo_search_activation_repair_limit` | filter | plugin | Posts the repair at activation re-indexes in that request (default 200). |
 | `nh_editorial_cache_version` | filter | theme | Cache-busting version for theme fragments. |
 | `nh_editorial_related_count` | filter | theme | Number of related posts. |

@@ -313,6 +313,36 @@ class NH_Test_Data_Cluster_Sync extends NH_Unit_Test_Case {
 		$this->assertSame( array( $editor_cluster ), $this->assigned( $post_id ) );
 	}
 
+	public function test_an_alias_with_a_backslash_is_remembered_exactly_and_applied_once() {
+		$alias   = 'Honda\\Wave guide';
+		$post_id = self::factory()->post->create();
+		// The meta API unslashes what it is given, as core does for every form and REST write: pass the value slashed.
+		update_post_meta( $post_id, 'nh_topic_cluster', wp_slash( $alias ) );
+		$this->assertSame( $alias, get_post_meta( $post_id, 'nh_topic_cluster', true ) );
+
+		$term = get_term_by( 'name', wp_slash( $alias ), 'topic_cluster' );
+		$this->assertInstanceOf( WP_Term::class, $term, 'the cluster is created' );
+		$this->assertSame( $alias, $term->name, 'the name keeps the backslash' );
+		$this->assertSame( $alias, get_post_meta( $post_id, NH_SEO_Cluster_Sync::SYNCED_META, true ), 'the applied alias is remembered as it was written' );
+
+		// An editor removes the cluster: ordinary saves must not bring it back.
+		wp_remove_object_terms( $post_id, $term->term_id, 'topic_cluster' );
+		wp_update_post(
+			array(
+				'ID'         => $post_id,
+				'post_title' => 'Edited',
+			)
+		);
+		wp_update_post(
+			array(
+				'ID'         => $post_id,
+				'post_title' => 'Edited again',
+			)
+		);
+		$this->assertSame( array(), $this->assigned( $post_id ) );
+		$this->assertSame( 1, $this->count_clusters(), 'no second cluster appears' );
+	}
+
 	public function test_forced_sync_applies_the_alias_again_on_purpose() {
 		$post_id = self::factory()->post->create();
 		update_post_meta( $post_id, 'nh_topic_cluster', 'Workflow cluster' );

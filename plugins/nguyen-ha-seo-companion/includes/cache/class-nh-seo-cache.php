@@ -23,9 +23,10 @@ defined( 'ABSPATH' ) || exit;
 final class NH_SEO_Cache {
 
 	/**
-	 * Posts whose URLs must be resolved at shutdown (IDs as keys).
+	 * Posts whose URLs must be resolved at shutdown: site ID => post ID => true. A post ID means nothing without its
+	 * site on a network, where code may switch_to_blog() before it saves a post.
 	 *
-	 * @var array<int, true>
+	 * @var array<int, array<int, true>>
 	 */
 	private static $posts = array();
 
@@ -123,7 +124,7 @@ final class NH_SEO_Cache {
 	 */
 	public static function on_before_delete_post( $post_id, $post = null ) {
 		self::capture_published_post( $post instanceof WP_Post ? $post : get_post( $post_id ) );
-		unset( self::$posts[ absint( $post_id ) ] );
+		self::forget_post( absint( $post_id ) );
 	}
 
 	/**
@@ -263,8 +264,22 @@ final class NH_SEO_Cache {
 		if ( ! $post instanceof WP_Post || 'revision' === $post->post_type || ! is_post_type_viewable( $post->post_type ) ) {
 			return;
 		}
-		self::$posts[ $post_id ] = true;
+		self::$posts[ get_current_blog_id() ][ $post_id ] = true;
 		add_action( 'shutdown', array( __CLASS__, 'flush' ), 20 );
+	}
+
+	/**
+	 * Take a post of the current site out of the queue.
+	 *
+	 * @param int $post_id Post ID.
+	 * @return void
+	 */
+	private static function forget_post( $post_id ) {
+		$site_id = get_current_blog_id();
+		unset( self::$posts[ $site_id ][ $post_id ] );
+		if ( empty( self::$posts[ $site_id ] ) ) {
+			unset( self::$posts[ $site_id ] );
+		}
 	}
 
 	/**
@@ -296,13 +311,14 @@ final class NH_SEO_Cache {
 	}
 
 	/**
-	 * Post IDs and URLs waiting for the shutdown flush.
+	 * Post IDs (of the current site) and URLs waiting for the shutdown flush.
 	 *
 	 * @return array{posts: int[], urls: string[]}
 	 */
 	public static function pending() {
+		$site_id = get_current_blog_id();
 		return array(
-			'posts' => array_keys( self::$posts ),
+			'posts' => isset( self::$posts[ $site_id ] ) ? array_keys( self::$posts[ $site_id ] ) : array(),
 			'urls'  => array_values( self::$urls ),
 		);
 	}
@@ -325,8 +341,8 @@ final class NH_SEO_Cache {
 	 */
 	public static function collect() {
 		$urls = array_values( self::$urls );
-		foreach ( array_keys( self::$posts ) as $post_id ) {
-			$urls = array_merge( $urls, NH_SEO_Cache_Urls::for_post( $post_id ) );
+		foreach ( self::$posts as $site_id => $posts ) {
+			$urls = array_merge( $urls, self::site_urls( (int) $site_id, array_keys( $posts ) ) );
 		}
 		$urls = NH_SEO_Cache_Urls::clean( $urls );
 
@@ -337,6 +353,35 @@ final class NH_SEO_Cache {
 		 */
 		$max = max( 1, (int) apply_filters( 'nh_seo_purge_max_urls', 300 ) );
 		return array_slice( $urls, 0, $max );
+	}
+
+	/**
+	 * URLs of queued posts, resolved in the site they belong to (the request may have ended in another one).
+	 *
+	 * @param int   $site_id Site ID.
+	 * @param int[] $ids     Post IDs.
+	 * @return string[]
+	 */
+	private static function site_urls( $site_id, array $ids ) {
+		$switched = is_multisite() && get_current_blog_id() !== $site_id;
+		if ( $switched ) {
+			if ( ! get_site( $site_id ) instanceof WP_Site ) {
+				return array(); // The site was deleted during the request.
+			}
+			switch_to_blog( $site_id );
+		}
+
+		try {
+			$urls = array();
+			foreach ( $ids as $post_id ) {
+				$urls = array_merge( $urls, NH_SEO_Cache_Urls::for_post( $post_id ) );
+			}
+			return $urls;
+		} finally {
+			if ( $switched ) {
+				restore_current_blog();
+			}
+		}
 	}
 
 	/**

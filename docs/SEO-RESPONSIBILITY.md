@@ -46,7 +46,7 @@ Không in gì cho 404, bản xem trước, bản nháp, nội dung riêng tư ho
 | Trang thực tế không có meta description, Open Graph, JSON-LD do theme in; tối đa một canonical (của lõi) | `NH_Test_Homepage_Lock`, `NH_Test_Template_Structure` |
 | Không có `noindex` mới, không đổi URL/slug/ID/cha của danh mục, không ghi tùy chọn site | `NH_Test_No_Content_Mutation` (so sánh trước/sau khi hiển thị 16 loại trang) |
 | Đúng một H1 mỗi trang, không nhảy cấp tiêu đề, breadcrumb khớp `nh_seo_breadcrumb_trail()` của plugin | `NH_Test_Template_Structure`, `NH_Test_Breadcrumb_Parity` |
-| Plugin và theme không in trùng đồ thị khi có Yoast; FAQPage chỉ khi FAQ hiển thị | `test-schema-*` (plugin), `NH_Test_Plugin_Integration` |
+| Plugin và theme không in trùng đồ thị khi có Yoast; FAQPage chỉ khi FAQ hiển thị | `test-schema-*` (plugin), `NH_Test_Plugin_Integration` (bài viết, trang, trang Pillar, trang toàn chiều rộng và trang chủ tĩnh: câu hỏi trong JSON-LD bằng đúng câu hỏi hiển thị trên trang) |
 | Bài đăng qua REST (AI Writer) không đổi `content.rendered` và đúng danh mục | `NH_Test_Publish_Flow` |
 
 ## 4. Kiểm tra trên staging (xem [STAGING-CHECKLIST.md](STAGING-CHECKLIST.md), mục C)

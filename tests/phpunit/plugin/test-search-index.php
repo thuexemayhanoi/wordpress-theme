@@ -82,6 +82,59 @@ class NH_Test_Search_Index extends NH_Search_Test_Case {
 		$this->assertFalse( NH_SEO_Search_State::get()['ready'] );
 	}
 
+	/**
+	 * Networks only: sites created by a test, removed (with their tables) when it ends.
+	 *
+	 * @var int[]
+	 */
+	private $created_sites = array();
+
+	public function tear_down() {
+		foreach ( $this->created_sites as $site_id ) {
+			wpmu_delete_blog( $site_id, true );
+		}
+		$this->created_sites = array();
+		parent::tear_down();
+	}
+
+	public function test_posts_saved_in_another_site_are_indexed_in_that_site() {
+		$this->skipWithoutMultisite();
+		$second                = self::factory()->blog->create();
+		$this->created_sites[] = $second;
+
+		switch_to_blog( $second );
+		NH_SEO_Search_Index::forget_table_state();
+		NH_SEO_Search_Index::ensure_table();
+		$elsewhere = $this->make_post( array( 'post_title' => 'Saved while another site was current' ) );
+		$this->assertSame( array( $elsewhere ), NH_SEO_Search_Indexer::pending() );
+		restore_current_blog();
+		$this->assertSame( array(), NH_SEO_Search_Indexer::pending(), 'the first site has nothing queued' );
+
+		NH_SEO_Search_Indexer::flush(); // The request ends on the first site.
+
+		$this->assertNull( NH_SEO_Search_Index::get( $elsewhere ), 'nothing was written to the table of the first site' );
+		switch_to_blog( $second );
+		$row = NH_SEO_Search_Index::get( $elsewhere );
+		restore_current_blog();
+		$this->assertNotNull( $row, 'the row went to the table of the site the post belongs to' );
+		$this->assertStringContainsString( 'another site was current', $row['title_fold'] );
+		$this->assertNotSame( $second, get_current_blog_id() );
+	}
+
+	public function test_the_table_check_is_answered_per_site() {
+		$this->skipWithoutMultisite();
+		$second                = self::factory()->blog->create();
+		$this->created_sites[] = $second;
+
+		$this->assertTrue( NH_SEO_Search_Index::table_exists(), 'the first site has its table' );
+		switch_to_blog( $second );
+		$this->assertFalse( NH_SEO_Search_Index::table_exists(), 'a site without the table is not told it has one' );
+		$this->assertTrue( NH_SEO_Search_Index::ensure_table() );
+		$this->assertTrue( NH_SEO_Search_Index::table_exists() );
+		restore_current_blog();
+		$this->assertTrue( NH_SEO_Search_Index::table_exists() );
+	}
+
 	public function test_embedded_stop_word_list_equals_the_default_list_of_this_server() {
 		global $wpdb;
 		$suppress = $wpdb->suppress_errors( true );

@@ -554,6 +554,172 @@ class NH_Test_Data_Rest extends NH_Unit_Test_Case {
 		$this->assertSame( 'Public summary', $response->get_data()['meta']['nh_summary'] );
 	}
 
+	/**
+	 * A published post whose editorial fields are all filled in.
+	 *
+	 * @param array $args Post overrides.
+	 * @return int
+	 */
+	private function filled_post( array $args = array() ) {
+		$post_id = $this->post( $args );
+		update_post_meta( $post_id, 'nh_summary', 'Behind the password' );
+		update_post_meta( $post_id, 'nh_takeaways', array( 'Private takeaway' ) );
+		update_post_meta(
+			$post_id,
+			'nh_faq',
+			array(
+				array(
+					'question' => 'Private question?',
+					'answer'   => 'Private answer.',
+				),
+			)
+		);
+		update_post_meta(
+			$post_id,
+			'nh_sources',
+			array(
+				array(
+					'title' => 'Private source',
+					'url'   => 'https://example.org/private',
+				),
+			)
+		);
+		update_post_meta( $post_id, 'nh_keywords', 'working note, not for readers' );
+		return $post_id;
+	}
+
+	/**
+	 * The editorial keys a REST response carries.
+	 *
+	 * @param WP_REST_Response $response Response.
+	 * @return string[]
+	 */
+	private function editorial_keys( $response ) {
+		$meta = isset( $response->get_data()['meta'] ) ? $response->get_data()['meta'] : array();
+		return array_values( preg_grep( '/^nh_/', array_keys( $meta ) ) );
+	}
+
+	public function test_a_password_protected_post_keeps_its_editorial_fields_behind_the_password() {
+		$routes = array(
+			'post' => '/wp/v2/posts/',
+			'page' => '/wp/v2/pages/',
+		);
+		foreach ( $routes as $type => $route ) {
+			$post_id = $this->filled_post(
+				array(
+					'post_type'     => $type,
+					'post_password' => 'open-sesame',
+				)
+			);
+			wp_set_current_user( 0 );
+
+			$anonymous = $this->dispatch( 'GET', $route . $post_id );
+			$this->assertSame( 200, $anonymous->get_status(), $type );
+			$this->assertTrue( $anonymous->get_data()['content']['protected'], 'core hides the body of a protected ' . $type );
+			$this->assertSame( array(), $this->editorial_keys( $anonymous ), $type . ': no editorial field without the password' );
+			$this->assertStringNotContainsString( 'Private', wp_json_encode( $anonymous->get_data() ), $type );
+
+			$wrong = new WP_REST_Request( 'GET', $route . $post_id );
+			$wrong->set_param( 'password', 'guess' );
+			$refused = rest_do_request( $wrong );
+			$this->assertSame( 403, $refused->get_status(), $type . ': a wrong password unlocks nothing' );
+			$this->assertSame( array(), $this->editorial_keys( $refused ), $type );
+
+			$right = new WP_REST_Request( 'GET', $route . $post_id );
+			$right->set_param( 'password', 'open-sesame' );
+			$unlocked = rest_do_request( $right );
+			$this->assertSame( 'Behind the password', $unlocked->get_data()['meta']['nh_summary'], $type . ': the right password shows what the page shows' );
+			$this->assertArrayNotHasKey( 'nh_keywords', $unlocked->get_data()['meta'], $type . ': keywords stay a working note even then' );
+
+			$list = $this->dispatch( 'GET', rtrim( $route, '/' ) );
+			$this->assertStringNotContainsString( 'Private', wp_json_encode( $list->get_data() ), $type . ': collections follow the same rule' );
+
+			wp_set_current_user( $this->users['editor'] );
+			$editor = $this->dispatch( 'GET', $route . $post_id );
+			$this->assertSame( 'Behind the password', $editor->get_data()['meta']['nh_summary'], $type . ': people who edit it see everything' );
+			$this->assertSame( 'working note, not for readers', $editor->get_data()['meta']['nh_keywords'], $type );
+		}
+	}
+
+	public function test_keywords_are_a_working_note_for_people_who_can_edit_the_post() {
+		$post_id = $this->filled_post( array( 'post_author' => $this->users['author'] ) );
+
+		wp_set_current_user( 0 );
+		$anonymous = $this->dispatch( 'GET', '/wp/v2/posts/' . $post_id );
+		$this->assertArrayNotHasKey( 'nh_keywords', $anonymous->get_data()['meta'] );
+		$this->assertSame( 'Behind the password', $anonymous->get_data()['meta']['nh_summary'], 'the other fields of a public post stay public' );
+
+		wp_set_current_user( $this->users['subscriber'] );
+		$this->assertArrayNotHasKey( 'nh_keywords', $this->dispatch( 'GET', '/wp/v2/posts/' . $post_id )->get_data()['meta'] );
+
+		foreach ( array( 'author', 'editor', 'administrator' ) as $role ) {
+			wp_set_current_user( $this->users[ $role ] );
+			$this->assertSame( 'working note, not for readers', $this->dispatch( 'GET', '/wp/v2/posts/' . $post_id )->get_data()['meta']['nh_keywords'], $role );
+		}
+
+		wp_set_current_user( $this->users['contributor'] );
+		$this->assertArrayNotHasKey( 'nh_keywords', $this->dispatch( 'GET', '/wp/v2/posts/' . $post_id )->get_data()['meta'], 'a contributor cannot edit somebody else\'s published post' );
+	}
+
+	public function test_cluster_names_from_drafts_are_not_listed_to_visitors() {
+		$make  = static function ( $name ) {
+			return self::factory()->term->create(
+				array(
+					'taxonomy' => 'topic_cluster',
+					'name'     => $name,
+				)
+			);
+		};
+		$used  = $make( 'Public cluster' );
+		$draft = $make( 'Draft only cluster' );
+		$idle  = $make( 'Unused cluster' );
+		wp_set_object_terms( $this->post(), array( $used ), 'topic_cluster' );
+		wp_set_object_terms( $this->post( array( 'post_status' => 'draft' ) ), array( $draft ), 'topic_cluster' );
+
+		$names = static function ( $response ) {
+			return wp_list_pluck( $response->get_data(), 'name' );
+		};
+
+		wp_set_current_user( 0 );
+		$this->assertSame( array( 'Public cluster' ), $names( $this->dispatch( 'GET', '/wp/v2/topic_clusters' ) ) );
+		$this->assertSame( array( 'Public cluster' ), $names( $this->dispatch( 'GET', '/wp/v2/topic_clusters', array( 'search' => 'cluster' ) ) ), 'a search does not find the others either' );
+
+		wp_set_current_user( $this->users['subscriber'] );
+		$this->assertSame( array( 'Public cluster' ), $names( $this->dispatch( 'GET', '/wp/v2/topic_clusters' ) ) );
+
+		// The publishing workflow looks a cluster up before it assigns it, so people who write posts see them all.
+		foreach ( array( 'contributor', 'author', 'editor', 'administrator' ) as $role ) {
+			wp_set_current_user( $this->users[ $role ] );
+			$this->assertEqualSets(
+				array( 'Public cluster', 'Draft only cluster', 'Unused cluster' ),
+				$names( $this->dispatch( 'GET', '/wp/v2/topic_clusters' ) ),
+				$role
+			);
+		}
+		$this->assertContains( $idle, array_map( 'intval', wp_list_pluck( $this->dispatch( 'GET', '/wp/v2/topic_clusters' )->get_data(), 'id' ) ) );
+	}
+
+	public function test_a_backslash_in_the_alias_sent_through_rest_is_applied_once() {
+		$alias   = 'Honda\\Wave guide';
+		$post_id = $this->post();
+		$first   = $this->dispatch( 'POST', '/wp/v2/posts/' . $post_id, array( 'meta' => array( 'nh_topic_cluster' => $alias ) ) );
+		$this->assertSame( 200, $first->get_status() );
+
+		$term = get_term_by( 'name', wp_slash( $alias ), 'topic_cluster' );
+		$this->assertInstanceOf( WP_Term::class, $term );
+		$this->assertSame( $alias, $term->name, 'the name keeps the backslash' );
+
+		// An editor removes the cluster; later saves of the post (without the alias) must leave it alone.
+		wp_remove_object_terms( $post_id, $term->term_id, 'topic_cluster' );
+		wp_update_post(
+			array(
+				'ID'         => $post_id,
+				'post_title' => 'Saved again',
+			)
+		);
+		$this->assertSame( array(), wp_get_object_terms( $post_id, 'topic_cluster', array( 'fields' => 'ids' ) ) );
+	}
+
 	public function test_draft_meta_is_not_readable_without_authentication() {
 		$post_id = $this->post( array( 'post_status' => 'draft' ) );
 		update_post_meta( $post_id, 'nh_summary', 'Secret draft' );

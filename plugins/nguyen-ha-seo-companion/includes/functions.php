@@ -689,12 +689,26 @@ function nh_seo_schema_mode() {
  * @return bool
  */
 function nh_seo_faq_is_visible( $post_id ) {
-	$faq = nh_seo_sanitize_faq( get_post_meta( absint( $post_id ), NH_SEO_Keys::META_FAQ, true ) );
+	$post_id = absint( $post_id );
+	$faq     = nh_seo_sanitize_faq( get_post_meta( $post_id, NH_SEO_Keys::META_FAQ, true ) );
 	if ( empty( $faq ) ) {
 		return false;
 	}
 	$settings = nh_seo_get_settings();
-	return nh_seo_theme_supports( 'faq' ) || ! empty( $settings['fallback_render'] );
+	$visible  = nh_seo_theme_supports( 'faq' ) || ! empty( $settings['fallback_render'] );
+
+	/**
+	 * Filters whether the FAQ of a post is visible on its page.
+	 *
+	 * The theme declares support for the FAQ block, and the plugin takes that as a promise that every template shows
+	 * it. A child theme or a page builder that renders a template without the FAQ returns false for the posts it
+	 * serves, so that no FAQPage structured data describes questions a reader cannot see. A post without FAQ items
+	 * never reaches this filter.
+	 *
+	 * @param bool $visible Whether the FAQ is shown.
+	 * @param int  $post_id Post ID.
+	 */
+	return (bool) apply_filters( 'nh_seo_faq_is_visible', $visible, $post_id );
 }
 
 /**
@@ -752,6 +766,46 @@ function nh_seo_get_primary_category( $post = null ) {
 		}
 	}
 	return $best;
+}
+
+/**
+ * Canonical URL of the current archive (first page, no tracking or other foreign query arguments).
+ *
+ * The core function get_pagenum_link() keeps whatever query string the visitor sent (utm_source, ref...) and HTML-escapes it, so every
+ * campaign link would become its own entity in structured data. Date and post type archives are built from their
+ * query instead; anything else falls back to the paged link without arguments that are not WordPress query variables.
+ * Same algorithm as nh_editorial_archive_url() in the theme (docs/DATA-CONTRACT.md section 4).
+ *
+ * @return string
+ */
+function nh_seo_archive_url() {
+	global $wp;
+
+	if ( is_day() ) {
+		return (string) get_day_link( (int) get_query_var( 'year' ), (int) get_query_var( 'monthnum' ), (int) get_query_var( 'day' ) );
+	}
+	if ( is_month() ) {
+		return (string) get_month_link( (int) get_query_var( 'year' ), (int) get_query_var( 'monthnum' ) );
+	}
+	if ( is_year() ) {
+		return (string) get_year_link( (int) get_query_var( 'year' ) );
+	}
+	if ( is_post_type_archive() ) {
+		$object = get_queried_object();
+		$link   = $object instanceof WP_Post_Type ? get_post_type_archive_link( $object->name ) : false;
+		if ( $link ) {
+			return (string) $link;
+		}
+	}
+
+	$url     = (string) get_pagenum_link( 1, false );
+	$foreign = array();
+	foreach ( array_keys( wp_parse_args( (string) wp_parse_url( $url, PHP_URL_QUERY ) ) ) as $name ) {
+		if ( ! in_array( $name, (array) $wp->public_query_vars, true ) ) {
+			$foreign[] = $name;
+		}
+	}
+	return $foreign ? remove_query_arg( $foreign, $url ) : $url;
 }
 
 /**
@@ -861,7 +915,7 @@ function nh_seo_breadcrumb_trail() {
 	} elseif ( is_archive() ) {
 		$trail[] = array(
 			'name' => wp_strip_all_tags( get_the_archive_title() ),
-			'url'  => (string) get_pagenum_link( 1 ),
+			'url'  => nh_seo_archive_url(),
 		);
 	}
 

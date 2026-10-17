@@ -12,6 +12,46 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
+ * Canonical URL of the current archive (first page, no tracking or other foreign query arguments).
+ *
+ * The core function get_pagenum_link() keeps whatever query string the visitor sent (utm_source, ref...) and HTML-escapes it. Date and
+ * post type archives are built from their query instead; anything else falls back to the paged link without
+ * arguments that are not WordPress query variables. Same algorithm as nh_seo_archive_url() in the companion plugin
+ * (docs/DATA-CONTRACT.md section 4), so the visible breadcrumb and the structured data name the same URL.
+ *
+ * @return string
+ */
+function nh_editorial_archive_url() {
+	global $wp;
+
+	if ( is_day() ) {
+		return (string) get_day_link( (int) get_query_var( 'year' ), (int) get_query_var( 'monthnum' ), (int) get_query_var( 'day' ) );
+	}
+	if ( is_month() ) {
+		return (string) get_month_link( (int) get_query_var( 'year' ), (int) get_query_var( 'monthnum' ) );
+	}
+	if ( is_year() ) {
+		return (string) get_year_link( (int) get_query_var( 'year' ) );
+	}
+	if ( is_post_type_archive() ) {
+		$object = get_queried_object();
+		$link   = $object instanceof WP_Post_Type ? get_post_type_archive_link( $object->name ) : false;
+		if ( $link ) {
+			return (string) $link;
+		}
+	}
+
+	$url     = (string) get_pagenum_link( 1, false );
+	$foreign = array();
+	foreach ( array_keys( wp_parse_args( (string) wp_parse_url( $url, PHP_URL_QUERY ) ) ) as $name ) {
+		if ( ! in_array( $name, (array) $wp->public_query_vars, true ) ) {
+			$foreign[] = $name;
+		}
+	}
+	return $foreign ? remove_query_arg( $foreign, $url ) : $url;
+}
+
+/**
  * Breadcrumb items for the current main query. Names are raw text (escape on output).
  *
  * @return array<int, array{name: string, url: string}> Empty on the front page and 404.
@@ -114,7 +154,7 @@ function nh_editorial_breadcrumb_items() {
 	} elseif ( is_archive() ) {
 		$items[] = array(
 			'name' => wp_strip_all_tags( get_the_archive_title() ),
-			'url'  => (string) get_pagenum_link( 1 ),
+			'url'  => nh_editorial_archive_url(),
 		);
 	}
 

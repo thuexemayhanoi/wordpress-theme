@@ -97,6 +97,56 @@ class NH_Test_Shared_Trail extends NH_Unit_Test_Case {
 		$this->assertSame( array( 'Home', 'Rental', 'Scooters', 'Automatic' ), wp_list_pluck( nh_seo_breadcrumb_trail(), 'name' ) );
 	}
 
+	/**
+	 * URL of the last crumb of the current page.
+	 *
+	 * @return string
+	 */
+	private function last_url() {
+		$trail = nh_seo_breadcrumb_trail();
+		$last  = end( $trail );
+		return is_array( $last ) ? $last['url'] : '';
+	}
+
+	public function test_archive_crumbs_name_the_archive_and_never_the_visitors_query_string() {
+		update_option( 'posts_per_page', 1 );
+		self::factory()->post->create( array( 'post_date' => '2024-03-08 10:00:00' ) );
+		$post_id = self::factory()->post->create( array( 'post_date' => '2024-03-09 10:00:00' ) );
+		$tag     = self::factory()->term->create(
+			array(
+				'taxonomy' => 'post_tag',
+				'name'     => 'Handy',
+			)
+		);
+		wp_set_post_terms( $post_id, array( $tag ), 'post_tag' );
+
+		$archives = array(
+			'year'     => get_year_link( 2024 ),
+			'month'    => get_month_link( 2024, 3 ),
+			'day'      => get_day_link( 2024, 3, 9 ),
+			'category' => get_category_link( $this->child ),
+			'tag'      => get_tag_link( $tag ),
+		);
+		foreach ( $archives as $label => $url ) {
+			$tracked = add_query_arg(
+				array(
+					'utm_source' => 'newsletter',
+					'ref'        => 'abc',
+				),
+				$url
+			);
+			$this->go_to( $tracked );
+
+			$last = $this->last_url();
+			$this->assertSame( $url, $last, $label . ': a campaign link is the same page as the archive' );
+			$this->assertStringNotContainsString( 'utm_source', $last, $label );
+			$this->assertStringNotContainsString( '&', $last, $label . ': nothing HTML-escaped ends up in the data' );
+		}
+
+		$this->go_to( get_month_link( 2024, 3 ) . 'page/2/?utm_medium=mail' );
+		$this->assertSame( get_month_link( 2024, 3 ), $this->last_url(), 'page 2 names the first page' );
+	}
+
 	public function test_trail_for_page_includes_published_ancestors() {
 		$root = self::factory()->post->create(
 			array(
@@ -157,5 +207,41 @@ class NH_Test_Shared_Trail extends NH_Unit_Test_Case {
 
 		delete_post_meta( $post_id, NH_SEO_Keys::META_FAQ );
 		$this->assertFalse( nh_seo_faq_is_visible( $post_id ) );
+	}
+
+	public function test_a_template_that_hides_the_faq_can_say_so_through_a_filter() {
+		$shown  = self::factory()->post->create();
+		$hidden = self::factory()->post->create();
+		$empty  = self::factory()->post->create();
+		foreach ( array( $shown, $hidden ) as $post_id ) {
+			update_post_meta(
+				$post_id,
+				NH_SEO_Keys::META_FAQ,
+				array(
+					array(
+						'question' => 'Q?',
+						'answer'   => 'A.',
+					),
+				)
+			);
+		}
+		add_theme_support( 'nguyen-ha-companion', array( 'faq' => true ) );
+
+		$received = array();
+		$veto     = static function ( $visible, $post_id ) use ( $hidden, &$received ) {
+			$received[] = array( $visible, $post_id );
+			return $post_id === $hidden ? false : $visible;
+		};
+		add_filter( 'nh_seo_faq_is_visible', $veto, 10, 2 );
+
+		$this->assertTrue( nh_seo_faq_is_visible( $shown ) );
+		$this->assertFalse( nh_seo_faq_is_visible( $hidden ), 'the filter withdraws the claim' );
+		$this->assertFalse( nh_seo_faq_is_visible( $empty ), 'a post without questions never reaches the filter' );
+		$this->assertSame( array( array( true, $shown ), array( true, $hidden ) ), $received );
+
+		// The filter cannot make questions appear that the post does not have.
+		add_filter( 'nh_seo_faq_is_visible', '__return_true' );
+		$this->assertFalse( nh_seo_faq_is_visible( $empty ) );
+		remove_theme_support( 'nguyen-ha-companion' );
 	}
 }

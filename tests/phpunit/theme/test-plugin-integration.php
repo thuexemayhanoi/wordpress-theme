@@ -144,6 +144,95 @@ class NH_Test_Plugin_Integration extends NH_Render_Test_Case {
 		$this->assertNotContains( get_permalink( $site['pillar'] ), $this->hrefs( $html ) );
 	}
 
+	/**
+	 * Questions named by the FAQPage structured data printed in a page.
+	 *
+	 * @param string $html Page HTML.
+	 * @return string[]
+	 */
+	private function faq_questions_in_json_ld( $html ) {
+		$questions = array();
+		preg_match_all( '#<script type="application/ld\+json"[^>]*>(.*?)</script>#s', $html, $blocks );
+		foreach ( $blocks[1] as $json ) {
+			$data  = json_decode( $json, true );
+			$nodes = isset( $data['@graph'] ) ? $data['@graph'] : array( $data );
+			foreach ( $nodes as $node ) {
+				if ( isset( $node['@type'] ) && 'FAQPage' === $node['@type'] ) {
+					foreach ( $node['mainEntity'] as $entity ) {
+						$questions[] = $entity['name'];
+					}
+				}
+			}
+		}
+		return $questions;
+	}
+
+	/**
+	 * Questions a reader sees in the FAQ section of a page.
+	 *
+	 * @param string $html Page HTML.
+	 * @return string[]
+	 */
+	private function visible_faq_questions( $html ) {
+		$questions = array();
+		foreach ( $this->xpath( $html )->query( '//section[@id="faq"]//*[contains(concat(" ", normalize-space(@class), " "), " faq__question ")]' ) as $node ) {
+			$questions[] = trim( $node->textContent );
+		}
+		return $questions;
+	}
+
+	public function test_faq_structured_data_names_only_questions_the_page_shows() {
+		$site  = $this->build_site();
+		$front = self::factory()->post->create(
+			array(
+				'post_type'    => 'page',
+				'post_title'   => 'Welcome',
+				'post_content' => '<p>Welcome text.</p>',
+			)
+		);
+		update_option( 'show_on_front', 'page' );
+		update_option( 'page_on_front', $front );
+
+		// Print the structured data: an SEO plugin owns the graph, the companion plugin adds FAQPage.
+		remove_filter( 'nh_seo_schema_mode', array( $this, 'schema_off' ) );
+		add_filter(
+			'nh_seo_schema_mode',
+			static function () {
+				return 'extras';
+			}
+		);
+
+		$pages = array(
+			'article'    => array( $site['plain'], get_permalink( $site['plain'] ) ),
+			'page'       => array( $site['page'], get_permalink( $site['page'] ) ),
+			'pillar'     => array( $site['pillar'], get_permalink( $site['pillar'] ) ),
+			'full width' => array( $site['wide'], get_permalink( $site['wide'] ) ),
+			'front page' => array( $front, home_url( '/' ) ),
+		);
+		foreach ( $pages as $label => $page ) {
+			list( $post_id, $url ) = $page;
+			update_post_meta(
+				$post_id,
+				'nh_faq',
+				array(
+					array(
+						'question' => 'First question of the ' . $label . '?',
+						'answer'   => 'First answer.',
+					),
+					array(
+						'question' => 'Second question of the ' . $label . '?',
+						'answer'   => 'Second answer.',
+					),
+				)
+			);
+
+			$html  = $this->render_url( $url );
+			$shown = $this->visible_faq_questions( $html );
+			$this->assertCount( 2, $shown, $label . ': the template prints the questions it was given' );
+			$this->assertSame( $shown, $this->faq_questions_in_json_ld( $html ), $label . ': the structured data lists exactly the visible questions' );
+		}
+	}
+
 	public function test_a_page_without_the_plugin_data_prints_none_of_it() {
 		$site = $this->build_site();
 		$html = $this->render_url( get_permalink( $site['plain'] ) );

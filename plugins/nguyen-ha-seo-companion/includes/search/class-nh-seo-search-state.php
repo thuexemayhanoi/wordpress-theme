@@ -12,6 +12,8 @@
  *  build       token of that build; a second build supersedes the first.
  *  cursor      highest post ID the build has processed.
  *  stale       a taxonomy change touched more posts than could be refreshed automatically.
+ *  gap         the plugin was activated while the index was out of step with the content by more posts than it
+ *              repairs in that request; in "auto" mode the index is not used until it is rebuilt.
  *
  * A database error pauses the index for ten minutes (transient `nh_seo_search_off`) and searches fall back
  * to native WordPress search.
@@ -52,6 +54,7 @@ final class NH_SEO_Search_State {
 			'build'      => '',
 			'cursor'     => 0,
 			'stale'      => false,
+			'gap'        => false,
 		);
 	}
 
@@ -74,6 +77,7 @@ final class NH_SEO_Search_State {
 			'build'      => is_scalar( $state['build'] ) ? (string) $state['build'] : '',
 			'cursor'     => absint( $state['cursor'] ),
 			'stale'      => ! empty( $state['stale'] ),
+			'gap'        => ! empty( $state['gap'] ),
 		);
 	}
 
@@ -112,9 +116,9 @@ final class NH_SEO_Search_State {
 	/**
 	 * Whether searches should use the index right now.
 	 *
-	 * Mode "native" never uses it. Mode "auto" uses it only after a complete build. Mode "index" uses it
-	 * whenever the table exists, even while it is still being built. In every mode a database error pauses
-	 * the index for ten minutes.
+	 * Mode "native" never uses it. Mode "auto" uses it only after a complete build, and not while it is known to
+	 * miss posts (the gap flag). Mode "index" uses it whenever the table exists, even while it is still being
+	 * built. In every mode a database error pauses the index for ten minutes.
 	 *
 	 * The theme asks this on page views too (see NH_SEO_Search_Query::filter_index_active()), so the checks
 	 * run from the cheapest to the most expensive: a setting, then the state option, and only for an index
@@ -131,9 +135,29 @@ final class NH_SEO_Search_State {
 			$usable = NH_SEO_Search_Index::table_exists();
 		} else {
 			$state  = self::get();
-			$usable = $state['ready'];
+			$usable = $state['ready'] && ! $state['gap'];
 		}
 		return $usable && ! self::breaker();
+	}
+
+	/**
+	 * How far the index is from the content, and what WP-Cron still has to do for it.
+	 *
+	 * Reads both tables and the cron queue: for the status line and WP-Cron, never for page views.
+	 *
+	 * @return array{missing: int, outdated: int, queued: int, overdue: int}
+	 */
+	public static function drift() {
+		$drift = array(
+			'missing'  => 0,
+			'outdated' => 0,
+			'queued'   => 0,
+			'overdue'  => 0,
+		);
+		if ( ! NH_SEO_Search_Index::table_exists() ) {
+			return $drift;
+		}
+		return array_merge( NH_SEO_Search_Index::drift(), NH_SEO_Search_Indexer::queued_updates() );
 	}
 
 	/**
@@ -231,6 +255,10 @@ final class NH_SEO_Search_State {
 				number_format_i18n( $state['total'] ),
 				$percent
 			);
+		} elseif ( $state['ready'] && $state['gap'] ) {
+			$line = 'index' === $mode
+				? __( 'Index mode: searches use the index, but it no longer matches the content (it was out of step when the plugin was activated). Rebuild it in the Tools tab.', 'nguyen-ha-seo-companion' )
+				: __( 'The index no longer matches the content (it was out of step when the plugin was activated), so native search is used until it is rebuilt (Tools tab).', 'nguyen-ha-seo-companion' );
 		} elseif ( $state['ready'] ) {
 			$line = sprintf(
 				/* translators: 1: number of posts indexed, 2: date and time of the last build. */
@@ -246,6 +274,26 @@ final class NH_SEO_Search_State {
 			);
 		} else {
 			$line = __( 'Not built yet: native search is used until the index is built (Tools tab).', 'nguyen-ha-seo-companion' );
+		}
+
+		if ( $state['ready'] && ! $state['building'] ) {
+			$drift = self::drift();
+			if ( $drift['missing'] + $drift['outdated'] > 0 ) {
+				$line .= ' ' . sprintf(
+					/* translators: 1: number of published posts that have no row in the index, 2: number of posts edited after they were indexed. */
+					__( 'Out of step with the content. Posts missing from the index: %1$s. Posts edited after they were indexed: %2$s. Rebuild the index (Tools tab) if this does not clear up by itself.', 'nguyen-ha-seo-companion' ),
+					number_format_i18n( $drift['missing'] ),
+					number_format_i18n( $drift['outdated'] )
+				);
+			}
+			if ( $drift['queued'] > 0 ) {
+				$line .= ' ' . sprintf(
+					/* translators: 1: number of index updates waiting in WP-Cron, 2: how many of them are long overdue. */
+					__( 'Index updates waiting in WP-Cron: %1$s (overdue: %2$s). If WP-Cron does not run on this site, rebuild the index.', 'nguyen-ha-seo-companion' ),
+					number_format_i18n( $drift['queued'] ),
+					number_format_i18n( $drift['overdue'] )
+				);
+			}
 		}
 
 		if ( $state['stale'] ) {

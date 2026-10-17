@@ -174,7 +174,8 @@ final class NH_SEO_Cluster_Sync {
 		$created = false;
 
 		if ( ! $term && self::can_create_term( $post_id, $alias ) ) {
-			$result = wp_insert_term( $alias, NH_SEO_Keys::TAXONOMY_CLUSTER );
+			// Term functions expect slashed text: without wp_slash() a backslash in the name is dropped.
+			$result = wp_insert_term( wp_slash( $alias ), NH_SEO_Keys::TAXONOMY_CLUSTER );
 			if ( is_wp_error( $result ) ) {
 				// A term with that name already exists (for example with different accents): use it.
 				$term_id = (int) $result->get_error_data( 'term_exists' );
@@ -202,7 +203,8 @@ final class NH_SEO_Cluster_Sync {
 		if ( $primary_changed ) {
 			update_post_meta( $post_id, NH_SEO_Keys::META_PRIMARY_CLUSTER, $term_id );
 		}
-		update_post_meta( $post_id, self::SYNCED_META, $alias );
+		// update_post_meta() unslashes its value: slash it, or a backslash in the name is lost and the next save re-applies the cluster.
+		update_post_meta( $post_id, self::SYNCED_META, wp_slash( $alias ) );
 
 		if ( $created || ! $assigned || $primary_changed ) {
 			/**
@@ -233,7 +235,7 @@ final class NH_SEO_Cluster_Sync {
 			}
 		}
 
-		$term = get_term_by( 'name', $alias, NH_SEO_Keys::TAXONOMY_CLUSTER );
+		$term = get_term_by( 'name', wp_slash( $alias ), NH_SEO_Keys::TAXONOMY_CLUSTER );
 		return $term instanceof WP_Term ? $term : null;
 	}
 

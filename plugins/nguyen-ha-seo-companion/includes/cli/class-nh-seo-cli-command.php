@@ -242,6 +242,12 @@ class NH_SEO_CLI_Command {
 		$state   = NH_SEO_Search_State::get();
 		$breaker = NH_SEO_Search_State::breaker();
 		$table   = NH_SEO_Search_Index::table_exists();
+		$drift   = $state['ready'] ? NH_SEO_Search_State::drift() : array(
+			'missing'  => 0,
+			'outdated' => 0,
+			'queued'   => 0,
+			'overdue'  => 0,
+		);
 		$yes_no  = static function ( $value ) {
 			return $value ? 'yes' : 'no';
 		};
@@ -283,6 +289,22 @@ class NH_SEO_CLI_Command {
 				'value' => (string) $state['total'],
 			),
 			array(
+				'key'   => 'posts_missing',
+				'value' => (string) $drift['missing'],
+			),
+			array(
+				'key'   => 'posts_outdated',
+				'value' => (string) $drift['outdated'],
+			),
+			array(
+				'key'   => 'wp_cron_updates_queued',
+				'value' => (string) $drift['queued'],
+			),
+			array(
+				'key'   => 'wp_cron_updates_overdue',
+				'value' => (string) $drift['overdue'],
+			),
+			array(
 				'key'   => 'last_run',
 				'value' => $time( $state['last_run'] ),
 			),
@@ -296,7 +318,7 @@ class NH_SEO_CLI_Command {
 			),
 			array(
 				'key'   => 'rebuild_recommended',
-				'value' => $yes_no( $state['stale'] ),
+				'value' => $yes_no( $state['stale'] || $state['gap'] || $drift['missing'] + $drift['outdated'] > 0 || $drift['overdue'] > 0 ),
 			),
 		);
 	}

@@ -53,12 +53,14 @@ function nh_seo_search_upgrade() {
 }
 
 /**
- * Activation: lift an old pause. Building the index is always an explicit action in the Tools panel.
+ * Activation: lift an old pause and bring a ready index back in step with the content, which nothing maintained
+ * while the plugin was inactive. Building the index is always an explicit action in the Tools panel.
  *
  * @return void
  */
 function nh_seo_search_activate() {
 	NH_SEO_Search_State::clear_breaker();
+	NH_SEO_Search_Indexer::repair_after_gap();
 }
 
 add_action( 'nh_seo_upgrade', 'nh_seo_search_upgrade' );

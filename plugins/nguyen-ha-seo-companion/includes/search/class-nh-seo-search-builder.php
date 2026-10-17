@@ -76,6 +76,7 @@ final class NH_SEO_Search_Builder {
 				'last_run'   => time(),
 				'last_error' => '',
 				'stale'      => false,
+				'gap'        => false,
 			)
 		);
 		NH_SEO_Search_State::bump_query_caches();

@@ -196,6 +196,27 @@ What other code (themes, plugins, WP-CLI scripts) may rely on:
   posts (default 15,000; the number of the last build, or the rows when no build recorded one); 0 never, a
   negative number always. A database error always hands the request to native search.
 
+**Keeping the index honest.** Hooks keep the index in step while the plugin is active. Three situations
+leave it behind, and the plugin no longer calls such an index "Ready" without saying so:
+
+* *The plugin was inactive* (an AI publishing workflow, an import or another administrator changed posts in the
+  meantime). Activation compares the index with the content: rows of posts that are no longer public are pruned,
+  and posts that have no row or were edited after their row was written are re-indexed in that request, up to
+  200 (filter `nh_seo_search_activation_repair_limit`). A larger gap flags the index as not matching the
+  content: in `auto` mode searches use native search again until an administrator rebuilds it, in `index` mode
+  the index keeps serving and the status says what is wrong. An index that was never built, or is being built,
+  is left alone (building is always an explicit action). A term renamed while the plugin was inactive is not
+  noticed, because the posts did not change: rebuild after renaming terms with the plugin switched off.
+* *WP-Cron does not run* (disabled, or no traffic): a term rename and the part of a large save that did not fit
+  in one request wait in the WP-Cron queue. The status line and `index-status` show how many updates are queued
+  and how many are more than an hour overdue, and recommend a rebuild.
+* *An import bypassed WordPress hooks*: the status line compares the two tables (posts missing from the index,
+  posts edited after they were indexed) every time it is shown in the Tools tab or by `index-status`. Page views
+  never run that comparison.
+
+On a network every site has its own table, queue and cron events: a post saved while another site is current
+(`switch_to_blog()`) is indexed, and its URLs purged, in the site that owns it.
+
 Measured on a private site with about 50,000 articles (the `tests/bin/seed-bulk.php` fixture plus a few
 rare-word posts; 50,016 posts and pages at build time). PHP built-in server, 4 cores shared with other test
 processes, MariaDB 10.11 with the default 128 MB buffer pool while `wp_posts` is 316 MB. "Page time" is the
@@ -258,8 +279,12 @@ exact next to other plugins' query filters.
   validated as a whole number and clamped to 10 to 500 with a warning. A flag given without a value (WP-CLI passes
   `true`) is never read as a number, so `--post` alone cannot purge post 1.
 * `index-status` prints one fact per row (`key`, `value`): status, mode, used_for_searches, ready, building,
-  table, posts_in_index, posts_at_last_build, last_run, paused_until, last_error, rebuild_recommended. The keys
-  are an interface for scripts and are not translated; the `status` line is.
+  table, posts_in_index, posts_at_last_build, posts_missing, posts_outdated, wp_cron_updates_queued,
+  wp_cron_updates_overdue, last_run, paused_until, last_error, rebuild_recommended. The keys are an interface for
+  scripts and are not translated; the `status` line is. `rebuild_recommended` is `yes` when a taxonomy change
+  overflowed the automatic refresh, when the activation check found the index out of step, when posts are missing
+  from the index or were edited after it was written, or when an index update has been waiting in WP-Cron for more
+  than an hour.
 * `purge` lists the URLs, hands them to the page caches once and ignores the "purge automatically" setting (an
   explicit command), saying so; `--dry-run` only lists.
 * Run with the real WP-CLI 2.12 on a site with 50,000 articles: the table and JSON output of `index-status`,

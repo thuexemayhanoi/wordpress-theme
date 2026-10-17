@@ -5,7 +5,8 @@
  * Works in both reading modes:
  * - "Your latest posts": the main query is the paginated post list. Page 1 shows the hero, topics and
  *   the list; pages 2+ show only the list, so page 2 never repeats page 1 and older posts stay reachable.
- * - "A static page": the page content is shown, followed by the featured stories, topics and a list of
+ * - "A static page": the page content (and the FAQ entered for that page, which the FAQPage structured data
+ *   may describe only because readers see it) is shown, followed by the featured stories, topics and a list of
  *   the latest articles.
  *
  * The template owns exactly one H1 (the introduction; on pages 2+ the list heading).
@@ -62,6 +63,16 @@ if ( ! $nh_editorial_posts_mode ) {
 			<section class="section section--page-content">
 				<div class="wrap">
 					<div class="page-content prose"><?php the_content(); ?></div>
+				</div>
+			</section>
+			<?php
+		}
+		$nh_editorial_page_extras = nh_editorial_get_extras( get_the_ID() );
+		if ( ! empty( $nh_editorial_page_extras['faq'] ) ) {
+			?>
+			<section class="section section--page-faq">
+				<div class="wrap">
+					<?php get_template_part( 'template-parts/components/faq', null, array( 'faq' => $nh_editorial_page_extras['faq'] ) ); ?>
 				</div>
 			</section>
 			<?php

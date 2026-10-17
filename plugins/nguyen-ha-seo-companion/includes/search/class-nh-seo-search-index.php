@@ -25,11 +25,11 @@ final class NH_SEO_Search_Index {
 	const TABLE_SUFFIX = 'nh_search_index';
 
 	/**
-	 * Result of the last table_exists() call, for the current request.
+	 * Results of table_exists() for the current request, by table name (every site of a network has its own table).
 	 *
-	 * @var bool|null
+	 * @var array<string, bool>
 	 */
-	private static $exists = null;
+	private static $exists = array();
 
 	/**
 	 * Full table name.
@@ -128,23 +128,23 @@ final class NH_SEO_Search_Index {
 
 		dbDelta( $sql );
 
-		self::$exists = null;
+		self::$exists = array();
 		return self::table_exists();
 	}
 
 	/**
-	 * Whether the table exists. Cached for the request; create_table() and drop_table() reset the cache.
+	 * Whether the table of the current site exists. Cached for the request; create_table() and drop_table() reset the cache.
 	 *
 	 * @return bool
 	 */
 	public static function table_exists() {
 		global $wpdb;
-		if ( null === self::$exists ) {
-			$table        = self::table();
-			$found        = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) );
-			self::$exists = ( $found === $table );
+		$table = self::table();
+		if ( ! isset( self::$exists[ $table ] ) ) {
+			$found                  = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) );
+			self::$exists[ $table ] = ( $found === $table );
 		}
-		return self::$exists;
+		return self::$exists[ $table ];
 	}
 
 	/**
@@ -153,7 +153,7 @@ final class NH_SEO_Search_Index {
 	 * @return void
 	 */
 	public static function forget_table_state() {
-		self::$exists = null;
+		self::$exists = array();
 	}
 
 	/**
@@ -173,7 +173,7 @@ final class NH_SEO_Search_Index {
 	public static function drop_table() {
 		global $wpdb;
 		$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', self::table() ) );
-		self::$exists = null;
+		self::$exists = array();
 	}
 
 	/**
@@ -270,6 +270,55 @@ final class NH_SEO_Search_Index {
 		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 		$sql = $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_status = 'publish' AND post_password = '' AND post_type IN ($placeholders)", $types );
 		return (int) $wpdb->get_var( $sql ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+	}
+
+	/**
+	 * How far the table is from the content: posts that should have a row and have none, and rows older than the
+	 * post they describe (the post was edited afterwards).
+	 *
+	 * One pass over the posts that should be indexed, joined to the table by primary key. For the status line,
+	 * WP-CLI and the repair at activation; never for page views.
+	 *
+	 * @return array{missing: int, outdated: int}
+	 */
+	public static function drift() {
+		global $wpdb;
+		$types = self::indexable_types();
+		if ( empty( $types ) ) {
+			return array(
+				'missing'  => 0,
+				'outdated' => 0,
+			);
+		}
+		$placeholders = implode( ', ', array_fill( 0, count( $types ), '%s' ) );
+		// The placeholder list is built from a count, never from data.
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
+		$sql = $wpdb->prepare( "SELECT COALESCE(SUM(i.post_id IS NULL), 0) AS missing, COALESCE(SUM(i.post_id IS NOT NULL AND p.post_modified_gmt > i.updated), 0) AS outdated FROM {$wpdb->posts} AS p LEFT JOIN %i AS i ON i.post_id = p.ID WHERE p.post_status = 'publish' AND p.post_password = '' AND p.post_type IN ($placeholders)", array_merge( array( self::table() ), $types ) );
+		$row = $wpdb->get_row( $sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		return array(
+			'missing'  => is_array( $row ) ? (int) $row['missing'] : 0,
+			'outdated' => is_array( $row ) ? (int) $row['outdated'] : 0,
+		);
+	}
+
+	/**
+	 * IDs of posts whose row is missing or older than the post, ascending.
+	 *
+	 * @param int $limit Maximum number of IDs.
+	 * @return int[]
+	 */
+	public static function unsynced_ids( $limit ) {
+		global $wpdb;
+		$types = self::indexable_types();
+		if ( empty( $types ) ) {
+			return array();
+		}
+		$placeholders = implode( ', ', array_fill( 0, count( $types ), '%s' ) );
+		$args         = array_merge( array( self::table() ), $types, array( max( 1, absint( $limit ) ) ) );
+		// The placeholder list is built from a count, never from data.
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
+		$sql = $wpdb->prepare( "SELECT p.ID FROM {$wpdb->posts} AS p LEFT JOIN %i AS i ON i.post_id = p.ID WHERE p.post_status = 'publish' AND p.post_password = '' AND p.post_type IN ($placeholders) AND (i.post_id IS NULL OR p.post_modified_gmt > i.updated) ORDER BY p.ID ASC LIMIT %d", $args );
+		return array_map( 'intval', (array) $wpdb->get_col( $sql ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 	}
 
 	/**

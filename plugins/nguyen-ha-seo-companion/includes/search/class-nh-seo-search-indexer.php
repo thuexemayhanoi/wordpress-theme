@@ -13,6 +13,9 @@
  *
  * Revisions, autosaves, drafts, private and password protected posts never get a row.
  *
+ * Nothing keeps the index in step while the plugin is inactive: activation compares the index with the content
+ * (repair_after_gap()), and the status reports updates that WP-Cron has not run (queued_updates()).
+ *
  * @package nguyen-ha-seo-companion
  */
 
@@ -44,9 +47,15 @@ final class NH_SEO_Search_Indexer {
 	const MAX_CRON_EVENTS = 100;
 
 	/**
-	 * Post IDs waiting for the shutdown flush, as keys.
+	 * Seconds after which a queued index update counts as overdue (WP-Cron does not seem to run).
+	 */
+	const OVERDUE_SECONDS = HOUR_IN_SECONDS;
+
+	/**
+	 * Post IDs waiting for the shutdown flush: site ID => post ID => true. A post ID means nothing without its site
+	 * on a network, where code may switch_to_blog() before it saves a post.
 	 *
-	 * @var array<int, true>
+	 * @var array<int, array<int, true>>
 	 */
 	private static $queue = array();
 
@@ -89,6 +98,72 @@ final class NH_SEO_Search_Indexer {
 	}
 
 	/**
+	 * Plugin activation: bring a ready index back in step with the content.
+	 *
+	 * Nothing maintained the index while the plugin was inactive, so posts published, edited, unpublished or deleted
+	 * in that time (an AI publishing workflow, an import, another administrator) left rows missing, outdated or
+	 * orphaned. A small gap is repaired right away, in this request. A larger one flags the index as not matching
+	 * the content: in "auto" mode searches use native search again until an administrator rebuilds it. An index that
+	 * was never built, or is being built, is left alone: building is always an explicit action.
+	 *
+	 * A term renamed while the plugin was inactive is not noticed (the posts did not change): rebuild after that.
+	 *
+	 * @return void
+	 */
+	public static function repair_after_gap() {
+		$state = NH_SEO_Search_State::get();
+		if ( ! $state['ready'] || $state['building'] || ! NH_SEO_Search_Index::table_exists() ) {
+			return;
+		}
+		NH_SEO_Search_Index::prune();
+
+		/**
+		 * Filters how many posts the repair at activation may re-index in that one request. More than that and the
+		 * index is flagged as not matching the content instead.
+		 *
+		 * @param int $limit Default 200.
+		 */
+		$limit = max( 1, (int) apply_filters( 'nh_seo_search_activation_repair_limit', 200 ) );
+		$ids   = NH_SEO_Search_Index::unsynced_ids( $limit + 1 );
+
+		if ( count( $ids ) > $limit ) {
+			NH_SEO_Search_State::save( array( 'gap' => true ) );
+		} else {
+			foreach ( $ids as $post_id ) {
+				self::reindex_post( $post_id );
+			}
+		}
+		NH_SEO_Search_State::bump_query_caches();
+	}
+
+	/**
+	 * Index updates that sit in the WP-Cron queue, and how many of them are long overdue.
+	 *
+	 * @return array{queued: int, overdue: int}
+	 */
+	public static function queued_updates() {
+		$queued  = 0;
+		$overdue = 0;
+		$late    = time() - self::OVERDUE_SECONDS;
+		foreach ( (array) _get_cron_array() as $timestamp => $hooks ) {
+			foreach ( array( self::CRON_TERM, self::CRON_IDS ) as $hook ) {
+				if ( empty( $hooks[ $hook ] ) ) {
+					continue;
+				}
+				$count   = count( $hooks[ $hook ] );
+				$queued += $count;
+				if ( (int) $timestamp < $late ) {
+					$overdue += $count;
+				}
+			}
+		}
+		return array(
+			'queued'  => $queued,
+			'overdue' => $overdue,
+		);
+	}
+
+	/**
 	 * Hook: save_post.
 	 *
 	 * @param int          $post_id Post ID.
@@ -115,7 +190,7 @@ final class NH_SEO_Search_Indexer {
 			self::queue( $post->ID, $post );
 		} elseif ( 'publish' === $old_status && NH_SEO_Search_Index::table_exists() ) {
 			NH_SEO_Search_Index::delete_post( $post->ID );
-			unset( self::$queue[ $post->ID ] );
+			self::forget( $post->ID );
 		}
 	}
 
@@ -127,7 +202,7 @@ final class NH_SEO_Search_Indexer {
 	 * @return void
 	 */
 	public static function on_deleted_post( $post_id, $post = null ) {
-		unset( self::$queue[ absint( $post_id ) ] );
+		self::forget( absint( $post_id ) );
 		if ( $post instanceof WP_Post && ! self::is_indexed_type( $post->post_type ) ) {
 			return;
 		}
@@ -266,15 +341,30 @@ final class NH_SEO_Search_Indexer {
 	 */
 	public static function queue( $post_id, $post = null ) {
 		$post_id = absint( $post_id );
-		if ( ! $post_id || isset( self::$queue[ $post_id ] ) ) {
+		$site_id = get_current_blog_id();
+		if ( ! $post_id || isset( self::$queue[ $site_id ][ $post_id ] ) ) {
 			return;
 		}
 		$post = $post instanceof WP_Post ? $post : get_post( $post_id );
 		if ( ! $post instanceof WP_Post || ! self::is_indexed_type( $post->post_type ) ) {
 			return; // Also skips revisions and autosaves: their post type is "revision".
 		}
-		self::$queue[ $post_id ] = true;
+		self::$queue[ $site_id ][ $post_id ] = true;
 		add_action( 'shutdown', array( __CLASS__, 'flush' ), 5 );
+	}
+
+	/**
+	 * Take a post of the current site out of the queue.
+	 *
+	 * @param int $post_id Post ID.
+	 * @return void
+	 */
+	private static function forget( $post_id ) {
+		$site_id = get_current_blog_id();
+		unset( self::$queue[ $site_id ][ $post_id ] );
+		if ( empty( self::$queue[ $site_id ] ) ) {
+			unset( self::$queue[ $site_id ] );
+		}
 	}
 
 	/**
@@ -290,12 +380,13 @@ final class NH_SEO_Search_Indexer {
 	}
 
 	/**
-	 * Post IDs waiting for the flush.
+	 * Post IDs of the current site waiting for the flush.
 	 *
 	 * @return int[]
 	 */
 	public static function pending() {
-		return array_keys( self::$queue );
+		$site_id = get_current_blog_id();
+		return isset( self::$queue[ $site_id ] ) ? array_keys( self::$queue[ $site_id ] ) : array();
 	}
 
 	/**
@@ -312,7 +403,8 @@ final class NH_SEO_Search_Indexer {
 	 * Write the queued posts. Runs at shutdown.
 	 *
 	 * At most 50 posts are written inline (filter nh_seo_search_inline_limit) and never for longer than a few
-	 * seconds; whatever is left goes to WP-Cron in chunks.
+	 * seconds; whatever is left goes to WP-Cron in chunks. On a network each site's posts are written in that
+	 * site, whichever site is current when the request ends.
 	 *
 	 * @return void
 	 */
@@ -320,34 +412,61 @@ final class NH_SEO_Search_Indexer {
 		if ( empty( self::$queue ) ) {
 			return;
 		}
-		$ids         = array_keys( self::$queue );
+		$queue       = self::$queue;
 		self::$queue = array();
 
-		if ( ! NH_SEO_Search_Index::table_exists() ) {
-			return;
+		foreach ( $queue as $site_id => $posts ) {
+			self::flush_site( (int) $site_id, array_keys( $posts ) );
 		}
+	}
 
-		/**
-		 * Filters how many posts one request may re-index inline.
-		 *
-		 * @param int $limit Default 50.
-		 */
-		$limit   = max( 1, (int) apply_filters( 'nh_seo_search_inline_limit', 50 ) );
-		$started = microtime( true );
-		$rest    = array();
-
-		foreach ( $ids as $position => $post_id ) {
-			if ( $position >= $limit || ( microtime( true ) - $started ) > 4 ) {
-				$rest = array_slice( $ids, $position );
-				break;
+	/**
+	 * Write the queued posts of one site.
+	 *
+	 * @param int   $site_id Site ID.
+	 * @param int[] $ids     Post IDs.
+	 * @return void
+	 */
+	private static function flush_site( $site_id, array $ids ) {
+		$switched = is_multisite() && get_current_blog_id() !== $site_id;
+		if ( $switched ) {
+			if ( ! get_site( $site_id ) instanceof WP_Site ) {
+				return; // The site was deleted during the request.
 			}
-			self::reindex_post( $post_id );
+			switch_to_blog( $site_id );
 		}
 
-		if ( ! empty( $rest ) ) {
-			self::schedule_ids( $rest );
+		try {
+			if ( ! NH_SEO_Search_Index::table_exists() ) {
+				return;
+			}
+
+			/**
+			 * Filters how many posts one request may re-index inline.
+			 *
+			 * @param int $limit Default 50.
+			 */
+			$limit   = max( 1, (int) apply_filters( 'nh_seo_search_inline_limit', 50 ) );
+			$started = microtime( true );
+			$rest    = array();
+
+			foreach ( $ids as $position => $post_id ) {
+				if ( $position >= $limit || ( microtime( true ) - $started ) > 4 ) {
+					$rest = array_slice( $ids, $position );
+					break;
+				}
+				self::reindex_post( $post_id );
+			}
+
+			if ( ! empty( $rest ) ) {
+				self::schedule_ids( $rest );
+			}
+			NH_SEO_Search_State::bump_query_caches();
+		} finally {
+			if ( $switched ) {
+				restore_current_blog();
+			}
 		}
-		NH_SEO_Search_State::bump_query_caches();
 	}
 
 	/**

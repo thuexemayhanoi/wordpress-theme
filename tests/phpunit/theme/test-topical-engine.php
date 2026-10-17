@@ -779,6 +779,46 @@ class NH_Test_Breadcrumb_Parity extends NH_Unit_Test_Case {
 		$this->assertCount( 2, $this->assert_parity( 'date archive' ) );
 	}
 
+	public function test_archive_crumbs_ignore_the_visitors_query_string_in_both_trails() {
+		$cat  = self::factory()->category->create( array( 'name' => 'Guides' ) );
+		$post = self::factory()->post->create(
+			array(
+				'post_date'     => '2024-03-09 10:00:00',
+				'post_category' => array( $cat ),
+			)
+		);
+		$tag  = self::factory()->term->create(
+			array(
+				'taxonomy' => 'post_tag',
+				'name'     => 'Handy',
+			)
+		);
+		wp_set_post_terms( $post, array( $tag ), 'post_tag' );
+
+		$archives = array(
+			'year'     => get_year_link( 2024 ),
+			'month'    => get_month_link( 2024, 3 ),
+			'day'      => get_day_link( 2024, 3, 9 ),
+			'category' => get_category_link( $cat ),
+			'tag'      => get_tag_link( $tag ),
+		);
+		foreach ( $archives as $label => $url ) {
+			$this->go_to(
+				add_query_arg(
+					array(
+						'utm_source' => 'newsletter',
+						'ref'        => 'abc',
+					),
+					$url
+				)
+			);
+			$items = $this->assert_parity( $label . ' with tracking arguments' );
+			$last  = end( $items );
+			$this->assertSame( $url, $last['url'], $label . ': the crumb is the archive itself' );
+			$this->assertStringNotContainsString( 'utm_source', $last['url'], $label );
+		}
+	}
+
 	public function test_front_page_and_404_have_no_trail() {
 		$this->go_to( home_url( '/' ) );
 		$this->assertSame( array(), $this->assert_parity( 'front page' ) );

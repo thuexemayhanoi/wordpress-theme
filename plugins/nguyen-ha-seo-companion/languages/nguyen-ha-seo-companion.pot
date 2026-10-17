@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-17T07:29:32+00:00\n"
+"POT-Creation-Date: 2026-10-17T12:25:23+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: nguyen-ha-seo-companion\n"
@@ -282,7 +282,7 @@ msgstr ""
 #: includes/admin/class-nh-seo-meta-box.php:378
 #: includes/admin/class-nh-seo-settings-page.php:352
 #: includes/admin/class-nh-seo-settings-page.php:771
-#: includes/data/class-nh-seo-data-model.php:63
+#: includes/data/class-nh-seo-data-model.php:116
 msgid "Topic Clusters"
 msgstr ""
 
@@ -804,149 +804,149 @@ msgstr ""
 msgid "Handed %s URLs to the page caches."
 msgstr ""
 
-#: includes/cli/class-nh-seo-cli-command.php:331
+#: includes/cli/class-nh-seo-cli-command.php:353
 msgid "--batch must be a positive whole number (10 to 500)."
 msgstr ""
 
 #. translators: %d: batch size actually used.
-#: includes/cli/class-nh-seo-cli-command.php:341
+#: includes/cli/class-nh-seo-cli-command.php:363
 #, php-format
 msgid "Batch size adjusted to %d (allowed: 10 to 500)."
 msgstr ""
 
-#: includes/cli/class-nh-seo-cli-command.php:358
+#: includes/cli/class-nh-seo-cli-command.php:380
 msgid "No post type is indexed."
 msgstr ""
 
-#: includes/cli/class-nh-seo-cli-command.php:368
+#: includes/cli/class-nh-seo-cli-command.php:390
 msgid "--post-type needs at least one post type."
 msgstr ""
 
 #. translators: 1: post type, 2: list of indexed post types.
-#: includes/cli/class-nh-seo-cli-command.php:376
+#: includes/cli/class-nh-seo-cli-command.php:398
 #, php-format
 msgid "The post type \"%1$s\" is not indexed. Indexed post types: %2$s."
 msgstr ""
 
-#: includes/data/class-nh-seo-data-model.php:61
+#: includes/data/class-nh-seo-data-model.php:114
 msgctxt "taxonomy general name"
 msgid "Topic Clusters"
 msgstr ""
 
-#: includes/data/class-nh-seo-data-model.php:62
+#: includes/data/class-nh-seo-data-model.php:115
 msgctxt "taxonomy singular name"
 msgid "Topic Cluster"
 msgstr ""
 
-#: includes/data/class-nh-seo-data-model.php:64
+#: includes/data/class-nh-seo-data-model.php:117
 msgid "All Topic Clusters"
 msgstr ""
 
-#: includes/data/class-nh-seo-data-model.php:65
+#: includes/data/class-nh-seo-data-model.php:118
 msgid "Edit Topic Cluster"
 msgstr ""
 
-#: includes/data/class-nh-seo-data-model.php:66
+#: includes/data/class-nh-seo-data-model.php:119
 msgid "Update Topic Cluster"
 msgstr ""
 
-#: includes/data/class-nh-seo-data-model.php:67
+#: includes/data/class-nh-seo-data-model.php:120
 msgid "Add New Topic Cluster"
 msgstr ""
 
-#: includes/data/class-nh-seo-data-model.php:68
+#: includes/data/class-nh-seo-data-model.php:121
 msgid "New Topic Cluster Name"
 msgstr ""
 
-#: includes/data/class-nh-seo-data-model.php:69
+#: includes/data/class-nh-seo-data-model.php:122
 msgid "Search Topic Clusters"
 msgstr ""
 
-#: includes/data/class-nh-seo-data-model.php:70
+#: includes/data/class-nh-seo-data-model.php:123
 msgid "Popular Topic Clusters"
 msgstr ""
 
-#: includes/data/class-nh-seo-data-model.php:71
+#: includes/data/class-nh-seo-data-model.php:124
 msgid "Separate topic clusters with commas"
 msgstr ""
 
-#: includes/data/class-nh-seo-data-model.php:72
+#: includes/data/class-nh-seo-data-model.php:125
 msgid "Add or remove topic clusters"
 msgstr ""
 
-#: includes/data/class-nh-seo-data-model.php:73
+#: includes/data/class-nh-seo-data-model.php:126
 msgid "Choose from the most used topic clusters"
 msgstr ""
 
-#: includes/data/class-nh-seo-data-model.php:74
+#: includes/data/class-nh-seo-data-model.php:127
 msgid "No topic clusters found."
 msgstr ""
 
-#: includes/data/class-nh-seo-data-model.php:75
+#: includes/data/class-nh-seo-data-model.php:128
 msgid "No topic clusters"
 msgstr ""
 
-#: includes/data/class-nh-seo-data-model.php:76
+#: includes/data/class-nh-seo-data-model.php:129
 msgid "Topic clusters list navigation"
 msgstr ""
 
-#: includes/data/class-nh-seo-data-model.php:77
+#: includes/data/class-nh-seo-data-model.php:130
 msgid "Topic clusters list"
 msgstr ""
 
-#: includes/data/class-nh-seo-data-model.php:78
+#: includes/data/class-nh-seo-data-model.php:131
 msgid "&larr; Go to Topic Clusters"
 msgstr ""
 
-#: includes/data/class-nh-seo-data-model.php:86
+#: includes/data/class-nh-seo-data-model.php:139
 msgid "Groups articles into topics for internal linking. Clusters have no public pages of their own."
 msgstr ""
 
-#: includes/data/class-nh-seo-data-model.php:123
+#: includes/data/class-nh-seo-data-model.php:176
 msgid "ID of the published post or page that acts as the Pillar for this topic."
 msgstr ""
 
-#: includes/data/class-nh-seo-data-model.php:175
+#: includes/data/class-nh-seo-data-model.php:228
 msgid "Answer-first summary shown at the top of the article. Plain text, 800 characters."
 msgstr ""
 
-#: includes/data/class-nh-seo-data-model.php:185
+#: includes/data/class-nh-seo-data-model.php:238
 msgid "Key takeaways: up to 10 plain-text items of 300 characters."
 msgstr ""
 
-#: includes/data/class-nh-seo-data-model.php:200
+#: includes/data/class-nh-seo-data-model.php:253
 msgid "Frequently asked questions: up to 20 items with a question and an answer that may contain basic HTML."
 msgstr ""
 
-#: includes/data/class-nh-seo-data-model.php:221
+#: includes/data/class-nh-seo-data-model.php:274
 msgid "References: up to 15 items with a title, an http(s) URL and a publisher."
 msgstr ""
 
-#: includes/data/class-nh-seo-data-model.php:243
+#: includes/data/class-nh-seo-data-model.php:296
 msgid "The date (YYYY-MM-DD) the content was really updated. Invalid or future dates are dropped."
 msgstr ""
 
-#: includes/data/class-nh-seo-data-model.php:253
+#: includes/data/class-nh-seo-data-model.php:306
 msgid "Topic Cluster slug or name. It is synced to the Topic Cluster taxonomy."
 msgstr ""
 
-#: includes/data/class-nh-seo-data-model.php:263
+#: includes/data/class-nh-seo-data-model.php:316
 msgid "Term ID of the primary Topic Cluster. It must be assigned to the post to count."
 msgstr ""
 
-#: includes/data/class-nh-seo-data-model.php:273
+#: includes/data/class-nh-seo-data-model.php:326
 msgid "ID of the published post or page that is the Pillar of this article."
 msgstr ""
 
-#: includes/data/class-nh-seo-data-model.php:283
+#: includes/data/class-nh-seo-data-model.php:336
 msgid "Pages only. \"category:<id>\" or \"topic_cluster:<id>\": the topic this Pillar or Hub page lists."
 msgstr ""
 
-#: includes/data/class-nh-seo-data-model.php:293
+#: includes/data/class-nh-seo-data-model.php:346
 msgid "The page has verified local-business context."
 msgstr ""
 
-#: includes/data/class-nh-seo-data-model.php:303
+#: includes/data/class-nh-seo-data-model.php:356
 msgid "Extra comma separated keywords for the internal search index only."
 msgstr ""
 
@@ -954,12 +954,12 @@ msgstr ""
 msgid "(no title)"
 msgstr ""
 
-#: includes/functions.php:773
+#: includes/functions.php:827
 msgid "Home"
 msgstr ""
 
 #. translators: %s: search query.
-#: includes/functions.php:858
+#: includes/functions.php:912
 #, php-format
 msgid "Search results for: %s"
 msgstr ""
@@ -1049,54 +1049,74 @@ msgstr ""
 msgid "Unknown step."
 msgstr ""
 
-#: includes/search/class-nh-seo-search-builder.php:98
+#: includes/search/class-nh-seo-search-builder.php:99
 msgid "Another index build has started. This one was stopped."
 msgstr ""
 
-#: includes/search/class-nh-seo-search-builder.php:101
+#: includes/search/class-nh-seo-search-builder.php:102
 msgid "The index table does not exist and could not be created."
 msgstr ""
 
-#: includes/search/class-nh-seo-search-state.php:207
+#: includes/search/class-nh-seo-search-state.php:231
 msgid "Native WordPress search (the index is switched off in the settings)."
 msgstr ""
 
 #. translators: 1: time when the index is tried again, 2: database error message.
-#: includes/search/class-nh-seo-search-state.php:214
+#: includes/search/class-nh-seo-search-state.php:238
 #, php-format
 msgid "Index paused until %1$s after a database error; native search is used meanwhile. %2$s"
 msgstr ""
 
-#: includes/search/class-nh-seo-search-state.php:221
+#: includes/search/class-nh-seo-search-state.php:245
 msgid "The index table does not exist yet. Build the index in the Tools tab."
 msgstr ""
 
 #. translators: 1: posts indexed so far, 2: posts to index, 3: percent done.
-#: includes/search/class-nh-seo-search-state.php:229
+#: includes/search/class-nh-seo-search-state.php:253
 #, php-format
 msgid "Building: %1$s of %2$s posts indexed (%3$d%%). Native search is used until the build completes."
 msgstr ""
 
+#: includes/search/class-nh-seo-search-state.php:260
+msgid "Index mode: searches use the index, but it no longer matches the content (it was out of step when the plugin was activated). Rebuild it in the Tools tab."
+msgstr ""
+
+#: includes/search/class-nh-seo-search-state.php:261
+msgid "The index no longer matches the content (it was out of step when the plugin was activated), so native search is used until it is rebuilt (Tools tab)."
+msgstr ""
+
 #. translators: 1: number of posts indexed, 2: date and time of the last build.
-#: includes/search/class-nh-seo-search-state.php:237
+#: includes/search/class-nh-seo-search-state.php:265
 #, php-format
 msgid "Ready: %1$s posts indexed (last build %2$s). Searches use the index."
 msgstr ""
 
-#: includes/search/class-nh-seo-search-state.php:239
+#: includes/search/class-nh-seo-search-state.php:267
 msgid "unknown"
 msgstr ""
 
 #. translators: %s: number of posts in the index.
-#: includes/search/class-nh-seo-search-state.php:244
+#: includes/search/class-nh-seo-search-state.php:272
 #, php-format
 msgid "Index mode: searches use the index even though the build is not complete (%s posts indexed)."
 msgstr ""
 
-#: includes/search/class-nh-seo-search-state.php:248
+#: includes/search/class-nh-seo-search-state.php:276
 msgid "Not built yet: native search is used until the index is built (Tools tab)."
 msgstr ""
 
-#: includes/search/class-nh-seo-search-state.php:252
+#. translators: 1: number of published posts that have no row in the index, 2: number of posts edited after they were indexed.
+#: includes/search/class-nh-seo-search-state.php:284
+#, php-format
+msgid "Out of step with the content. Posts missing from the index: %1$s. Posts edited after they were indexed: %2$s. Rebuild the index (Tools tab) if this does not clear up by itself."
+msgstr ""
+
+#. translators: 1: number of index updates waiting in WP-Cron, 2: how many of them are long overdue.
+#: includes/search/class-nh-seo-search-state.php:292
+#, php-format
+msgid "Index updates waiting in WP-Cron: %1$s (overdue: %2$s). If WP-Cron does not run on this site, rebuild the index."
+msgstr ""
+
+#: includes/search/class-nh-seo-search-state.php:300
 msgid "A taxonomy change affected more posts than could be refreshed automatically: rebuild the index."
 msgstr ""
