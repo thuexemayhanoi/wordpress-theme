@@ -14,7 +14,9 @@
  *
  * Fallbacks, all inside the one WP_Query call:
  *  - strict (AND) finds nothing on the first page -> one retry with OR semantics ("relaxed",
- *    see nh_seo_search_was_relaxed()); still nothing -> native search;
+ *    see nh_seo_search_was_relaxed()); still nothing -> native search, as a safety net for text inside words,
+ *    but only up to 15,000 indexed posts (filter nh_seo_search_native_fallback_limit): on a larger site
+ *    native search reads every post and the empty answer of the index stands;
  *  - any SQL error -> the index is paused for ten minutes and native search answers this very request.
  *
  * Native search is used without any attempt when the index is off or not ready, when no usable token remains
@@ -49,6 +51,13 @@ final class NH_SEO_Search_Query {
 	 * every query stays a plain prepared template); keep them in step with this constant.
 	 */
 	const ALIAS = 'nh_si';
+
+	/**
+	 * Default for the filter nh_seo_search_native_fallback_limit: the number of indexed posts up to which a search
+	 * without result is repeated with native search. The same size at which the theme stops offering suggestions
+	 * on the built-in search.
+	 */
+	const NATIVE_FALLBACK_LIMIT = 15000;
 
 	/**
 	 * Register hooks. They run late so that they see what other plugins did to the search clause.
@@ -199,7 +208,11 @@ final class NH_SEO_Search_Query {
 		} elseif ( empty( $posts ) ) {
 			$first_page = (int) $query->get( 'paged' ) <= 1 && 0 === (int) $query->get( 'offset' );
 			if ( $first_page ) {
-				$next = ( 'strict' === $stage && count( $plan['tokens'] ) > 1 ) ? 'relaxed' : 'native';
+				if ( 'strict' === $stage && count( $plan['tokens'] ) > 1 ) {
+					$next = 'relaxed';
+				} elseif ( self::native_may_answer() ) {
+					$next = 'native';
+				}
 			} else {
 				// An empty later page is either "past the end" or "this search was relaxed on page 1".
 				$next = self::stage_by_probe( $plan );
@@ -373,7 +386,44 @@ final class NH_SEO_Search_Query {
 		if ( count( $plan['tokens'] ) > 1 && self::probe( $plan, false ) ) {
 			return 'relaxed';
 		}
-		return 'native';
+		return self::native_may_answer() ? 'native' : $plan['stage'];
+	}
+
+	/**
+	 * Whether native WordPress search may answer a search that the index answered with no post.
+	 *
+	 * Native search finds text inside words that the index (which matches the start of words) does not, so on a
+	 * small site it is the safety net behind an empty index result. On a large site that net costs seconds: the
+	 * built-in LIKE '%word%' reads every post, 3.5 s at 50,000 articles, for a nonsense word as well as for a
+	 * typo. Above the limit an empty answer from the index stands. A database error that has just paused the
+	 * index always hands the request to native search.
+	 *
+	 * @return bool
+	 */
+	private static function native_may_answer() {
+		if ( NH_SEO_Search_State::breaker() ) {
+			return true;
+		}
+
+		/**
+		 * Filters the largest number of indexed posts for which a search that finds nothing in the index is repeated
+		 * with native WordPress search (which also finds text inside words). Larger sites keep the empty answer,
+		 * because native search then reads every post and takes seconds.
+		 *
+		 * @param int $limit Number of indexed posts. Default 15000. Zero never repeats the search natively, a negative number always does.
+		 */
+		$limit = (int) apply_filters( 'nh_seo_search_native_fallback_limit', self::NATIVE_FALLBACK_LIMIT );
+		if ( $limit < 0 ) {
+			return true;
+		}
+		if ( 0 === $limit ) {
+			return false;
+		}
+
+		// The number of posts at the last complete build is free to read; count the rows only when no build has run.
+		$state = NH_SEO_Search_State::get();
+		$size  = $state['total'] > 0 ? $state['total'] : NH_SEO_Search_Index::count();
+		return $size <= $limit;
 	}
 
 	/**

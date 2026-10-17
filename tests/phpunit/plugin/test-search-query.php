@@ -348,6 +348,113 @@ class NH_Test_Search_Query extends NH_Search_Test_Case {
 		$this->assertNotEmpty( $this->sql_containing( "LIKE '%orbike%'" ), 'Then the native query runs.' );
 	}
 
+	/**
+	 * Set the size above which an empty index answer is final (the default is 15,000 posts).
+	 *
+	 * @param int $limit Limit for the filter nh_seo_search_native_fallback_limit.
+	 * @return void
+	 */
+	private function set_fallback_limit( $limit ) {
+		add_filter(
+			'nh_seo_search_native_fallback_limit',
+			static function () use ( $limit ) {
+				return $limit;
+			}
+		);
+	}
+
+	public function test_a_large_index_keeps_its_empty_answer_instead_of_scanning_every_post_natively() {
+		$post_id = $this->make_post( array( 'post_content' => 'Everything about motorbikes.' ) );
+		$this->make_post( array( 'post_title' => 'Alpaca llama one' ) );
+		$this->build_index_with_fillers();
+		$this->assertGreaterThan( 5, NH_SEO_Search_Index::count() );
+		$this->set_fallback_limit( 5 ); // The index now counts as "large".
+
+		// Text inside a word is only found by native search: on a large site the answer is empty.
+		$this->record_sql();
+		$this->assertSame( array(), $this->search_ids( 'orbike' ), 'Mid-word text is outside what the index finds.' );
+		$this->assertSame( array(), $this->search_ids( 'qwertyuiop' ), 'A nonsense word.' );
+		$this->assertSame( array(), $this->search_ids( 'qwertyuiop asdfghjkl' ), 'Nonsense words.' );
+		$this->stop_sql_log();
+
+		$this->assertSame( array(), $this->sql_containing( "LIKE '%" ), 'No query reads every post.' );
+		$this->assertCount( 4, $this->sql_containing( 'MATCH(' ), 'One index query per single word, a strict and a relaxed one for the two words.' );
+
+		// The same search under the limit still ends in native search, which finds the word.
+		remove_all_filters( 'nh_seo_search_native_fallback_limit' );
+		$this->assertSame( array( $post_id ), $this->search_ids( 'orbike' ) );
+	}
+
+	public function test_a_large_index_still_relaxes_and_answers_what_it_can() {
+		$this->make_post( array( 'post_title' => 'Alpaca llama one' ) );
+		$this->build_index_with_fillers();
+		$this->set_fallback_limit( 5 );
+
+		$query = new WP_Query( array( 's' => 'alpaca qwertyuiop' ) );
+		$this->assertCount( 1, $query->posts, 'Relaxed results are not affected by the limit.' );
+		$this->assertTrue( nh_seo_search_was_relaxed( $query ) );
+	}
+
+	public function test_a_large_index_keeps_later_empty_pages_empty_without_a_native_scan() {
+		$this->make_post( array( 'post_title' => 'Alpaca llama one' ) );
+		$this->build_index_with_fillers();
+		$this->set_fallback_limit( 5 );
+
+		$this->record_sql();
+		$page2 = new WP_Query(
+			array(
+				's'              => 'qwertyuiop',
+				'posts_per_page' => 2,
+				'paged'          => 2,
+			)
+		);
+		$this->stop_sql_log();
+
+		$this->assertSame( array(), $page2->posts );
+		$this->assertSame( array(), $this->sql_containing( "LIKE '%" ), 'The probe found nothing and native search does not run.' );
+		$this->assertSame( 'strict', $page2->get( NH_SEO_Search_Query::VAR_PLAN )['stage'] );
+	}
+
+	public function test_a_database_error_hands_the_request_to_native_search_even_on_a_large_index() {
+		global $wpdb;
+		$post_id = $this->make_post( array( 'post_title' => 'Resilient zebra' ) );
+		$this->build_index_with_fillers();
+		$this->set_fallback_limit( 5 );
+		$table = NH_SEO_Search_Index::table();
+
+		$wpdb->query( "ALTER TABLE {$table} DROP INDEX ft_title" );
+		$suppress = $wpdb->suppress_errors( true );
+		try {
+			$this->assertSame( array( $post_id ), $this->search_ids( 'zebra' ), 'An error is not an empty answer: native search answers.' );
+			$this->assertNotNull( NH_SEO_Search_State::breaker() );
+		} finally {
+			$wpdb->suppress_errors( $suppress );
+			NH_SEO_Search_Index::drop_table();
+			NH_SEO_Search_Index::create_table();
+			NH_SEO_Search_State::clear_breaker();
+		}
+	}
+
+	public function test_the_limit_can_be_switched_off_either_way_and_the_size_comes_from_the_last_build_or_the_rows() {
+		$post_id = $this->make_post( array( 'post_content' => 'Everything about motorbikes.' ) );
+		$this->build_index_with_fillers();
+
+		$this->set_fallback_limit( 0 );
+		$this->assertSame( array(), $this->search_ids( 'orbike' ), 'Zero: never repeated natively, whatever the size.' );
+		remove_all_filters( 'nh_seo_search_native_fallback_limit' );
+
+		$this->set_fallback_limit( -1 );
+		$this->assertSame( array( $post_id ), $this->search_ids( 'orbike' ), 'A negative limit: always repeated natively.' );
+		remove_all_filters( 'nh_seo_search_native_fallback_limit' );
+
+		// Size: the posts of the last complete build, or the rows when no build has recorded a number.
+		$this->set_fallback_limit( 5 );
+		NH_SEO_Search_State::save( array( 'total' => 0 ) );
+		$this->assertSame( array(), $this->search_ids( 'orbike' ), 'No recorded build: the rows are counted.' );
+		NH_SEO_Search_State::save( array( 'total' => 3 ) );
+		$this->assertSame( array( $post_id ), $this->search_ids( 'orbike' ), 'The recorded size of the last build is used.' );
+	}
+
 	public function test_a_search_nobody_can_answer_returns_nothing_without_errors() {
 		global $wpdb;
 		$this->make_post( array( 'post_title' => 'Something else' ) );
