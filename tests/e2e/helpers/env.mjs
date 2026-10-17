@@ -27,6 +27,10 @@ export const SEARCH_TERM = process.env.NH_SEARCH_TERM || 'scooter';
 export const NO_RESULT_TERM = 'zzqxjkvnohit';
 export const CRAWL_LIMIT = Math.max(1, Number(process.env.NH_CRAWL_LIMIT || 300));
 export const REQUIRE_ALL = process.env.NH_E2E_REQUIRE_ALL === '1';
+// WordPress lists password-protected posts ("Protected: <title>") in its archives and widgets by default. The theme's
+// own components never do (docs/DATA-CONTRACT.md), and the crawler fails on a link to one. Set this to 1 to accept
+// WordPress' default: the links are then reported as an observation instead.
+export const ALLOW_PROTECTED_LINKS = process.env.NH_ALLOW_PROTECTED_LINKS === '1';
 export const HIDDEN_TITLES = (process.env.NH_HIDDEN_TITLES || 'Hidden draft article,Hidden private article,Hidden scheduled article')
   .split(',')
   .map((title) => title.trim())

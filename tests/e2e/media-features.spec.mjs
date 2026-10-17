@@ -289,7 +289,11 @@ test.describe('print @desktop-only', () => {
     }
     expect(flat, 'first key takeaway').toContain(facts.takeaway);
     expect(flat, 'first source').toContain(facts.source);
-    const missingAnswers = facts.faq.filter((item) => !flat.includes(item.answer)).map((item) => item.question);
+    // Compared without whitespace: textContent glues the paragraphs of an answer together ("Safe text.window..."),
+    // while the PDF puts a line break between them. The text itself must still be on paper.
+    const squash = (value) => value.replace(/\s+/g, '');
+    const flatNoSpace = squash(flat);
+    const missingAnswers = facts.faq.filter((item) => !flatNoSpace.includes(squash(item.answer))).map((item) => item.question);
     expect(missingAnswers, 'FAQ questions whose answer is missing from the PDF').toEqual([]);
 
     for (const chrome of ['Skip to content', 'Toggle submenu', 'All rights reserved', 'Related articles', 'Message us']) {

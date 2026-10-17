@@ -20,7 +20,7 @@
  * Runs once (desktop project): it does not depend on the viewport.
  */
 import { test, expect } from './helpers/fixtures.mjs';
-import { BASE_ORIGIN, CRAWL_LIMIT, HIDDEN_TITLES } from './helpers/env.mjs';
+import { ALLOW_PROTECTED_LINKS, BASE_ORIGIN, CRAWL_LIMIT, HIDDEN_TITLES } from './helpers/env.mjs';
 
 const SKIP_PATH = /^\/(wp-admin|wp-login\.php|wp-json|wp-content|wp-includes|xmlrpc\.php)(\/|$)|(^|\/)feed(\/|$)|\/trackback\/?$|\/embed\/?$|^\/comments\/feed/;
 const CONCURRENCY = 4;
@@ -295,10 +295,14 @@ test('crawl: internal links, hygiene, hidden content, canonicals, breadcrumbs, p
       }
     }
     expect.soft(leaks, 'hidden article titles found in public pages').toEqual([]);
-    expect.soft(
-      [...protectedTargets].map(([url, referrers]) => `${new URL(url).pathname} is password protected and linked from: ${referrers.join('; ')}`),
-      'links to password-protected URLs'
-    ).toEqual([]);
+    const protectedLinks = [...protectedTargets].map(([url, referrers]) => `${new URL(url).pathname} is password protected and linked from: ${referrers.join('; ')}`);
+    if (ALLOW_PROTECTED_LINKS) {
+      if (protectedLinks.length > 0) {
+        testInfo.annotations.push({ type: 'protected-links', description: `accepted (NH_ALLOW_PROTECTED_LINKS=1): ${protectedLinks.join(' | ')}` });
+      }
+    } else {
+      expect.soft(protectedLinks, 'links to password-protected URLs (WordPress lists them with a "Protected:" title by default; the theme\'s own components never do)').toEqual([]);
+    }
   });
 
   // ------------------------------------------------------------------------------------------ 4. documents
@@ -399,12 +403,13 @@ test('crawl: internal links, hygiene, hidden content, canonicals, breadcrumbs, p
   });
 
   await test.step('every published article is reachable from the home page by following links (no orphans)', async () => {
-    const response = await request.get('/wp-json/wp/v2/posts?per_page=100&_fields=link');
+    const response = await request.get('/wp-json/wp/v2/posts?per_page=100&_fields=link,content.protected');
     if (!response.ok()) {
       testInfo.annotations.push({ type: 'orphans', description: 'REST API unavailable: orphan check skipped' });
       return;
     }
-    const posts = (await response.json()).map((post) => post.link);
+    // Password-protected posts are left out on purpose: a site may (and, for the title's sake, should) not link to them.
+    const posts = (await response.json()).filter((post) => !(post.content && post.content.protected === true)).map((post) => post.link);
     const reached = new Set([...pages.keys()]);
     const orphans = posts.filter((link) => !reached.has(link));
     testInfo.annotations.push({ type: 'orphans', description: `${posts.length} published articles from the REST API compared with ${pages.size} crawled pages` });

@@ -137,6 +137,23 @@ export async function discoverRoutes() {
     if (protectedCard) {
       routes.passwordPost = toPath(protectedCard.href);
     }
+    if (!routes.passwordPost) {
+      // A theme may keep protected posts out of its lists (it should: they leak their title there). The public
+      // REST API still lists them, flagged with content.protected, so the page type stays reachable.
+      try {
+        const response = await page.request.get(abs('/wp-json/wp/v2/posts?per_page=100&_fields=link,content.protected'));
+        if (response.ok()) {
+          const posts = await response.json();
+          const found = posts.find((post) => post.content && post.content.protected === true);
+          if (found) {
+            routes.passwordPost = toPath(String(found.link));
+            notes.push('passwordPost found through the REST API (no list on the site links to it)');
+          }
+        }
+      } catch {
+        // REST disabled: passwordPost stays unavailable and its tests are skipped.
+      }
+    }
 
     let rich = null;
     let plain = null;
