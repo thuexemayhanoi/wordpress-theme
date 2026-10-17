@@ -291,17 +291,25 @@ test('crawl: internal links, hygiene, hidden content, canonicals, breadcrumbs, p
       }
       if (/class=["'][^"']*\bpost-password-form\b/.test(record.html)) {
         const entry = seenLinks.get(record.requested) || seenLinks.get(url);
-        protectedTargets.set(url, describeReferrers(entry || {}));
+        const contexts = [...allContexts(entry || {})];
+        protectedTargets.set(url, { referrers: describeReferrers(entry || {}), fromTheme: contexts.some((context) => !context.startsWith('core ')) });
       }
     }
     expect.soft(leaks, 'hidden article titles found in public pages').toEqual([]);
-    const protectedLinks = [...protectedTargets].map(([url, referrers]) => `${new URL(url).pathname} is password protected and linked from: ${referrers.join('; ')}`);
+    // A link from a core widget (Recent Posts, Archives...) is content the site owner placed in a widget area, not
+    // theme output: it is reported, not failed. A link from the theme's own markup (cards, lists, navigation) fails.
+    const describe = ([url, { referrers }]) => `${new URL(url).pathname} is password protected and linked from: ${referrers.join('; ')}`;
+    const themeLinks = [...protectedTargets].filter(([, target]) => target.fromTheme).map(describe);
+    const widgetLinks = [...protectedTargets].filter(([, target]) => !target.fromTheme).map(describe);
+    if (widgetLinks.length > 0) {
+      testInfo.annotations.push({ type: 'protected-links-in-core-widgets', description: widgetLinks.join(' | ') });
+    }
     if (ALLOW_PROTECTED_LINKS) {
-      if (protectedLinks.length > 0) {
-        testInfo.annotations.push({ type: 'protected-links', description: `accepted (NH_ALLOW_PROTECTED_LINKS=1): ${protectedLinks.join(' | ')}` });
+      if (themeLinks.length > 0) {
+        testInfo.annotations.push({ type: 'protected-links', description: `accepted (NH_ALLOW_PROTECTED_LINKS=1): ${themeLinks.join(' | ')}` });
       }
     } else {
-      expect.soft(protectedLinks, 'links to password-protected URLs (WordPress lists them with a "Protected:" title by default; the theme\'s own components never do)').toEqual([]);
+      expect.soft(themeLinks, 'theme output that links to password-protected URLs (WordPress lists them with a "Protected:" title by default; the theme\'s own components never do)').toEqual([]);
     }
   });
 

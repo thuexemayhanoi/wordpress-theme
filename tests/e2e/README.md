@@ -43,7 +43,7 @@ sharding, which also balances the tests).
 | `NH_SEARCH_TERM` | `scooter` | A word that matches several fixture articles. |
 | `NH_HIDDEN_TITLES` | the three titles `seed-fixtures.php` creates | Draft/private/scheduled titles that must never appear publicly. |
 | `NH_CRAWL_LIMIT` | `300` | URL cap of the link crawler. |
-| `NH_ALLOW_PROTECTED_LINKS` | unset | `1` accepts WordPress' default of listing password-protected posts ("Protected: title") in archives and widgets; the crawler then reports those links instead of failing on them. |
+| `NH_ALLOW_PROTECTED_LINKS` | unset | `1` accepts WordPress' default of listing password-protected posts ("Protected: title") in archives; the crawler then reports those links instead of failing on them. Links from core widgets (Recent Posts...) are always only reported: that is content the site owner put in a widget area, not theme output. |
 | `NH_E2E_REQUIRE_ALL` | unset | `1` turns an undiscoverable page type from a skip into a failure. |
 | `NH_SEO_PLUGIN` | unset | `yoast`, `rankmath` or `none` enables `seo-plugins.spec.mjs`; anything else skips it. |
 
