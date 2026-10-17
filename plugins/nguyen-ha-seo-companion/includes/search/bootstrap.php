@@ -9,6 +9,7 @@
  *  cron hooks   nh_seo_search_reindex_term, nh_seo_search_reindex_ids (unscheduled on deactivation)
  *  tools panel  action nh_seo_render_tools_panel
  *  status line  filter nh_seo_search_status
+ *  theme query  filter nh_editorial_search_index_active (true only while the index is built and serving)
  *
  * @package nguyen-ha-seo-companion
  */
@@ -63,6 +64,10 @@ function nh_seo_search_activate() {
 add_action( 'nh_seo_upgrade', 'nh_seo_search_upgrade' );
 add_action( 'nh_seo_activate', 'nh_seo_search_activate' );
 add_action( 'nh_seo_deactivate', array( 'NH_SEO_Search_Indexer', 'on_deactivate' ) );
+
+// The Nguyen Ha Editorial theme asks whether a fast index is serving the search (it keeps its suggestions off
+// on huge sites otherwise): true only while this index is built and in use, see NH_SEO_Search_Query::is_serving().
+add_filter( 'nh_editorial_search_index_active', array( 'NH_SEO_Search_Query', 'filter_index_active' ) );
 
 NH_SEO_Search_Indexer::init();
 NH_SEO_Search_Query::init();

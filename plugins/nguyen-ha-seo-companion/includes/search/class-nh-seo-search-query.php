@@ -76,6 +76,43 @@ final class NH_SEO_Search_Query {
 	}
 
 	/**
+	 * Whether searches are answered through the index right now, for the site as a whole.
+	 *
+	 * True when the index is built and usable (NH_SEO_Search_State::is_active(): the mode allows it, the build is
+	 * complete in "auto" mode, the table exists and no error pause is running) and the filter
+	 * nh_seo_search_enabled has not switched it off. That filter is normally asked about one particular query;
+	 * for this site-wide question it receives an empty WP_Query, so a callback that disables the index only for
+	 * some queries cannot be seen here. Individual queries can still fall back to native search (phrases,
+	 * words of one or two letters, other post types), which is not reflected in this answer.
+	 *
+	 * @return bool
+	 */
+	public static function is_serving() {
+		if ( ! NH_SEO_Search_State::is_active() ) {
+			return false;
+		}
+		/** This filter is documented in NH_SEO_Search_Query::plan(). */
+		return (bool) apply_filters( 'nh_seo_search_enabled', true, new WP_Query() );
+	}
+
+	/**
+	 * Filter: nh_editorial_search_index_active, asked by the Nguyen Ha Editorial theme.
+	 *
+	 * The theme switches its search-as-you-type suggestions off on very large sites because the built-in
+	 * search reads every article (2 to 3.5 s at 50,000 articles). It asks this filter whether a fast index
+	 * is serving the search, and turns the suggestions back on when the answer is true.
+	 *
+	 * The answer is true exactly when is_serving() is. It never turns an earlier true into false: another
+	 * search plugin may have reported its own index.
+	 *
+	 * @param bool $active Whether an index is active, as reported so far.
+	 * @return bool
+	 */
+	public static function filter_index_active( $active = false ) {
+		return (bool) $active || self::is_serving();
+	}
+
+	/**
 	 * Filter: posts_search.
 	 *
 	 * @param string   $search Search SQL.

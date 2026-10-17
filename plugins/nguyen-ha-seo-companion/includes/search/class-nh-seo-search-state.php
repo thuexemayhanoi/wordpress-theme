@@ -116,18 +116,24 @@ final class NH_SEO_Search_State {
 	 * whenever the table exists, even while it is still being built. In every mode a database error pauses
 	 * the index for ten minutes.
 	 *
+	 * The theme asks this on page views too (see NH_SEO_Search_Query::filter_index_active()), so the checks
+	 * run from the cheapest to the most expensive: a setting, then the state option, and only for an index
+	 * that would otherwise be used the pause transient (which costs two option reads without an object cache).
+	 *
 	 * @return bool
 	 */
 	public static function is_active() {
 		$mode = self::mode();
-		if ( 'native' === $mode || self::breaker() ) {
+		if ( 'native' === $mode ) {
 			return false;
 		}
 		if ( 'index' === $mode ) {
-			return NH_SEO_Search_Index::table_exists();
+			$usable = NH_SEO_Search_Index::table_exists();
+		} else {
+			$state  = self::get();
+			$usable = $state['ready'];
 		}
-		$state = self::get();
-		return $state['ready'];
+		return $usable && ! self::breaker();
 	}
 
 	/**
