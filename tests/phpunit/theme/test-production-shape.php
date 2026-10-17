@@ -107,13 +107,13 @@ class NH_Test_Production_Shape extends NH_Render_Test_Case {
 		);
 
 		$number = 0;
-		$make   = function ( array $nodes, $parent ) use ( &$make, &$number ) {
+		$make   = function ( array $nodes, $parent_id ) use ( &$make, &$number ) {
 			foreach ( $nodes as $node ) {
 				$term_id                = self::factory()->category->create(
 					array(
 						'name'   => $node[0],
 						'slug'   => $node[1],
-						'parent' => $parent,
+						'parent' => $parent_id,
 					)
 				);
 				$this->cats[ $node[1] ] = $term_id;
