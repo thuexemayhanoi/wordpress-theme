@@ -5,6 +5,9 @@
 /.phpcs-cache
 /tests/e2e/.artifacts/
 /tests/e2e/node_modules/
+/tests/e2e/__screenshots__/
+/tests/e2e/test-results/
+/tests/e2e/playwright-report/
 /test-results/
 /playwright-report/
 /coverage/
