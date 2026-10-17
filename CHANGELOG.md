@@ -5,7 +5,7 @@
 ## [2.0.1] — Sửa nhỏ giao diện mobile (17/10/2026)
 
 - Bài không có ảnh đại diện hiển thị nhãn danh mục thực thay vì biểu tượng sách mặc định; không tạo ảnh giả và không thay đổi ảnh WordPress.
-- Nút nổi "Hỏi nhanh" của Local Site Assistant Lite được thu gọn còn 44 × 44 px và chuyển sát mép phải trên màn hình điện thoại để giảm che nội dung. Plugin/chatbot giữ nguyên.
+- Nút nổi "Hỏi nhanh" của Local Site Assistant Lite được thu gọn còn 44 × 44 px và đưa sát mép trái trên màn hình điện thoại để giảm che nội dung. Plugin/chatbot giữ nguyên.
 - Không chỉnh sửa menu WordPress hoặc dữ liệu SEO từ theme. Liên kết "Trang chủ" của menu #26 đang được WordPress quản lý và phải cập nhật tại nguồn.
 
 ## [Chưa phát hành] — theme 2.0.0 và plugin 1.0.0 (nhánh `feature/premium-seo-theme`)
