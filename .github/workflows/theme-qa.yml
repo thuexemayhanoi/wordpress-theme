@@ -532,6 +532,13 @@ jobs:
           php "$RUNNER_TEMP/wp-cli.phar" --allow-root --path="$WP_DIR" plugin install "$slug" --activate
           php "$RUNNER_TEMP/wp-cli.phar" --allow-root --path="$WP_DIR" plugin list --fields=name,status,version
 
+      - name: Skip the account connection of Rank Math (it prints nothing on the front end until its owner connects or skips)
+        if: ${{ matrix.seo == 'rankmath' }}
+        run: |
+          # The setup wizard offers "Skip now" for the registration step; that choice is this option.
+          php "$RUNNER_TEMP/wp-cli.phar" --allow-root --path="$WP_DIR" option update rank_math_registration_skip 1
+          php "$RUNNER_TEMP/wp-cli.phar" --allow-root --path="$WP_DIR" option get rank_math_registration_skip
+
       - name: Seed the fixture content
         run: php "$RUNNER_TEMP/wp-cli.phar" --allow-root --path="$WP_DIR" eval-file tests/bin/seed-fixtures.php
 
@@ -575,13 +582,18 @@ jobs:
           wp eval 'wp(); ob_start(); wp_head(); $h = ob_get_clean(); echo strlen( $h ), " bytes, mentions of the plugin: ", preg_match_all( "/rank math|yoast/i", $h ), "\n"; foreach ( explode( "\n", $h ) as $l ) { if ( preg_match( "/canonical|robots|ld\+json|rank math|yoast/i", $l ) ) { echo substr( $l, 0, 200 ), "\n"; } }'
           echo "::endgroup::"
           if [ '${{ matrix.seo }}' = rankmath ]; then
-            echo "::group::Rank Math: includes/frontend"
-            ls "$dir/includes" | head -60
-            ls "$dir/includes/frontend" | head -40
-            sed -n '1,150p' "$dir/includes/frontend/class-head.php" | cut -c1-170
+            echo "::group::Rank Math: the registration gate of rank-math.php"
+            sed -n '285,320p' "$dir/rank-math.php" | cut -c1-170
+            sed -n '380,400p' "$dir/rank-math.php" | cut -c1-170
             echo "::endgroup::"
-            echo "::group::Rank Math: where setup state or the frontend is gated"
-            grep -rnE 'wizard|is_configured|registration|setup_mode|is_request|disable_integration' "$dir/includes/frontend" "$dir/includes/class-rank-math.php" "$dir/rank-math.php" | cut -c1-200 | head -60
+            echo "::group::Rank Math: the registration class"
+            ls "$dir/includes/admin" | grep -i regist
+            sed -n '1,170p' "$dir/includes/admin/class-registration.php" | cut -c1-170
+            grep -rnE 'registration_skip|rank_math_registration' "$dir/includes" "$dir/rank-math.php" | cut -c1-190 | head -20
+            echo "::endgroup::"
+            echo "::group::Rank Math: breadcrumbs"
+            grep -nE 'function |crumbs' "$dir/includes/frontend/class-breadcrumbs.php" | cut -c1-170 | head -70
+            grep -rln 'BreadcrumbList' "$dir/includes" | head
             echo "::endgroup::"
           else
             echo "::group::Yoast: breadcrumbs"
