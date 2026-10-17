@@ -2,7 +2,11 @@ name: Theme QA
 
 # Runs before a merge (pull requests) and on every push to main and to feature branches.
 # Only official GitHub actions are used; everything else is plain shell, so each step can be reproduced
-# locally with the same command (see tests/README.md and docs/TESTING.md).
+# locally with the same command (see docs/TESTING.md).
+#
+# A release artifact (theme zip, plugin zip, version manifest, QA report) is produced only when every
+# required job succeeded. Nothing here tags, publishes a GitHub release, pushes a branch or contacts the
+# production site, so it can never trigger a deployment.
 
 on:
   pull_request:
@@ -70,16 +74,16 @@ jobs:
       - name: Plugin translation template is up to date
         run: bash tools/check-pot.sh "php $RUNNER_TEMP/wp-cli.phar --allow-root" plugins/nguyen-ha-seo-companion nguyen-ha-seo-companion plugins/nguyen-ha-seo-companion/languages/nguyen-ha-seo-companion.pot
 
-      - name: Build the installable zips
+      - name: Build the installable zips and the version manifest
         run: bash tools/package.sh
 
       - name: Verify the zips (contents, development files, syntax, versions)
         run: bash tools/verify-package.sh dist
 
-      - name: Upload the zips
+      - name: Upload the packages
         uses: actions/upload-artifact@v4
         with:
-          name: packages-${{ github.sha }}
+          name: packages
           path: dist/
           if-no-files-found: error
           retention-days: 14
@@ -108,7 +112,7 @@ jobs:
   phpunit:
     name: PHPUnit (WordPress ${{ matrix.wp }})
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
     strategy:
       fail-fast: false
       matrix:
@@ -116,7 +120,8 @@ jobs:
           # The version the suites were developed and run against.
           - wp: '7.1.3'
             experimental: false
-          # Forward-compatibility canary: whatever WordPress.org serves as the latest release.
+          # Forward-compatibility canary: whatever WordPress.org serves as the latest release. Its results are
+          # reported but never block a release.
           - wp: 'latest'
             experimental: true
     continue-on-error: ${{ matrix.experimental }}
@@ -138,6 +143,7 @@ jobs:
       WP_TESTS_DB_USER: root
       WP_TESTS_DB_PASSWORD: root
       WP_TESTS_DB_HOST: 127.0.0.1
+      JUNIT_DIR: qa-junit${{ matrix.experimental && '/experimental' || '' }}
     steps:
       - name: Check out the repository
         uses: actions/checkout@v4
@@ -163,9 +169,108 @@ jobs:
           curl -fsSL -o "$RUNNER_TEMP/wp-cli.phar" "$WP_CLI_PHAR_URL"
           php "$RUNNER_TEMP/wp-cli.phar" --allow-root core download --path="$RUNNER_TEMP/wordpress" --version="${{ matrix.wp }}" --skip-content
           echo "WP_CORE_DIR=$RUNNER_TEMP/wordpress" >> "$GITHUB_ENV"
+          mkdir -p "$JUNIT_DIR"
 
-      - name: Theme suite
-        run: vendor/bin/phpunit --testsuite theme
+      - name: Theme suite (permalinks /%category%/%postname%/)
+        run: vendor/bin/phpunit --testsuite theme --log-junit "$JUNIT_DIR/theme-wp${{ matrix.wp }}.xml"
+
+      - name: Theme suite (permalinks of the live site, /%postname%/)
+        if: ${{ !cancelled() }}
+        env:
+          NH_TEST_PERMALINKS: /%postname%/
+        run: vendor/bin/phpunit --testsuite theme --log-junit "$JUNIT_DIR/theme-postname-wp${{ matrix.wp }}.xml"
 
       - name: Plugin suite
-        run: vendor/bin/phpunit --testsuite plugin
+        if: ${{ !cancelled() }}
+        run: vendor/bin/phpunit --testsuite plugin --log-junit "$JUNIT_DIR/plugin-wp${{ matrix.wp }}.xml"
+
+      - name: Theme suite (multisite)
+        if: ${{ !cancelled() && !matrix.experimental }}
+        env:
+          WP_MULTISITE: '1'
+        run: vendor/bin/phpunit --testsuite theme --log-junit "$JUNIT_DIR/theme-multisite-wp${{ matrix.wp }}.xml"
+
+      - name: Plugin suite (multisite)
+        if: ${{ !cancelled() && !matrix.experimental }}
+        env:
+          WP_MULTISITE: '1'
+        run: vendor/bin/phpunit --testsuite plugin --log-junit "$JUNIT_DIR/plugin-multisite-wp${{ matrix.wp }}.xml"
+
+      - name: Upload the JUnit logs
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: junit-phpunit-wp${{ matrix.wp }}
+          path: qa-junit/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  release:
+    name: QA report and release artifact
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Every job a release depends on. A job that failed, was cancelled or did not run blocks the artifact.
+    needs: [static, php-syntax, phpunit]
+    if: ${{ always() }}
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Download the packages
+        if: ${{ needs.static.result == 'success' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: packages
+          path: dist
+
+      - name: Download the JUnit logs
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          pattern: junit-phpunit-*
+          path: qa-junit
+          merge-multiple: false
+
+      - name: Build the QA report
+        id: report
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: |
+          printf '%s' "$NEEDS" > needs.json
+          set +e
+          python3 tools/qa-report.py --needs needs.json --required static,php-syntax,phpunit \
+            --junit-dir qa-junit --manifest dist/manifest.json --out qa
+          status=$?
+          set -e
+          cat qa/qa-report.md >> "$GITHUB_STEP_SUMMARY"
+          echo "releasable=$([ "$status" -eq 0 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+
+      - name: Assemble the release artifact
+        if: ${{ steps.report.outputs.releasable == 'true' }}
+        run: |
+          mkdir release
+          cp dist/*.zip dist/manifest.json dist/SHA256SUMS qa/qa-report.md qa/qa-report.json release/
+
+      - name: Upload the release artifact
+        if: ${{ steps.report.outputs.releasable == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ github.sha }}
+          path: release/
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload the QA report
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa-report
+          path: qa/
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: Stop when the run is not releasable
+        if: ${{ steps.report.outputs.releasable != 'true' }}
+        run: |
+          echo "At least one required gate failed or did not run: no release artifact was produced." >&2
+          exit 1
