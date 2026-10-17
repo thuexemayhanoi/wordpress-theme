@@ -127,7 +127,7 @@ def main():
         '## What these jobs cannot prove',
         '',
         '- Core Web Vitals in the field: only lab runs exist, and the hosting is not the production hosting.',
-        '- The production Deployer for Git configuration and the live Yoast SEO / Rank Math settings: a staging check is required (docs/INSTALL-STAGING.md).',
+        '- The production Deployer for Git configuration and the live Yoast SEO / Rank Math settings: a staging check is required (docs/STAGING-CHECKLIST.md).',
         '- Content-specific facts of articles: no check verifies what an article claims.',
     ]
 

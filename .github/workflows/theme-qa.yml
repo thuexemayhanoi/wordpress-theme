@@ -205,12 +205,75 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
 
+  min-wp:
+    name: Site smoke test (WordPress ${{ matrix.wp }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        # 6.3 is the minimum the theme header declares ("Requires at least"); 6.5 is a mid-range release.
+        wp: ['6.3.5', '6.5.5']
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: wp_site
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=12
+    env:
+      SITE_URL: http://127.0.0.1:8080
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Install the PHP extensions WordPress needs
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y --no-install-recommends php-mysql php-gd php-xml php-mbstring php-curl php-intl php-zip
+          php -m | grep -E '^(mysqli|gd|dom|mbstring|libxml|curl|intl)$'
+
+      - name: Download WP-CLI and WordPress ${{ matrix.wp }}
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/wp-cli.phar" "$WP_CLI_PHAR_URL"
+          php "$RUNNER_TEMP/wp-cli.phar" --allow-root core download --path="$RUNNER_TEMP/wp" --version="${{ matrix.wp }}"
+          echo "WP_DIR=$RUNNER_TEMP/wp" >> "$GITHUB_ENV"
+
+      - name: Provision the site (theme and companion plugin active, permalinks of the live site)
+        env:
+          WP_CLI: php ${{ runner.temp }}/wp-cli.phar
+          DB_USER: root
+          DB_PASS: root
+          PERMALINKS: /%postname%/
+        run: bash tests/bin/setup-site.sh "$WP_DIR" "$SITE_URL" wp_site
+
+      - name: Seed the fixture content
+        run: php "$RUNNER_TEMP/wp-cli.phar" --allow-root --path="$WP_DIR" eval-file tests/bin/seed-fixtures.php
+
+      - name: Serve the site
+        run: |
+          nohup bash tests/bin/serve.sh "$WP_DIR" 8080 > "$RUNNER_TEMP/serve.log" 2>&1 &
+          curl -fsS --retry 30 --retry-delay 1 --retry-connrefused -o /dev/null "$SITE_URL/"
+
+      - name: Smoke test every page type
+        run: python3 -I tests/bin/smoke.py "$SITE_URL" --log "$WP_DIR/wp-content/debug.log" --log "$WP_DIR/wp-content/php-error.log"
+
+      - name: Show the PHP error log
+        if: ${{ failure() }}
+        run: cat "$WP_DIR/wp-content/debug.log" "$WP_DIR/wp-content/php-error.log" "$RUNNER_TEMP/serve.log" || true
+
   release:
     name: QA report and release artifact
     runs-on: ubuntu-latest
     timeout-minutes: 10
     # Every job a release depends on. A job that failed, was cancelled or did not run blocks the artifact.
-    needs: [static, php-syntax, phpunit]
+    needs: [static, php-syntax, phpunit, min-wp]
     if: ${{ always() }}
     steps:
       - name: Check out the repository
@@ -238,7 +301,7 @@ jobs:
         run: |
           printf '%s' "$NEEDS" > needs.json
           set +e
-          python3 tools/qa-report.py --needs needs.json --required static,php-syntax,phpunit \
+          python3 tools/qa-report.py --needs needs.json --required static,php-syntax,phpunit,min-wp \
             --junit-dir qa-junit --manifest dist/manifest.json --out qa
           status=$?
           set -e
