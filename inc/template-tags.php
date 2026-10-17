@@ -48,7 +48,8 @@ function nh_editorial_posts_by_ids( array $ids ) {
  */
 function nh_editorial_reading_time( $post = null ) {
 	$post = get_post( $post );
-	if ( ! $post instanceof WP_Post ) {
+	if ( ! $post instanceof WP_Post || post_password_required( $post ) ) {
+		// A protected text must not reveal its length either.
 		return 1;
 	}
 
@@ -133,7 +134,7 @@ function nh_editorial_post_meta( array $args = array() ) {
 		}
 	}
 
-	if ( $args['reading'] && nh_editorial_option( 'nh_reading_time' ) ) {
+	if ( $args['reading'] && nh_editorial_option( 'nh_reading_time' ) && ! post_password_required( $post ) ) {
 		$minutes = nh_editorial_reading_time( $post );
 		$parts[] = '<span class="meta__reading">' . nh_editorial_icon( 'clock' ) . esc_html(
 			sprintf(
@@ -265,45 +266,14 @@ function nh_editorial_get_featured_ids( $count = 4 ) {
 	return nh_editorial_cache_remember(
 		'featured:' . $count,
 		static function () use ( $count ) {
-			$base = array(
-				'post_type'              => 'post',
-				'post_status'            => 'publish',
-				'has_password'           => false,
-				'ignore_sticky_posts'    => true,
-				'no_found_rows'          => true,
-				'fields'                 => 'ids',
-				'orderby'                => 'date',
-				'order'                  => 'DESC',
-				'update_post_meta_cache' => false,
-				'update_post_term_cache' => false,
-			);
-
 			$ids    = array();
 			$sticky = array_filter( array_map( 'absint', (array) get_option( 'sticky_posts' ) ) );
 			if ( ! empty( $sticky ) ) {
-				$query = new WP_Query(
-					array_merge(
-						$base,
-						array(
-							'post__in'       => $sticky,
-							'posts_per_page' => $count,
-						)
-					)
-				);
-				$ids   = array_map( 'intval', $query->posts );
+				$ids = nh_editorial_query_public_ids( array( 'post__in' => $sticky ), $count );
 			}
 
 			if ( count( $ids ) < $count ) {
-				$query = new WP_Query(
-					array_merge(
-						$base,
-						array(
-							'post__not_in'   => $ids,
-							'posts_per_page' => $count - count( $ids ),
-						)
-					)
-				);
-				$ids   = array_merge( $ids, array_map( 'intval', $query->posts ) );
+				$ids = array_merge( $ids, nh_editorial_query_public_ids( array( 'post__not_in' => $ids ), $count - count( $ids ) ) );
 			}
 
 			return $ids;
@@ -325,21 +295,7 @@ function nh_editorial_get_latest_ids( $count, array $exclude = array() ) {
 	return nh_editorial_cache_remember(
 		'latest:' . $count . ':' . implode( '-', $exclude ),
 		static function () use ( $count, $exclude ) {
-			$query = new WP_Query(
-				array(
-					'post_type'              => 'post',
-					'post_status'            => 'publish',
-					'has_password'           => false,
-					'posts_per_page'         => $count,
-					'post__not_in'           => $exclude,
-					'ignore_sticky_posts'    => true,
-					'no_found_rows'          => true,
-					'fields'                 => 'ids',
-					'update_post_meta_cache' => false,
-					'update_post_term_cache' => false,
-				)
-			);
-			return array_map( 'intval', $query->posts );
+			return nh_editorial_query_public_ids( array( 'post__not_in' => $exclude ), $count );
 		}
 	);
 }
@@ -348,6 +304,11 @@ function nh_editorial_get_latest_ids( $count, array $exclude = array() ) {
  * Wrap content tables in a keyboard-focusable scroll region so wide tables never break the layout on
  * small screens (and can be scrolled without a mouse). The table markup itself is untouched.
  *
+ * The outermost tables are found by walking the opening and closing tags, one linear pass: a regular
+ * expression that spans a whole table fails on a nested table over 24 KB (the wrapper's closing tag then
+ * lands inside a cell and swallows the rest of the article) and returns nothing at all on a table of about
+ * a megabyte. Unbalanced markup is left exactly as it is.
+ *
  * @param string $content Rendered post content.
  * @return string
  */
@@ -355,16 +316,44 @@ function nh_editorial_wrap_tables( $content ) {
 	if ( is_admin() || is_feed() || ! is_singular() || false === stripos( $content, '<table' ) ) {
 		return $content;
 	}
-	// Nested or unbalanced tables cannot be wrapped safely with a simple pattern: leave them alone.
-	if ( substr_count( strtolower( $content ), '<table' ) !== substr_count( strtolower( $content ), '</table>' ) ) {
-		return $content;
-	}
-	if ( preg_match( '#<table\b(?:(?!</table>).)*<table\b#is', $content ) ) {
+	if ( ! preg_match_all( '#<(/?)table(?=[\s/>])#i', $content, $tags, PREG_OFFSET_CAPTURE ) ) {
 		return $content;
 	}
 
-	$open = '<div class="table-scroll" role="region" tabindex="0" aria-label="' . esc_attr__( 'Scrollable table', 'nguyen-ha-editorial' ) . '">';
+	$depth = 0;
+	$from  = 0;
+	$spans = array();
+	foreach ( $tags[0] as $index => $tag ) {
+		if ( '' === $tags[1][ $index ][0] ) {
+			if ( 0 === $depth ) {
+				$from = $tag[1];
+			}
+			++$depth;
+			continue;
+		}
+		if ( 0 === $depth ) {
+			return $content; // A closing tag with no table open.
+		}
+		--$depth;
+		if ( 0 === $depth ) {
+			$to = strpos( $content, '>', $tag[1] );
+			if ( false === $to ) {
+				return $content;
+			}
+			$spans[] = array( $from, $to + 1 );
+		}
+	}
+	if ( 0 !== $depth || empty( $spans ) ) {
+		return $content;
+	}
 
-	return (string) preg_replace( '#(<table\b.*?</table>)#is', $open . '$1</div>', $content );
+	$open   = '<div class="table-scroll" role="region" tabindex="0" aria-label="' . esc_attr__( 'Scrollable table', 'nguyen-ha-editorial' ) . '">';
+	$output = '';
+	$cursor = 0;
+	foreach ( $spans as $span ) {
+		$output .= substr( $content, $cursor, $span[0] - $cursor ) . $open . substr( $content, $span[0], $span[1] - $span[0] ) . '</div>';
+		$cursor  = $span[1];
+	}
+	return $output . substr( $content, $cursor );
 }
 add_filter( 'the_content', 'nh_editorial_wrap_tables', 30 );

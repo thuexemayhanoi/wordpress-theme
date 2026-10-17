@@ -27,7 +27,7 @@ while ( have_posts() ) {
 					the_content();
 				}
 				?>
-				<?php if ( $nh_editorial_parent ) : ?>
+				<?php if ( $nh_editorial_parent && nh_editorial_is_linkable( $nh_editorial_parent ) ) : ?>
 					<p>
 						<a href="<?php echo esc_url( get_permalink( $nh_editorial_parent ) ); ?>">
 							<?php

@@ -312,10 +312,12 @@ class NH_Test_Template_Tags extends NH_Unit_Test_Case {
 		$this->assertSame( 2, $this->count_nodes( $out, '//div[@class="table-scroll"]//table' ) );
 	}
 
-	public function test_nested_or_unbalanced_tables_are_left_alone() {
+	public function test_a_nested_table_gets_one_wrapper_and_unbalanced_markup_is_left_alone() {
 		$this->go_to( get_permalink( self::factory()->post->create() ) );
-		$nested = '<table><tr><td><table><tr><td>inner</td></tr></table></td></tr></table>';
-		$this->assertSame( $nested, nh_editorial_wrap_tables( $nested ) );
+		$nested  = '<table><tr><td><table><tr><td>inner</td></tr></table></td></tr></table>';
+		$wrapped = nh_editorial_wrap_tables( $nested );
+		$this->assertSame( 1, substr_count( $wrapped, 'class="table-scroll"' ), 'only the outer table is wrapped' );
+		$this->assertStringEndsWith( '</table></td></tr></table></div>', $wrapped );
 		$broken = '<table><tr><td>never closed';
 		$this->assertSame( $broken, nh_editorial_wrap_tables( $broken ) );
 		$this->assertSame( '<p>no tables</p>', nh_editorial_wrap_tables( '<p>no tables</p>' ) );

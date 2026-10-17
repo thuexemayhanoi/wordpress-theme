@@ -135,6 +135,84 @@ function nh_editorial_is_linkable( $post ) {
 }
 
 /**
+ * How many more IDs a list query fetches so that the rare password-protected posts can be dropped afterwards.
+ *
+ * @return int
+ */
+function nh_editorial_protected_margin() {
+	return 8;
+}
+
+/**
+ * Keep the IDs of published posts that are not password protected, in the order given.
+ *
+ * One primary-key lookup, so a list never needs "post_password = ''" in its main query.
+ *
+ * @param int[] $ids Post IDs.
+ * @return int[]
+ */
+function nh_editorial_only_public_ids( array $ids ) {
+	global $wpdb;
+
+	$ids = array_values( array_unique( array_filter( array_map( 'absint', $ids ) ) ) );
+	if ( empty( $ids ) ) {
+		return array();
+	}
+
+	$placeholders = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
+	// The placeholders are generated from the number of IDs, which were all cast to integers above.
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Primary-key lookup, cached by the caller; the placeholders are generated.
+	$public = $wpdb->get_col( $wpdb->prepare( "SELECT ID FROM {$wpdb->posts} WHERE ID IN ({$placeholders}) AND post_status = 'publish' AND post_password = ''", $ids ) );
+	$public = array_flip( array_map( 'intval', (array) $public ) );
+
+	return array_values(
+		array_filter(
+			$ids,
+			static function ( $id ) use ( $public ) {
+				return isset( $public[ $id ] );
+			}
+		)
+	);
+}
+
+/**
+ * IDs of the newest public articles for a query, without password-protected ones.
+ *
+ * WP_Query's has_password => false adds a post_password condition. Next to a category with tens of thousands of
+ * articles that condition makes the database read whole post rows instead of walking the date index: 2 to 5 seconds
+ * for the homepage on a site of 50,000 articles, against 0.1 s without it. The query therefore fetches a few IDs
+ * more and the protected ones are removed with nh_editorial_only_public_ids().
+ *
+ * @param array<string, mixed> $args  WP_Query arguments (taxonomy, order, post__in, post__not_in...).
+ * @param int                  $limit Number of IDs wanted.
+ * @return int[]
+ */
+function nh_editorial_query_public_ids( array $args, $limit ) {
+	$limit = max( 1, absint( $limit ) );
+	unset( $args['has_password'] );
+
+	$query = new WP_Query(
+		array_merge(
+			array(
+				'post_type'              => 'post',
+				'post_status'            => 'publish',
+				'orderby'                => 'date',
+				'order'                  => 'DESC',
+				'ignore_sticky_posts'    => true,
+				'no_found_rows'          => true,
+				'fields'                 => 'ids',
+				'update_post_meta_cache' => false,
+				'update_post_term_cache' => false,
+			),
+			$args,
+			array( 'posts_per_page' => $limit + nh_editorial_protected_margin() )
+		)
+	);
+
+	return array_slice( nh_editorial_only_public_ids( array_map( 'intval', $query->posts ) ), 0, $limit );
+}
+
+/**
  * Describe a pillar target when it is linkable.
  *
  * @param int $pillar_id Post or page ID.
@@ -566,7 +644,7 @@ function nh_editorial_get_child_hubs( $term_id ) {
 function nh_editorial_get_hub_term( $page_id ) {
 	$page_id = absint( $page_id );
 
-	$raw = (string) get_post_meta( $page_id, 'nh_hub_term', true );
+	$raw = nh_editorial_meta_string( get_post_meta( $page_id, 'nh_hub_term', true ) );
 	if ( preg_match( '/^(category|topic_cluster):(\d+)$/', $raw, $match ) && taxonomy_exists( $match[1] ) ) {
 		$term = get_term( (int) $match[2], $match[1] );
 		if ( $term instanceof WP_Term ) {
@@ -609,21 +687,10 @@ function nh_editorial_get_supporting_ids( WP_Term $term, $limit = 12, $skip = 0 
 	return nh_editorial_cache_remember(
 		'supporting:' . $term->taxonomy . ':' . $term->term_id . ':' . $limit . ':' . $skip,
 		static function () use ( $term, $limit, $skip ) {
-			$query = new WP_Query(
+			return nh_editorial_query_public_ids(
 				array(
-					'post_type'              => 'post',
-					'post_status'            => 'publish',
-					'has_password'           => false,
-					'posts_per_page'         => $limit,
-					'post__not_in'           => $skip ? array( $skip ) : array(),
-					'ignore_sticky_posts'    => true,
-					'no_found_rows'          => true,
-					'fields'                 => 'ids',
-					'orderby'                => 'date',
-					'order'                  => 'DESC',
-					'update_post_meta_cache' => false,
-					'update_post_term_cache' => false,
-					'tax_query'              => array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query -- Indexed term lookup; cached.
+					'post__not_in' => $skip ? array( $skip ) : array(),
+					'tax_query'    => array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query -- Indexed term lookup; cached.
 						array(
 							'taxonomy'         => $term->taxonomy,
 							'field'            => 'term_id',
@@ -631,9 +698,9 @@ function nh_editorial_get_supporting_ids( WP_Term $term, $limit = 12, $skip = 0 
 							'include_children' => true,
 						),
 					),
-				)
+				),
+				$limit
 			);
-			return array_map( 'intval', $query->posts );
 		}
 	);
 }

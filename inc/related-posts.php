@@ -107,27 +107,15 @@ function nh_editorial_get_related_ids( $post_id = 0, $count = 0 ) {
 					break;
 				}
 
-				$query = new WP_Query(
+				$ids = nh_editorial_query_public_ids(
 					array_merge(
-						array(
-							'post_type'              => 'post',
-							'post_status'            => 'publish',
-							'has_password'           => false,
-							'posts_per_page'         => $needed,
-							'post__not_in'           => array_merge( array( $post_id ), $found ),
-							'ignore_sticky_posts'    => true,
-							'no_found_rows'          => true,
-							'fields'                 => 'ids',
-							'orderby'                => 'date',
-							'order'                  => 'DESC',
-							'update_post_meta_cache' => false,
-							'update_post_term_cache' => false,
-						),
+						array( 'post__not_in' => array_merge( array( $post_id ), $found ) ),
 						$stage
-					)
+					),
+					$needed
 				);
 
-				foreach ( $query->posts as $id ) {
+				foreach ( $ids as $id ) {
 					$found[] = (int) $id;
 				}
 			}

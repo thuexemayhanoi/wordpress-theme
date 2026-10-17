@@ -45,6 +45,17 @@ function nh_editorial_faq_allowed_html() {
 }
 
 /**
+ * A stored value as a string. Scalars are cast; arrays and objects (a plugin, an import or a script can store
+ * them in any meta key) become '' instead of the text "Array" and a PHP warning.
+ *
+ * @param mixed $value Raw meta value.
+ * @return string
+ */
+function nh_editorial_meta_string( $value ) {
+	return is_scalar( $value ) ? (string) $value : '';
+}
+
+/**
  * Plain, single-line text with a character limit.
  *
  * @param mixed $value Raw value.
@@ -200,6 +211,18 @@ wp_cache_add_non_persistent_groups( array( 'nh_editorial_extras' ) );
  */
 function nh_editorial_get_extras( $post_id = 0 ) {
 	$post_id = $post_id ? absint( $post_id ) : (int) get_the_ID();
+
+	// The title of a protected post is public, nothing else about it is: no summary, takeaways, FAQ, sources or
+	// update date next to the password form. post_password_required() knows whether this visitor gave the password.
+	if ( $post_id && post_password_required( $post_id ) ) {
+		return array(
+			'summary'   => '',
+			'takeaways' => array(),
+			'faq'       => array(),
+			'sources'   => array(),
+			'updated'   => '',
+		);
+	}
 
 	$cached = wp_cache_get( $post_id, 'nh_editorial_extras' );
 	if ( is_array( $cached ) ) {

@@ -140,7 +140,9 @@ function nh_editorial_cache_taxonomies() {
  * @return void
  */
 function nh_editorial_cache_on_transition( $new_status, $old_status, $post ) {
-	if ( 'publish' !== $new_status && 'publish' !== $old_status ) {
+	// Every save of a published post also fires this hook with publish -> publish. Nothing cached changes then
+	// (nh_editorial_cache_on_update() looks at the fields that do): bumping would empty every list after each typo fix.
+	if ( $new_status === $old_status || ( 'publish' !== $new_status && 'publish' !== $old_status ) ) {
 		return;
 	}
 	if ( $post instanceof WP_Post && in_array( $post->post_type, nh_editorial_cache_post_types(), true ) ) {
@@ -150,7 +152,7 @@ function nh_editorial_cache_on_transition( $new_status, $old_status, $post ) {
 add_action( 'transition_post_status', 'nh_editorial_cache_on_transition', 10, 3 );
 
 /**
- * Published posts whose date, password or slug changed reorder neighbours and lists.
+ * Published posts whose date, password, slug, author or place in a page tree changed reorder neighbours, lists and counts.
  *
  * @param int     $post_id     Post ID.
  * @param WP_Post $post_after  Post after the update.
@@ -161,8 +163,11 @@ function nh_editorial_cache_on_update( $post_id, $post_after, $post_before ) {
 	if ( 'publish' !== $post_after->post_status || ! in_array( $post_after->post_type, nh_editorial_cache_post_types(), true ) ) {
 		return;
 	}
-	if ( $post_after->post_date !== $post_before->post_date || $post_after->post_password !== $post_before->post_password || $post_after->post_name !== $post_before->post_name ) {
-		nh_editorial_cache_bump();
+	foreach ( array( 'post_date', 'post_password', 'post_name', 'post_author', 'post_parent', 'menu_order' ) as $field ) {
+		if ( $post_after->$field !== $post_before->$field ) {
+			nh_editorial_cache_bump();
+			return;
+		}
 	}
 }
 add_action( 'post_updated', 'nh_editorial_cache_on_update', 10, 3 );
@@ -263,6 +268,10 @@ add_action( 'deleted_post_meta', 'nh_editorial_cache_on_meta', 10, 3 );
 add_action( 'added_term_meta', 'nh_editorial_cache_on_meta', 10, 3 );
 add_action( 'updated_term_meta', 'nh_editorial_cache_on_meta', 10, 3 );
 add_action( 'deleted_term_meta', 'nh_editorial_cache_on_meta', 10, 3 );
+
+// A deleted user's posts are reassigned with direct SQL, which changes the author counts without a post hook.
+add_action( 'deleted_user', 'nh_editorial_cache_bump' );
+add_action( 'remove_user_from_blog', 'nh_editorial_cache_bump' );
 
 // Sticky posts, front-page settings, Customizer saves and theme activation.
 add_action( 'update_option_sticky_posts', 'nh_editorial_cache_bump' );

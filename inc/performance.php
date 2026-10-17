@@ -212,7 +212,9 @@ function nh_editorial_author_archive_totals( $posts, $query ) {
 
 	$author_id = (int) $query->get( 'author' );
 	$per_page  = (int) $query->get( 'posts_per_page' );
-	if ( $author_id < 1 || $per_page < 1 ) {
+	// The author comes from the URL: counting (and caching a count) for a user that does not exist would let any
+	// visitor write one cache row per number they request.
+	if ( $author_id < 1 || $per_page < 1 || ! get_userdata( $author_id ) ) {
 		return $posts;
 	}
 

@@ -33,7 +33,7 @@ function nh_editorial_get_author_profile( $user_id ) {
 	}
 
 	$urls = array();
-	foreach ( preg_split( '/\R/u', (string) get_user_meta( $user_id, 'nh_sameas', true ) ) as $line ) {
+	foreach ( (array) preg_split( '/\R/u', nh_editorial_meta_string( get_user_meta( $user_id, 'nh_sameas', true ) ) ) as $line ) {
 		$urls[] = trim( $line );
 	}
 	foreach ( nh_editorial_author_profile_keys() as $key ) {
@@ -71,7 +71,7 @@ function nh_editorial_get_author_profile( $user_id ) {
 	$profile = array(
 		'id'     => $user_id,
 		'name'   => $user->display_name,
-		'bio'    => trim( wp_strip_all_tags( (string) get_user_meta( $user_id, 'description', true ) ) ),
+		'bio'    => trim( wp_strip_all_tags( nh_editorial_meta_string( get_user_meta( $user_id, 'description', true ) ) ) ),
 		'job'    => nh_editorial_clean_text( get_user_meta( $user_id, 'nh_job_title', true ), 120 ),
 		'url'    => get_author_posts_url( $user_id ),
 		'avatar' => is_string( $avatar ) ? $avatar : '',
