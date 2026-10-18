@@ -55,6 +55,45 @@ if ( $nh_editorial_posts_mode ) {
 
 get_template_part( 'template-parts/home/intro' );
 
+/**
+ * Four evergreen service entry points. The destination pages already exist and
+ * own their own H1; this section adds contextual links without duplicating SEO.
+ */
+?>
+<section class="section section--services" aria-labelledby="home-services-title">
+	<div class="wrap">
+		<div class="section-head">
+			<div class="section-head__text">
+				<h2 id="home-services-title" class="section-head__title"><?php esc_html_e( 'Dịch vụ thuê xe tại Hà Nội', 'nguyen-ha-editorial' ); ?></h2>
+				<p class="section-head__desc"><?php esc_html_e( 'Chọn loại xe hoặc xem bảng giá và thủ tục trước khi thuê.', 'nguyen-ha-editorial' ); ?></p>
+			</div>
+		</div>
+		<div class="grid grid--hubs">
+			<?php
+			$nh_service_links = array(
+				array( '/thue-xe-may-ha-noi/', 'Thuê xe số và xe ga', 'Tìm hiểu các dòng xe máy và điều kiện thuê.' ),
+				array( '/xe-50cc/', 'Thuê xe máy 50cc', 'Tìm hiểu xe 50cc, cách lựa chọn và giấy tờ cần chuẩn bị.' ),
+				array( '/xe-dien/', 'Thuê xe điện', 'Khám phá xe điện và những điều cần biết khi sử dụng.' ),
+				array( '/bang-gia/', 'Bảng giá và thủ tục', 'Xem thông tin giá thuê, đặt cọc và thời gian thuê.' ),
+			);
+			foreach ( $nh_service_links as $nh_service ) :
+				?>
+				<article class="card card--hub">
+					<div class="card__body">
+						<h3 class="card__title">
+							<a href="<?php echo esc_url( home_url( $nh_service[0] ) ); ?>"><?php echo esc_html( $nh_service[1] ); ?></a>
+						</h3>
+						<p class="card__excerpt"><?php echo esc_html( $nh_service[2] ); ?></p>
+					</div>
+				</article>
+				<?php
+			endforeach;
+			?>
+		</div>
+	</div>
+</section>
+<?php
+
 if ( ! $nh_editorial_posts_mode ) {
 	while ( have_posts() ) {
 		the_post();
