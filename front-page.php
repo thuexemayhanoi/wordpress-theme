@@ -64,8 +64,8 @@ get_template_part( 'template-parts/home/intro' );
 	<div class="wrap">
 		<div class="section-head">
 			<div class="section-head__text">
-				<h2 id="home-services-title" class="section-head__title"><?php esc_html_e( 'Dịch vụ thuê xe tại Hà Nội', 'nguyen-ha-editorial' ); ?></h2>
-				<p class="section-head__desc"><?php esc_html_e( 'Chọn loại xe hoặc xem bảng giá và thủ tục trước khi thuê.', 'nguyen-ha-editorial' ); ?></p>
+				<h2 id="home-services-title" class="section-head__title"><?php echo esc_html( 'Dịch vụ thuê xe tại Hà Nội' ); ?></h2>
+				<p class="section-head__desc"><?php echo esc_html( 'Chọn loại xe hoặc xem bảng giá và thủ tục trước khi thuê.' ); ?></p>
 			</div>
 		</div>
 		<div class="grid grid--hubs">
