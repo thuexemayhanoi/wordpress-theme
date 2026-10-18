@@ -70,20 +70,20 @@ get_template_part( 'template-parts/home/intro' );
 		</div>
 		<div class="grid grid--hubs">
 			<?php
-			$nh_service_links = array(
+			$nh_editorial_service_links = array(
 				array( '/thue-xe-may-ha-noi/', 'Thuê xe số và xe ga', 'Tìm hiểu các dòng xe máy và điều kiện thuê.' ),
 				array( '/xe-50cc/', 'Thuê xe máy 50cc', 'Tìm hiểu xe 50cc, cách lựa chọn và giấy tờ cần chuẩn bị.' ),
 				array( '/xe-dien/', 'Thuê xe điện', 'Khám phá xe điện và những điều cần biết khi sử dụng.' ),
 				array( '/bang-gia/', 'Bảng giá và thủ tục', 'Xem thông tin giá thuê, đặt cọc và thời gian thuê.' ),
 			);
-			foreach ( $nh_service_links as $nh_service ) :
+			foreach ( $nh_editorial_service_links as $nh_editorial_service ) :
 				?>
 				<article class="card card--hub">
 					<div class="card__body">
 						<h3 class="card__title">
-							<a href="<?php echo esc_url( home_url( $nh_service[0] ) ); ?>"><?php echo esc_html( $nh_service[1] ); ?></a>
+							<a href="<?php echo esc_url( home_url( $nh_editorial_service[0] ) ); ?>"><?php echo esc_html( $nh_editorial_service[1] ); ?></a>
 						</h3>
-						<p class="card__excerpt"><?php echo esc_html( $nh_service[2] ); ?></p>
+						<p class="card__excerpt"><?php echo esc_html( $nh_editorial_service[2] ); ?></p>
 					</div>
 				</article>
 				<?php
