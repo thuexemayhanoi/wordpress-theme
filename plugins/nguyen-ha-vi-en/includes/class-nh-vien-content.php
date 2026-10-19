@@ -11,15 +11,31 @@ defined( 'ABSPATH' ) || exit;
  * Menus and lists for the English side.
  */
 final class NH_VIEN_Content {
+	/** The argument that marks a menu location of an English page that has no English menu (see nav_menu_args()). */
+	const FALLBACK_ARG = 'nh_vien_fallback';
+
 	/** Register the hooks when the English side is switched on. */
 	public static function boot() {
 		if ( ! NH_VIEN_Routes::enabled() ) {
 			return;
 		}
 		add_filter( 'wp_nav_menu_args', array( __CLASS__, 'nav_menu_args' ) );
+		add_filter( 'pre_wp_nav_menu', array( __CLASS__, 'fallback_menu_output' ), 10, 2 );
+		add_action( 'wp', array( __CLASS__, 'drop_feed_links' ) );
 		add_filter( 'template_include', array( __CLASS__, 'english_home_template' ), 30 );
 		add_filter( 'the_title', array( __CLASS__, 'escape_english_title' ), 99 );
 		add_shortcode( 'nh_vien_posts', array( __CLASS__, 'posts_shortcode' ) );
+	}
+
+	/**
+	 * English pages advertise no feed: the feeds of the site hold the Vietnamese posts, and the feed addresses of an English
+	 * post, category or tag (/en/{slug}/feed/) lead nowhere. There is no English feed in this version.
+	 */
+	public static function drop_feed_links() {
+		if ( NH_VIEN_Routes::live() && NH_VIEN_Context::is_english() ) {
+			remove_action( 'wp_head', 'feed_links', 2 );
+			remove_action( 'wp_head', 'feed_links_extra', 3 );
+		}
 	}
 
 
@@ -60,8 +76,9 @@ final class NH_VIEN_Content {
 
 	/**
 	 * Inside English pages a theme location shows the English menu of the menu assigned to it, when one exists: the
-	 * menu with the same slug and the suffix -en (menu "primary" has the English menu "primary-en"). Locations
-	 * without such a menu keep their menu.
+	 * menu with the same slug and the suffix -en (menu "primary" has the English menu "primary-en"). A location without
+	 * such a menu shows the small English-only menu of fallback_english_menu(), never the Vietnamese menu. A menu that
+	 * a theme asks for by name, without a location, is left as it is.
 	 *
 	 * @param array $args The arguments of wp_nav_menu().
 	 * @return array
@@ -83,16 +100,34 @@ final class NH_VIEN_Content {
 		if ( $english ) {
 			$args['menu'] = $english;
 		} else {
-			// Do not fall back to the Vietnamese menu before an English menu is created.
-			$args['menu']           = -1;
-			$args['theme_location'] = '';
-			$args['fallback_cb']    = array( __CLASS__, 'fallback_english_menu' );
+			// No English menu yet. The Vietnamese one must not show: WordPress would pick it (or the first menu that has items)
+			// even without a location, so the answer is given by fallback_menu_output() before any menu is looked up.
+			$args[ self::FALLBACK_ARG ] = true;
 		}
 		return $args;
 	}
 
 	/**
-	 * Render a small English-only menu while its editorial replacement is not set.
+	 * Answer a menu location of an English page that has no English menu with the small English-only menu, instead of letting
+	 * WordPress look for a menu to show.
+	 *
+	 * @param string|null $output The output a filter already produced; null to let WordPress build the menu.
+	 * @param object      $args   The arguments of wp_nav_menu() (an object).
+	 * @return string|null
+	 */
+	public static function fallback_menu_output( $output, $args ) {
+		if ( null !== $output || ! is_object( $args ) || empty( $args->{self::FALLBACK_ARG} ) ) {
+			return $output;
+		}
+		ob_start();
+		self::fallback_english_menu( get_object_vars( $args ) );
+		return (string) ob_get_clean();
+	}
+
+	/**
+	 * Render a small English-only menu while its editorial replacement is not set: the home, the pages About, Prices and
+	 * Contact below /en/ that exist, and the top-level categories that have English posts (a category without any would
+	 * lead to a 404).
 	 *
 	 * @param array $args WordPress menu fallback arguments.
 	 * @return void
@@ -119,21 +154,28 @@ final class NH_VIEN_Content {
 				);
 			}
 		}
-		foreach ( NH_VIEN_Links::declared_en_terms() as $id ) {
-			$term = get_term( $id, 'category' );
-			if ( ! $term instanceof WP_Term || (int) $term->parent ) {
-				continue;
-			}
-			$link = get_term_link( $term );
-			if ( ! is_wp_error( $link ) ) {
+		$populated = array_keys( NH_VIEN_Links::en_populated_term_ids() );
+		$terms     = $populated ? get_terms(
+			array(
+				'taxonomy'   => 'category',
+				'include'    => $populated,
+				'parent'     => 0,
+				'hide_empty' => false,
+				'orderby'    => 'name',
+				'number'     => 6,
+			)
+		) : array();
+		foreach ( is_wp_error( $terms ) ? array() : $terms as $term ) {
+			$link = $term instanceof WP_Term ? get_term_link( $term ) : '';
+			if ( is_string( $link ) && '' !== $link ) {
 				$items[] = array(
 					'label' => $term->name,
 					'url'   => $link,
 				);
 			}
 		}
-		$class = isset( $args['menu_class'] ) ? $args['menu_class'] : 'nav-list';
-		$id    = isset( $args['menu_id'] ) ? $args['menu_id'] : 'english-navigation';
+		$class = isset( $args['menu_class'] ) && '' !== $args['menu_class'] ? $args['menu_class'] : 'nav-list';
+		$id    = isset( $args['menu_id'] ) && '' !== $args['menu_id'] ? $args['menu_id'] : 'english-navigation';
 		echo '<ul class="' . esc_attr( $class ) . '" id="' . esc_attr( $id ) . '">';
 		foreach ( $items as $item ) {
 			echo '<li class="menu-item"><a href="' . esc_url( $item['url'] ) . '">' . esc_html( $item['label'] ) . '</a></li>';

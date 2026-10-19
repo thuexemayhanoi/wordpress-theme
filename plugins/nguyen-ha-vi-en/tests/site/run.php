@@ -623,7 +623,88 @@ if ( 'dashboard' === $suite ) {
 	$body = $tools_body();
 	ok( 'and the Tools screen says it is off, not switched on yet', 'No' === $row( $body, 'English routing is switched on' ) && false !== strpos( $row( $body, 'Decided by' ), 'not switched on yet' ), $row( $body, 'Decided by' ) );
 
-	echo "\n[9] A production site (compared with itself: an SEO plugin may keep other data in production mode)\n";
+	echo "\n[9] English pages: no English menu yet, a renamed post, a page two levels below /en/, odd addresses, searches, feeds\n";
+	$toggle( 'enable' );
+	ok( 'the English side is on for these checks', $live() );
+	$vi_paths = array( '/thue-xe-may-ha-noi/', '/kinh-nghiem-di-phuot/', '/bai-chua-dich/', '/bai-trung-trang/' );
+	$lang_of  = function ( $r ) {
+		return substr( xp( $r['body'] )->query( '//html' )->item( 0 )->getAttribute( 'lang' ), 0, 2 );
+	};
+	if ( 'editorial' === $theme ) {
+		$menu_of = function ( $path ) {
+			return text_of( xp( http( $path )['body'] ), "//ul[@id='primary-menu']" );
+		};
+		ok( 'with its English menu (primary-en) an English page shows that menu', false !== strpos( $menu_of( '/en/' ), 'English Menu Item' ) && false === strpos( $menu_of( '/en/' ), 'Trang chủ VI' ), $menu_of( '/en/' ) );
+		// Without an English menu WordPress would show the first menu that has items: the Vietnamese one.
+		wp_cli( 'menu delete primary-en' );
+		foreach ( array( '/en/', '/en/motorbike-rental-in-hanoi/', '/en/category/travel-tips/', '/en/about/' ) as $path ) {
+			$text = $menu_of( $path );
+			ok( "without an English menu $path shows the small English menu, never the Vietnamese one", false !== strpos( $text, 'Home' ) && false !== strpos( $text, 'About' ) && false === strpos( $text, 'Trang chủ VI' ) && false === strpos( $text, 'English Menu Item' ), $text );
+		}
+		$text = $menu_of( '/en/' );
+		ok( 'it lists the categories that have English posts, and no other', false !== strpos( $text, 'Guides' ) && false !== strpos( $text, 'Travel tips' ) && false === strpos( $text, 'Thuê xe' ) && false === strpos( $text, 'Kinh nghiệm' ), $text );
+		ok( 'the Vietnamese pages keep the Vietnamese menu', false !== strpos( $menu_of( '/' ), 'Trang chủ VI' ) && false === strpos( $menu_of( '/' ), 'About' ), $menu_of( '/' ) );
+		wp_cli( 'menu create primary-en' );
+		wp_cli( 'menu item add-custom primary-en ' . escapeshellarg( 'English Menu Item' ) . ' ' . escapeshellarg( $base . '/en/' ) );
+		ok( 'with the English menu back, an English page shows it again', false !== strpos( $menu_of( '/en/' ), 'English Menu Item' ), $menu_of( '/en/' ) );
+	}
+
+	// A renamed English post keeps its former address, as any post does in WordPress: it is redirected, nothing is guessed.
+	$tips = (int) $fx['en_tips'];
+	wp_cli( 'post update ' . $tips . ' --post_name=travel-tips-renamed' );
+	$r = http( '/en/travel-tips-for-riders/' );
+	ok( 'the former address of a renamed English post is redirected to its address now', 301 === $r['status'] && '/en/travel-tips-renamed/' === path_of( $r['location'] ), $r['status'] . ' ' . $r['location'] );
+	ok( 'its new address answers', 200 === http( '/en/travel-tips-renamed/' )['status'] );
+	$r = http( '/travel-tips-renamed/' );
+	ok( 'its native address is redirected to the new English address', 301 === $r['status'] && '/en/travel-tips-renamed/' === path_of( $r['location'] ), $r['status'] . ' ' . $r['location'] );
+	ok( 'an address that never existed is still a 404', 404 === http( '/en/never-existed-post/' )['status'] );
+	wp_cli( 'post update ' . $tips . ' --post_name=travel-tips-for-riders' );
+	ok( 'renamed back, the original address answers again', 200 === http( '/en/travel-tips-for-riders/' )['status'] );
+	$r = http( '/en/travel-tips-renamed/' );
+	ok( 'and the address it had meanwhile leads back to it', 301 === $r['status'] && '/en/travel-tips-for-riders/' === path_of( $r['location'] ), $r['status'] . ' ' . $r['location'] );
+
+	// A page two levels below /en/ is answered by WordPress' own page rule: it must still be an English page.
+	$team = (int) wp_cli( 'post create --post_type=page --post_status=publish --post_title=Team --post_name=team --post_parent=' . (int) $fx['en_page_about'] . ' --post_content=' . escapeshellarg( 'Team page.' ) . ' --porcelain' );
+	ok( 'a page two levels below /en/ could be created for the test', $team > 0 );
+	$r = http( '/en/about/team/' );
+	ok( 'it answers 200, in English', 200 === $r['status'] && 'en' === $lang_of( $r ), $r['status'] . ' ' . $lang_of( $r ) );
+	if ( 'editorial' === $theme ) {
+		$text = text_of( xp( $r['body'] ), "//ul[@id='primary-menu']" );
+		ok( 'it shows the English menu, not the Vietnamese one', false !== strpos( $text, 'English Menu Item' ) && false === strpos( $text, 'Trang chủ VI' ), $text );
+		$text = text_of( xp( http( '/' )['body'] ), "//ul[@id='primary-menu']" );
+		ok( 'and the Vietnamese home still has the Vietnamese menu afterwards (nothing cached in the wrong language)', false !== strpos( $text, 'Trang chủ VI' ) && false === strpos( $text, 'English Menu Item' ), $text );
+	}
+	wp_cli( 'post delete ' . $team . ' --force' );
+	ok( 'once deleted that page is a 404 again', 404 === http( '/en/about/team/' )['status'] );
+	ok( 'an address deeper below /en/ that nothing answers is an English 404', 404 === http( '/en/nope/deeper/' )['status'] );
+
+	// WordPress also takes query variables from the address: they must not turn the English list into a Vietnamese page.
+	foreach ( array( '/en/?p=' . (int) $fx['vi_rent'], '/en/?page_id=' . (int) $fx['vi_rent'], '/en/?name=thue-xe-may-ha-noi', '/en/?author=1', '/en/?post_type=page', '/en/?feed=rss2', '/en/?cat=' . (int) $fx['terms']['thue'] ) as $url ) {
+		$r = http( $url );
+		ok(
+			"$url shows no Vietnamese post, whatever the address says",
+			( 200 === $r['status'] && 'en' === $lang_of( $r ) && ! post_links_in_main( xp( $r['body'] ), $vi_paths ) && 0 !== strpos( ltrim( $r['body'] ), '<?xml' ) )
+				|| ( in_array( $r['status'], array( 301, 302 ), true ) && 0 === strpos( path_of( $r['location'] ), '/en/' ) ),
+			$r['status'] . ' ' . $r['location']
+		);
+	}
+
+	// Searches: the English pages belong to the English search only.
+	$found_en = post_links_in_main( xp( http( '/en/?s=About' )['body'] ), array( '/en/about/' ) );
+	$found_vi = post_links_in_main( xp( http( '/?s=About' )['body'] ), array( '/en/about/' ) );
+	ok( 'the English search finds the English page About', array( '/en/about/' ) === $found_en, json_encode( $found_en ) );
+	ok( 'the Vietnamese search does not find it', array() === $found_vi, json_encode( $found_vi ) );
+
+	// The feeds of the site are Vietnamese: English pages advertise none (and /en/{slug}/feed/ leads nowhere).
+	$feed_links = function ( $path ) {
+		return xp( http( $path )['body'] )->query( "//head/link[@rel='alternate'][@type='application/rss+xml']" )->length;
+	};
+	ok( 'English pages advertise no feed', 0 === $feed_links( '/en/motorbike-rental-in-hanoi/' ) && 0 === $feed_links( '/en/' ) && 0 === $feed_links( '/en/category/travel-tips/' ), $feed_links( '/en/motorbike-rental-in-hanoi/' ) . ',' . $feed_links( '/en/' ) . ',' . $feed_links( '/en/category/travel-tips/' ) );
+	ok( 'Vietnamese pages still advertise theirs', $feed_links( '/thue-xe-may-ha-noi/' ) >= 1, (string) $feed_links( '/thue-xe-may-ha-noi/' ) );
+	$toggle( 'disable' );
+	ok( 'switched off again, the English side is off', $off() );
+
+	echo "\n[10] A production site (compared with itself: an SEO plugin may keep other data in production mode)\n";
 	$environment( 'production' );
 	// One pass to settle what an SEO plugin does the first time it runs in production mode, then the baseline of this block.
 	save_snapshot( "$work/production-warm" );
@@ -791,7 +872,7 @@ ok( 'the Vietnamese post keeps its own title', false !== strpos( $title, 'Thuê 
 echo "\n[3] Lists show one language only\n";
 $all_vi = $vi_paths;
 $all_en = $en_paths;
-foreach ( array( '/', '/page/2/', '/category/kinh-nghiem/', '/category/thue-xe/' ) as $url ) {
+foreach ( array( '/', '/page/2/', '/category/kinh-nghiem/', '/category/thue-xe/', '/author/admin/' ) as $url ) {
 	$xpath = xp( page( $url )['body'] );
 	ok( "$url lists no English post", array() === array_values( array_intersect( post_links_in_main( $xpath, array_merge( $all_en, $en_native_paths ) ), array_merge( $all_en, $en_native_paths ) ) ), implode( ',', post_links_in_main( $xpath, array_merge( $all_en, $en_native_paths ) ) ) );
 }

@@ -56,6 +56,7 @@ class WP_Query {
 	public $is_404      = false;
 	public $is_category = false;
 	public $is_tag      = false;
+	public $is_search   = false;
 	public $main        = true;
 	public $posts_found = 0;
 	public $queried     = null;
@@ -67,6 +68,7 @@ class WP_Query {
 	public function is_home() { return $this->is_home; }
 	public function is_category() { return $this->is_category; }
 	public function is_tag() { return $this->is_tag; }
+	public function is_search() { return $this->is_search; }
 	public function is_404() { return $this->is_404; }
 	public function have_posts() { return $this->posts_found > 0; }
 	public function set_404() { $this->is_404 = true; }
@@ -83,12 +85,22 @@ function status_header( $code ) { $GLOBALS['status'] = $code; }
 function nocache_headers() {}
 function __( $text ) { return $text; }
 function get_queried_object() { return $GLOBALS['wp_query']->queried; }
-function get_query_var( $name ) { return 'sitemap' === $name ? ( isset( $GLOBALS['sitemap'] ) ? $GLOBALS['sitemap'] : '' ) : ''; }
 define( 'WPSEO_VERSION', '28.7' );
-function get_page_by_path() { return null; }
+/** The pages of the site by path (a test fills it): the page /en/ and the pages below it. */
+$GLOBALS['pages'] = array();
+function get_page_by_path( $path ) { return isset( $GLOBALS['pages'][ $path ] ) ? $GLOBALS['pages'][ $path ] : null; }
 function get_posts( $args ) {
 	if ( isset( $args['tax_query'] ) ) {
 		return $GLOBALS['any_posts'];
+	}
+	if ( isset( $args['post_parent'] ) ) {
+		$found = array();
+		foreach ( $GLOBALS['pages'] as $path => $page ) {
+			if ( 0 === strpos( $path, 'en/' ) && 'publish' === $page->post_status ) {
+				$found[] = $page;
+			}
+		}
+		return $found;
 	}
 	$found = array();
 	foreach ( $GLOBALS['published'] as $post ) {
@@ -105,11 +117,14 @@ function wp_get_object_terms( $ids, $taxonomies, $args ) {
 			$rows[] = 'ids' === $args['fields'] ? $term_id : $GLOBALS['terms'][ $term_id ];
 		}
 	}
-	return $rows;
+	// Core runs this lookup through get_terms(), so the filter of the plugin sees it with the arguments it was given.
+	return NH_VIEN_Query::filter_terms( $rows, (array) $taxonomies, $args );
 }
 /** Parent of a term, by ID (a child => its parent); empty unless a test sets it. */
 $GLOBALS['parents'] = array();
+$GLOBALS['ancestor_calls'] = 0;
 function get_ancestors( $id ) {
+	++$GLOBALS['ancestor_calls'];
 	$out = array();
 	while ( isset( $GLOBALS['parents'][ $id ] ) ) {
 		$id    = $GLOBALS['parents'][ $id ];
@@ -139,6 +154,8 @@ class WP_REST_Request {
 	public function __construct( $params = array() ) { $this->params = $params; }
 	public function get_param( $key ) { return isset( $this->params[ $key ] ) ? $this->params[ $key ] : null; }
 }
+
+require __DIR__ . '/lib/db-stub.php';
 
 foreach ( array( 'languages', 'links', 'gate', 'routes', 'context', 'urls', 'query' ) as $part ) {
 	require dirname( __DIR__ ) . '/includes/class-nh-vien-' . $part . '.php';
@@ -218,6 +235,89 @@ $q->main    = false;
 NH_VIEN_Query::scope( $q );
 must( $q->is_home && '' === $q->get( 'nh_vien_view' ), 'Only the main query becomes the English list page' );
 
+// ---- A list that names its own posts keeps its language, and the exclusions of the caller are honoured: WP_Query ignores
+// post__not_in as soon as post__in is set, so neither list may be left to it.
+fresh( 'vi' );
+$q = query( array( 'post__in' => array( 11, 22, 99 ) ) );
+NH_VIEN_Query::scope( $q );
+must( array( 11, 99 ) === $q->get( 'post__in' ) && '' === $q->get( 'post__not_in' ), 'A Vietnamese list that names posts must lose the English ones: ' . json_encode( $q->vars ) );
+$q = query( array( 'post__in' => array( 11, 22, 99 ), 'post__not_in' => array( 99 ) ) );
+NH_VIEN_Query::scope( $q );
+must( array( 11 ) === $q->get( 'post__in' ), 'The exclusions of the caller must be applied to the posts it names: ' . json_encode( $q->get( 'post__in' ) ) );
+$q = query( array( 'post__in' => array( 22, 44 ) ) );
+NH_VIEN_Query::scope( $q );
+must( array( 0 ) === $q->get( 'post__in' ), 'A Vietnamese list of English posts only must be empty, never unrestricted' );
+$q = query( array( 'post__in' => 'not-a-list', 'post__not_in' => array( 'x', 0, -3, '22' ) ) );
+NH_VIEN_Query::scope( $q );
+must( array( 3, 22, 44 ) === $q->get( 'post__not_in' ) && 'not-a-list' === $q->get( 'post__in' ), 'Garbage in the lists of a query must not break the scoping (WP_Query reads IDs as absolute integers): ' . json_encode( $q->vars ) );
+fresh( 'en' );
+$q = query( array( 'post__not_in' => array( 22 ) ) );
+NH_VIEN_Query::scope( $q );
+must( array( 0 ) === $q->get( 'post__in' ), 'An English list must honour post__not_in (the post being read is not its own related post)' );
+// post__in = array( 0 ) is what a theme sets to say "nothing" (an empty search): it must stay empty, not become every English post.
+foreach ( array( array( 0 ), array( '0' ), array( 0, 0 ), array( -0 ), 0, '0' ) as $nothing ) {
+	$q = query( array( 'post__in' => $nothing ) );
+	NH_VIEN_Query::scope( $q );
+	must( array( 0 ) === $q->get( 'post__in' ), 'An English list that names no real post must stay empty: ' . json_encode( $nothing ) . ' became ' . json_encode( $q->get( 'post__in' ) ) );
+}
+foreach ( array( '', null, false, array() ) as $unset ) {
+	$q = query( array( 'post__in' => $unset ) );
+	NH_VIEN_Query::scope( $q );
+	must( array( 22 ) === $q->get( 'post__in' ), 'A query that names no posts at all lists every public English post: ' . json_encode( $unset ) );
+}
+$q = query( array( 'post__in' => array( 22, 99 ), 'post__not_in' => array( 99 ) ) );
+NH_VIEN_Query::scope( $q );
+must( array( 22 ) === $q->get( 'post__in' ), 'An English list that names posts keeps the English ones that were not excluded' );
+
+// ---- Pages: the page /en/ and the pages below it are English. A list that may return pages (a search, any type, the page
+// type) keeps each language to its own; a list of posts needs no lookup of pages at all.
+$GLOBALS['pages'] = array(
+	'en'       => new WP_Post( 5, 'en', 'publish', 'page' ),
+	'en/about' => new WP_Post( 7, 'about', 'publish', 'page' ),
+	'en/draft' => new WP_Post( 8, 'draft', 'draft', 'page' ),
+);
+fresh( 'vi' );
+$q            = query();
+$q->is_search = true;
+NH_VIEN_Query::scope( $q );
+must( array( 22, 44, 7, 5 ) === $q->get( 'post__not_in' ), 'A Vietnamese search must leave the English posts and pages out: ' . json_encode( $q->get( 'post__not_in' ) ) );
+$q = query( array( 'post_type' => 'any' ) );
+NH_VIEN_Query::scope( $q );
+must( array( 22, 44, 7, 5 ) === $q->get( 'post__not_in' ), 'A Vietnamese list of any type must leave the English pages out too' );
+$q = query( array( 'post_type' => array( 'post', 'page' ) ) );
+NH_VIEN_Query::scope( $q );
+must( array( 22, 44, 7, 5 ) === $q->get( 'post__not_in' ), 'A Vietnamese list that names the page type must leave the English pages out' );
+$q = query();
+NH_VIEN_Query::scope( $q );
+must( array( 22, 44 ) === $q->get( 'post__not_in' ), 'A list of posts must not be bothered with pages' );
+$q = query( array( 'post_type' => 'page' ) );
+NH_VIEN_Query::scope( $q );
+must( array( 'post_type' => 'page' ) === $q->vars, 'A list of pages only is not a list of posts: it is not scoped' );
+fresh( 'en' );
+$q            = query();
+$q->is_search = true;
+NH_VIEN_Query::scope( $q );
+must( array( 22, 7, 5 ) === $q->get( 'post__in' ), 'An English search must find the public English posts and the English pages: ' . json_encode( $q->get( 'post__in' ) ) );
+$q = query();
+NH_VIEN_Query::scope( $q );
+must( array( 22 ) === $q->get( 'post__in' ), 'An English list of posts must not include pages' );
+$q = query( array( 'post__in' => array( 7, 11 ), 'post_type' => 'any' ) );
+NH_VIEN_Query::scope( $q );
+must( array( 7 ) === $q->get( 'post__in' ), 'An English list that names a Vietnamese post and an English page keeps the page only' );
+// Without any English post the English pages are still English.
+$saved_pairs                                 = $GLOBALS['options'][ NH_VIEN_Links::OPTION ];
+$GLOBALS['options'][ NH_VIEN_Links::OPTION ] = array();
+fresh( 'vi' );
+$q            = query();
+$q->is_search = true;
+NH_VIEN_Query::scope( $q );
+must( array( 7, 5 ) === $q->get( 'post__not_in' ), 'The English pages stay out of a Vietnamese search even before the first English article: ' . json_encode( $q->get( 'post__not_in' ) ) );
+$q = query();
+NH_VIEN_Query::scope( $q );
+must( array() === $q->vars, 'Without English posts a Vietnamese list of posts is left alone' );
+$GLOBALS['options'][ NH_VIEN_Links::OPTION ] = $saved_pairs;
+$GLOBALS['pages']                            = array();
+
 // ---- Queries that must not be touched.
 foreach ( array( 'en', 'vi' ) as $language ) {
 	fresh( $language );
@@ -281,18 +381,32 @@ must( ! isset( $only[7] ) && ! isset( $only[2] ) && ! isset( $only[1] ), 'A cate
 $kept = NH_VIEN_Query::filter_terms( array( $GLOBALS['terms'][1], $GLOBALS['terms'][2], $GLOBALS['terms'][6], $GLOBALS['terms'][7] ), array( 'category' ), array() );
 must( array( 1, 2, 7 ) === array_map( static function ( $term ) { return $term->term_id; }, $kept ), 'Vietnamese pages must drop the English-only parent' );
 // XML sitemap term queries must preserve English-only terms for Yoast's sitemap_entry hook.
-$GLOBALS['sitemap'] = 'category';
+$GLOBALS['wp_query'] = query( array( 'sitemap' => 'category' ) );
 $kept = NH_VIEN_Query::filter_terms( array( $GLOBALS['terms'][1], $GLOBALS['terms'][2], $GLOBALS['terms'][6] ), array( 'category' ), array() );
 must( array( 1, 2, 6 ) === array_map( static function ( $term ) { return $term->term_id; }, $kept ), 'Yoast category sitemap must retain English-only terms for rewriting' );
-$GLOBALS['sitemap'] = 'post_tag';
+$GLOBALS['wp_query'] = query( array( 'sitemap' => 'post_tag' ) );
 $kept = NH_VIEN_Query::filter_terms( array( $GLOBALS['terms'][4] ), array( 'post_tag' ), array() );
 must( array( 4 ) === array_map( static function ( $term ) { return $term->term_id; }, $kept ), 'Yoast tag sitemap must retain English-only terms for rewriting' );
-$GLOBALS['sitemap'] = '';
+// Early in a request there is no main query yet: asking for a sitemap must not be a fatal error.
+unset( $GLOBALS['wp_query'] );
+$kept = NH_VIEN_Query::filter_terms( array( $GLOBALS['terms'][1], $GLOBALS['terms'][2], $GLOBALS['terms'][6] ), array( 'category' ), array() );
+must( array( 1, 2 ) === array_map( static function ( $term ) { return $term->term_id; }, $kept ), 'Without a main query the list is still scoped, and nothing is fatal' );
+$GLOBALS['wp_query'] = query();
 fresh( 'en' );
 $kept = NH_VIEN_Query::filter_terms( array( $GLOBALS['terms'][1], $GLOBALS['terms'][2], $GLOBALS['terms'][6], $GLOBALS['terms'][7] ), array( 'category' ), array() );
 must( array( 2, 6, 7 ) === array_map( static function ( $term ) { return $term->term_id; }, $kept ), 'English pages must keep the parents of the categories of English posts' );
 $GLOBALS['parents'] = array();
 unset( $GLOBALS['terms'][6], $GLOBALS['terms'][7] );
+
+// ---- The terms of the English posts: one lookup for all of them, parents only for categories (a tag has none to look up).
+fresh( 'en' );
+$GLOBALS['ancestor_calls'] = 0;
+$populated                 = NH_VIEN_Links::en_populated_term_ids();
+must( array( 2, 3, 4 ) === array_keys( $populated ), 'The populated terms are the terms of the public English posts: ' . json_encode( array_keys( $populated ) ) );
+must( 2 === $GLOBALS['ancestor_calls'], 'The parents of the two categories are looked up, the tag is not: ' . $GLOBALS['ancestor_calls'] );
+NH_VIEN_Links::en_populated_term_ids();
+NH_VIEN_Links::en_term_ids();
+must( 2 === $GLOBALS['ancestor_calls'], 'The answer must be remembered for the rest of the request' );
 
 // ---- Empty archives are a 404 only when the language is the reason.
 fresh( 'en' );
@@ -339,7 +453,8 @@ $saved_assigned = $GLOBALS['assigned'];
 /** Independent English posts enter only the English side, without any VI pair. */
 $GLOBALS['options'][ NH_VIEN_Links::OPTION ] = array();
 $GLOBALS['options'][ NH_VIEN_Links::INDEPENDENT_OPTION ] = array( 77 );
-$GLOBALS['options'][ NH_VIEN_Links::EN_TERMS_OPTION ] = array( 201, 202 );
+$GLOBALS['options'][ NH_VIEN_Links::EN_TERMS_OPTION ] = array( 201, 202, 203 );
+$GLOBALS['terms'][203] = new WP_Term( 203, 'category', 'declared-but-empty', 0 );
 $GLOBALS['published'][] = new WP_Post( 77, 'new-english-guide' );
 $GLOBALS['terms'][201] = new WP_Term( 201, 'category', 'guides-english', 0 );
 $GLOBALS['terms'][202] = new WP_Term( 202, 'category', 'rental-guides-english', 1 );
@@ -352,6 +467,8 @@ $q = query();
 NH_VIEN_Query::scope( $q );
 must( array( 77 ) === $q->get( 'post__in' ), 'English query omitted the standalone article' );
 must( isset( NH_VIEN_Links::en_term_ids()[201] ) && isset( NH_VIEN_Links::en_term_ids()[202] ), 'English parent/child terms missing' );
+must( isset( NH_VIEN_Links::en_term_ids()[203] ) && ! isset( NH_VIEN_Links::en_populated_term_ids()[203] ), 'A declared category without posts has an English archive address but is not populated' );
+must( array( 202, 201 ) === array_keys( NH_VIEN_Links::en_populated_term_ids() ) || array( 201, 202 ) === array_keys( NH_VIEN_Links::en_populated_term_ids() ), 'The populated terms are the category of the post and its parent' );
 fresh( 'vi' );
 $q = query();
 NH_VIEN_Query::scope( $q );
@@ -383,6 +500,20 @@ fresh( 'vi' );
 must( array( 'post_type' => 'post', 'post__in' => array( 22 ) ) === NH_VIEN_Query::rest_search_query( $base, $language_of( 'en' ) ), 'English suggestions must be the public English posts' );
 $out = NH_VIEN_Query::rest_search_query( array( 'post__not_in' => array( 9, 22 ) ), $language_of( 'vi' ) );
 must( array( 9, 22, 44 ) === $out['post__not_in'], 'Vietnamese suggestions must exclude every English post and keep the exclusions that were there' );
+$out = NH_VIEN_Query::rest_search_query( array( 'post__in' => array( 22, 11 ), 'post__not_in' => array( 11 ) ), $language_of( 'en' ) );
+must( array( 22 ) === $out['post__in'], 'English suggestions for named posts must keep only English posts' );
+$out = NH_VIEN_Query::rest_search_query( array( 'post__in' => array( 22, 11, 12 ), 'post__not_in' => array( 12 ) ), $language_of( 'vi' ) );
+must( array( 11 ) === $out['post__in'], 'Vietnamese suggestions for named posts must drop English posts and the excluded ones' );
+$GLOBALS['pages'] = array(
+	'en'       => new WP_Post( 5, 'en', 'publish', 'page' ),
+	'en/about' => new WP_Post( 7, 'about', 'publish', 'page' ),
+);
+fresh( 'vi' );
+must( array( 22, 7, 5 ) === NH_VIEN_Query::rest_search_query( $base, $language_of( 'en' ) )['post__in'], 'English suggestions must offer the English pages too' );
+$out = NH_VIEN_Query::rest_search_query( array(), $language_of( 'vi' ) );
+must( array( 22, 44, 7, 5 ) === $out['post__not_in'], 'Vietnamese suggestions must not offer the English pages' );
+$GLOBALS['pages'] = array();
+fresh( 'vi' );
 must( $base === NH_VIEN_Query::rest_search_query( $base, new WP_REST_Request( array() ) ), 'A request without a language must be answered as before' );
 must( $base === NH_VIEN_Query::rest_search_query( $base, $language_of( 'xx' ) ), 'An unknown language must be ignored' );
 must( $base === NH_VIEN_Query::rest_search_query( $base, $language_of( array( 'en' ) ) ), 'A language that is not a string must be ignored' );

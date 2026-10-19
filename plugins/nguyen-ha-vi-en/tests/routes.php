@@ -20,6 +20,7 @@ $GLOBALS['pages']     = array();
 $GLOBALS['published'] = array();
 $GLOBALS['page_lookups']  = 0;
 $GLOBALS['child_queries'] = 0;
+$GLOBALS['old_slugs']     = array();
 
 class WP_Post {
 	public $ID;
@@ -65,6 +66,16 @@ function get_posts( $args ) {
 		}
 		return array();
 	}
+	if ( isset( $args['meta_query'] ) ) {
+		// The former slugs (_wp_old_slug) of the posts: $GLOBALS['old_slugs'] is post ID => list of slugs.
+		$found = array();
+		foreach ( $GLOBALS['old_slugs'] as $id => $slugs ) {
+			if ( in_array( $id, $args['post__in'], true ) && in_array( $args['meta_query'][0]['value'], $slugs, true ) ) {
+				$found[] = $id;
+			}
+		}
+		return $found;
+	}
 	$found = array();
 	foreach ( $GLOBALS['published'] as $post ) {
 		if ( in_array( $post->ID, $args['post__in'], true ) && 'publish' === $post->post_status ) {
@@ -75,8 +86,13 @@ function get_posts( $args ) {
 }
 function home_url( $path = '' ) { return 'https://example.test' . $path; }
 function user_trailingslashit( $url ) { return rtrim( $url, '/' ) . '/'; }
+function trailingslashit( $value ) { return rtrim( $value, '/' ) . '/'; }
+function wp_parse_url( $url, $component = -1 ) { return parse_url( $url, $component ); }
+function sanitize_text_field( $value ) { return trim( (string) $value ); }
+function wp_unslash( $value ) { return $value; }
 function must( $condition, $message ) { if ( ! $condition ) { throw new RuntimeException( $message ); } }
 
+require __DIR__ . '/lib/db-stub.php';
 require dirname( __DIR__ ) . '/includes/class-nh-vien-languages.php';
 require dirname( __DIR__ ) . '/includes/class-nh-vien-links.php';
 require dirname( __DIR__ ) . '/includes/class-nh-vien-gate.php';
@@ -253,6 +269,157 @@ fresh();
 $wp = request( NH_VIEN_Routes::HOME_PAGE, array( 'nh_vien_lang' => 'en', 'paged' => '2', 's' => 'x' ) );
 NH_VIEN_Routes::parse_request( $wp );
 must( isset( $wp->query_vars['s'] ) && ! isset( $wp->query_vars['error'] ), 'Search results of page 2 must stay' );
+
+// A list of the English side carries a search and a page number, never another kind of query: WordPress also takes
+// query variables from the address, and ?p= or ?page_id= must not turn /en/ into a Vietnamese post or page.
+$vars = array(
+	'nh_vien_lang'  => 'vi',
+	'p'             => '5',
+	'page_id'       => '6',
+	'pagename'      => 'x',
+	'name'          => 'y',
+	'attachment_id' => '7',
+	'author'        => '1',
+	'year'          => '2026',
+	'feed'          => 'rss2',
+	'post_type'     => 'page',
+	'preview'       => 'true',
+	's'             => 'bike',
+	'paged'         => '2',
+	'category_name' => 'guides',
+	'tag'           => 'tips',
+);
+foreach ( array( NH_VIEN_Routes::HOME, NH_VIEN_Routes::HOME_PAGE, '^en/category/(.+?)/page/?([0-9]{1,})/?$', '^en/category/(.+?)/?$', '^en/tag/([^/]+)/page/?([0-9]{1,})/?$', '^en/tag/([^/]+)/?$' ) as $rule ) {
+	fresh();
+	$wp = request( $rule, $vars );
+	NH_VIEN_Routes::parse_request( $wp );
+	$kept = array_keys( $wp->query_vars );
+	sort( $kept );
+	must( array( 'category_name', 'nh_vien_lang', 's', 'paged', 'tag' ) === array_values( array_intersect( array( 'category_name', 'nh_vien_lang', 's', 'paged', 'tag' ), $kept ) ) && array() === array_diff( $kept, NH_VIEN_Routes::LIST_VARS ), 'A list must keep only its own query variables: ' . $rule . ' kept ' . implode( ',', $kept ) );
+	must( 'en' === $wp->query_vars['nh_vien_lang'], 'The language of a list must be the route\'s, not the address\'s: ' . $rule );
+}
+// The English home that is a real page is a page, whatever else the address says.
+fresh();
+$wp = request( NH_VIEN_Routes::HOME, array( 'p' => '5', 'page_id' => '6', 'nh_vien_lang' => 'vi' ) );
+NH_VIEN_Routes::parse_request( $wp );
+must( array( 'nh_vien_lang' => 'en', 'page_id' => 5 ) === $wp->query_vars, 'The English home page must not be replaced by a post that the address names: ' . json_encode( $wp->query_vars ) );
+// A page of the post routes is resolved to its own, never to what the address names.
+fresh();
+$wp = request( NH_VIEN_Routes::REWRITE, array( 'nh_vien_en_slug' => 'english-article', 'p' => '999', 'page_id' => '998' ) );
+NH_VIEN_Routes::parse_request( $wp );
+must( 22 === $wp->query_vars['p'] && ! isset( $wp->query_vars['page_id'] ), 'A post route must not take the post that the address names' );
+
+// The English pages: the page /en/ and the published pages directly below it.
+$GLOBALS['pages']['en/prices'] = new WP_Post( 8, 'prices', 'publish', 'page' );
+fresh();
+$page_ids = NH_VIEN_Routes::english_page_ids();
+sort( $page_ids );
+must( array( 5, 6, 7, 8 ) === $page_ids, 'The English pages are the home page and the pages below it: ' . json_encode( $page_ids ) );
+unset( $GLOBALS['pages']['en/prices'] );
+$GLOBALS['pages']['en']->post_status = 'draft';
+fresh();
+$page_ids = NH_VIEN_Routes::english_page_ids();
+sort( $page_ids );
+must( array( 6, 7 ) === $page_ids, 'A draft page /en/ is not itself an English page, the published pages below it still are: ' . json_encode( $page_ids ) );
+$GLOBALS['pages']['en']->post_status = 'publish';
+
+// ---- Anything else below /en/ is English too (a page deeper than the first level, a 404); the rest of the site stays as it was.
+foreach ( array(
+	'/en/about/team/' => true,
+	'/en/nope/deeper/' => true,
+	'/en/'            => true,
+	'/en'             => true,
+	'/english/'       => false,
+	'/guide/en/'      => false,
+	'/en-gb/'         => false,
+	'/'               => false,
+) as $uri => $english ) {
+	fresh();
+	$_SERVER['REQUEST_URI'] = $uri;
+	$wp                     = request( 'some-other-rule', array( 'pagename' => 'en/about/team' ) );
+	NH_VIEN_Routes::parse_request( $wp );
+	must( $english === NH_VIEN_Context::is_english(), "The language of $uri is wrong" );
+	must( array( 'pagename' => 'en/about/team' ) === $wp->query_vars, 'The query of a request that no rule of ours matched must stay as it was' );
+}
+// Without the stored rules the plugin is not live, and nothing below /en/ is English.
+$_SERVER['REQUEST_URI']              = '/en/about/team/';
+$GLOBALS['options']['rewrite_rules'] = array();
+fresh();
+NH_VIEN_Routes::parse_request( request( 'some-other-rule', array() ) );
+must( ! NH_VIEN_Context::is_english(), 'A site whose rules are not stored must not change the language of a request' );
+$GLOBALS['options']['rewrite_rules'] = $rules;
+unset( $_SERVER['REQUEST_URI'] );
+
+// ---- A renamed English post: its former address (WordPress keeps it as _wp_old_slug) is redirected to its address now. Nothing is guessed.
+$saved_posts = $GLOBALS['published'];
+$saved_pairs = $GLOBALS['options'][ NH_VIEN_Links::OPTION ];
+$GLOBALS['published']                        = array(
+	new WP_Post( 11, 'bai-viet' ),
+	new WP_Post( 22, 'new-english-slug' ),
+	new WP_Post( 33, 'bai-hai' ),
+	new WP_Post( 44, 'other-english' ),
+	new WP_Post( 55, 'bai-ba' ),
+	new WP_Post( 66, 'draft-english', 'draft' ),
+);
+$GLOBALS['options'][ NH_VIEN_Links::OPTION ] = array(
+	11 => 22,
+	33 => 44,
+	55 => 66,
+);
+$GLOBALS['old_slugs']                        = array(
+	22 => array( 'old-english-slug', 'shared-old', 'other-english' ),
+	44 => array( 'shared-old', 'first-of-44' ),
+	66 => array( 'draft-old' ),
+);
+foreach ( array(
+	'old-english-slug' => 'https://example.test/en/new-english-slug/',
+	'first-of-44'      => 'https://example.test/en/other-english/',
+	'shared-old'       => '',
+	'other-english'    => '',
+	'draft-old'        => '',
+	'never-existed'    => '',
+	'category'         => '',
+) as $slug => $target ) {
+	fresh();
+	$wp = request( NH_VIEN_Routes::REWRITE, array( 'nh_vien_en_slug' => $slug ) );
+	NH_VIEN_Routes::parse_request( $wp );
+	if ( 'other-english' === $slug ) {
+		must( 44 === $wp->query_vars['p'], 'A slug that a post uses now must resolve to that post, not to the post that once had it' );
+		continue;
+	}
+	must( array( 'error' => '404' ) === $wp->query_vars, "The former address $slug must be a 404 until the redirect: " . json_encode( $wp->query_vars ) );
+	must( $target === NH_VIEN_Routes::old_slug_url(), "The former address $slug must lead to '$target', not '" . NH_VIEN_Routes::old_slug_url() . "'" );
+}
+// A slug that two public English posts hold at the same time is ambiguous, and a former slug cannot settle it.
+$GLOBALS['published'][]                                  = new WP_Post( 77, 'dup-slug' );
+$GLOBALS['published'][]                                  = new WP_Post( 78, 'dup-slug' );
+$GLOBALS['options'][ NH_VIEN_Links::INDEPENDENT_OPTION ] = array( 77, 78 );
+$GLOBALS['old_slugs'][22][]                              = 'dup-slug';
+fresh();
+$wp = request( NH_VIEN_Routes::REWRITE, array( 'nh_vien_en_slug' => 'dup-slug' ) );
+NH_VIEN_Routes::parse_request( $wp );
+must( array( 'error' => '404' ) === $wp->query_vars && '' === NH_VIEN_Routes::old_slug_url(), 'A slug that two posts hold must not be redirected to a third: ' . NH_VIEN_Routes::old_slug_url() );
+unset( $GLOBALS['options'][ NH_VIEN_Links::INDEPENDENT_OPTION ] );
+array_pop( $GLOBALS['published'] );
+array_pop( $GLOBALS['published'] );
+// The target must still be public when the redirect happens.
+fresh();
+NH_VIEN_Routes::parse_request( request( NH_VIEN_Routes::REWRITE, array( 'nh_vien_en_slug' => 'old-english-slug' ) ) );
+must( 'https://example.test/en/new-english-slug/' === NH_VIEN_Routes::old_slug_url(), 'The former address must lead to the post while it is public' );
+$GLOBALS['published'][1]->post_status = 'draft';
+NH_VIEN_Links::flush_cache();
+must( '' === NH_VIEN_Routes::old_slug_url(), 'A post that stopped being public is not a target' );
+$GLOBALS['published'][1]->post_status = 'publish';
+// The redirect belongs to the request that asked.
+NH_VIEN_Links::flush_cache();
+must( 'https://example.test/en/new-english-slug/' === NH_VIEN_Routes::old_slug_url(), 'The post is public again, so the memory of the request still holds' );
+fresh();
+must( '' === NH_VIEN_Routes::old_slug_url(), 'The memory of a former address must not outlive its request' );
+$GLOBALS['options']['rewrite_rules']         = $rules;
+$GLOBALS['old_slugs']                        = array();
+$GLOBALS['published']                        = $saved_posts;
+$GLOBALS['options'][ NH_VIEN_Links::OPTION ] = $saved_pairs;
+
 unset( $GLOBALS['pages']['en'] );
 $GLOBALS['published'] = array();
 fresh();
@@ -263,7 +430,7 @@ must( array( 'error' => '404' ) === $wp->query_vars, 'The English home without E
 // ---- boot: the rules are registered whenever the gate is open (the closed gate is checked in boot.php).
 fresh();
 NH_VIEN_Routes::boot();
-must( array( 'init', 'query_vars', 'parse_request' ) === $GLOBALS['hooks'], 'Open gate: wrong hooks' );
+must( array( 'init', 'query_vars', 'parse_request', 'template_redirect' ) === $GLOBALS['hooks'], 'Open gate: wrong hooks' );
 
 // ---- A published post that already has the address /en/ is noticed (a page is the English home, not a collision).
 $GLOBALS['published'] = array( new WP_Post( 1, 'something' ), new WP_Post( 2, 'en', 'publish', 'page' ), new WP_Post( 3, 'en', 'draft' ) );
@@ -346,6 +513,7 @@ $GLOBALS['published'][]                                  = new WP_Post( 2997, 'd
 fresh();
 $GLOBALS['page_lookups']  = 0;
 $GLOBALS['child_queries'] = 0;
+$GLOBALS['rows_queries']  = 0;
 $public                   = NH_VIEN_Links::public_en_ids();
 must( 120 + 1 + 1 === count( $public ), 'Public set wrong with many posts: ' . count( $public ) );
 must( ! in_array( 2999, $public, true ), 'A page below /en/ must still take the address of the English post' );
@@ -353,9 +521,28 @@ must( in_array( 2998, $public, true ), 'A draft page below /en/ must not take an
 must( in_array( 2997, $public, true ), 'Only a page directly below /en/ takes an address (en/deeper is not en/deep/deeper)' );
 must( 1 === $GLOBALS['page_lookups'], 'Looking at 122 English posts must cost one page lookup, not ' . $GLOBALS['page_lookups'] );
 must( 1 === $GLOBALS['child_queries'], 'Looking at 122 English posts must cost one query for the pages below /en/, not ' . $GLOBALS['child_queries'] );
+must( 1 === $GLOBALS['rows_queries'], 'The slugs of 122 English posts must cost one query, not ' . $GLOBALS['rows_queries'] );
+must( 0 === strpos( $GLOBALS['last_sql'], 'SELECT ID, post_name FROM ' ) && false !== strpos( $GLOBALS['last_sql'], "post_type = 'post' AND post_status = 'publish'" ), 'The query must select two columns of published posts, never pages or drafts: ' . $GLOBALS['last_sql'] );
 NH_VIEN_Links::public_en_posts();
 NH_VIEN_Links::public_en_ids();
-must( 1 === $GLOBALS['page_lookups'] && 1 === $GLOBALS['child_queries'], 'The answer must be remembered for the rest of the request' );
+must( 1 === $GLOBALS['page_lookups'] && 1 === $GLOBALS['child_queries'] && 1 === $GLOBALS['rows_queries'], 'The answer must be remembered for the rest of the request' );
+foreach ( NH_VIEN_Links::public_en_posts() as $id => $row ) {
+	must( array( 'ID', 'post_name' ) === array_keys( get_object_vars( $row ) ) && $id === $row->ID, 'A public English post must carry its ID and its slug and nothing else (no content): ' . json_encode( get_object_vars( $row ) ) );
+}
+// With an object cache the next request does not reach the database, until a post changes.
+$GLOBALS['cache_on']     = true;
+$GLOBALS['rows_queries'] = 0;
+fresh();
+NH_VIEN_Links::public_en_ids();
+fresh();
+NH_VIEN_Links::public_en_ids();
+must( 1 === $GLOBALS['rows_queries'], 'The second request must be answered by the object cache: ' . $GLOBALS['rows_queries'] );
+$GLOBALS['last_changed'] = '2';
+fresh();
+NH_VIEN_Links::public_en_ids();
+must( 2 === $GLOBALS['rows_queries'], 'A change of the posts must invalidate the cache' );
+$GLOBALS['cache_on'] = false;
+$GLOBALS['cache']    = array();
 // Without the page /en/ nothing can be taken: no lookup of the children at all.
 $GLOBALS['pages'] = array();
 fresh();

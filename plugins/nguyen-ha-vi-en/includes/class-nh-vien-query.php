@@ -39,19 +39,124 @@ final class NH_VIEN_Query {
 		if ( ! $query instanceof WP_Query || ! self::applies( $query ) ) {
 			return;
 		}
-		if ( NH_VIEN_Context::is_english() ) {
-			$allowed = NH_VIEN_Links::public_en_ids();
-			$wanted  = array_filter( array_map( 'intval', (array) $query->get( 'post__in' ) ) );
-			$ids     = $wanted ? array_values( array_intersect( $wanted, $allowed ) ) : $allowed;
-			$query->set( 'post__in', $ids ? $ids : array( 0 ) );
-			self::flag_english_home( $query );
-			return;
+		$english = NH_VIEN_Context::is_english();
+		$scoped  = self::scoped_ids( $query->get( 'post__in' ), $query->get( 'post__not_in' ), $english, self::may_return_pages( $query ) );
+		foreach ( $scoped as $key => $ids ) {
+			if ( null !== $ids ) {
+				$query->set( $key, $ids );
+			}
 		}
-		$english = NH_VIEN_Links::en_ids();
 		if ( $english ) {
-			$excluded = array_map( 'intval', array_filter( (array) $query->get( 'post__not_in' ) ) );
-			$query->set( 'post__not_in', array_values( array_unique( array_merge( $excluded, $english ) ) ) );
+			self::flag_english_home( $query );
 		}
+	}
+
+	/**
+	 * The post__in and post__not_in of a list once the language is applied. WP_Query applies post__in and ignores
+	 * post__not_in when both are given, so the exclusions of the caller (the post being read, the posts already listed) are
+	 * taken out of the list here, and the language is never lost to a list that names its own posts.
+	 *
+	 * English lists keep the English posts that may be shown (and the English pages, when the query may return pages),
+	 * Vietnamese lists leave every English post out (and the English pages, likewise).
+	 *
+	 * @param mixed $post_in     The post__in of the query.
+	 * @param mixed $post_not_in The post__not_in of the query.
+	 * @param bool  $english     Whether the list is an English one.
+	 * @param bool  $with_pages  Whether the query may return pages.
+	 * @return array{post__in:?int[],post__not_in:?int[]} The values to set; null means leave the query as it is.
+	 */
+	public static function scoped_ids( $post_in, $post_not_in, $english, $with_pages = false ) {
+		$wanted   = self::ids( $post_in );
+		$excluded = self::ids( $post_not_in );
+		if ( $english ) {
+			$allowed = NH_VIEN_Links::public_en_ids();
+			if ( $with_pages ) {
+				$allowed = array_merge( $allowed, NH_VIEN_Routes::english_page_ids() );
+			}
+			// A list that names posts, none of them a real ID (post__in = array( 0 ), what a theme uses for "nothing"), is empty.
+			if ( self::names_posts( $post_in ) && ! $wanted ) {
+				$ids = array();
+			} else {
+				$ids = $wanted ? array_intersect( $wanted, $allowed ) : $allowed;
+			}
+			$ids = array_values( array_diff( $ids, $excluded ) );
+			return array(
+				'post__in'     => $ids ? $ids : array( 0 ),
+				'post__not_in' => null,
+			);
+		}
+		$hidden = NH_VIEN_Links::en_ids();
+		if ( $with_pages ) {
+			$hidden = array_merge( $hidden, NH_VIEN_Routes::english_page_ids() );
+		}
+		if ( ! $hidden ) {
+			return array(
+				'post__in'     => null,
+				'post__not_in' => null,
+			);
+		}
+		if ( $wanted ) {
+			$ids = array_values( array_diff( $wanted, $excluded, $hidden ) );
+			return array(
+				'post__in'     => $ids ? $ids : array( 0 ),
+				'post__not_in' => null,
+			);
+		}
+		return array(
+			'post__in'     => null,
+			'post__not_in' => array_values( array_unique( array_merge( $excluded, $hidden ) ) ),
+		);
+	}
+
+	/**
+	 * Whether a post__in names anything at all, even IDs that match no post: an empty value ('' is what a query that sets no
+	 * post__in gives) names nothing.
+	 *
+	 * @param mixed $value What a query holds in post__in.
+	 * @return bool
+	 */
+	private static function names_posts( $value ) {
+		foreach ( (array) $value as $entry ) {
+			if ( '' !== $entry && null !== $entry && false !== $entry ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * A list of IDs as WP_Query reads them (absolute integers), once each, without the zeros.
+	 *
+	 * @param mixed $value What a query holds in post__in or post__not_in: an array, or nothing.
+	 * @return int[]
+	 */
+	private static function ids( $value ) {
+		return array_values(
+			array_unique(
+				array_filter(
+					array_map(
+						static function ( $id ) {
+							return abs( (int) $id );
+						},
+						(array) $value
+					)
+				)
+			)
+		);
+	}
+
+	/**
+	 * Whether a query can return pages: a search, a query for any type, or one that names the page type.
+	 *
+	 * @param WP_Query $query The query about to run.
+	 * @return bool
+	 */
+	private static function may_return_pages( $query ) {
+		$types = $query->get( 'post_type' );
+		if ( '' === $types || null === $types ) {
+			return $query->is_search();
+		}
+		return in_array( 'page', (array) $types, true ) || in_array( 'any', (array) $types, true );
 	}
 
 	/**
@@ -67,14 +172,17 @@ final class NH_VIEN_Query {
 			return $args;
 		}
 		$language = $request->get_param( NH_VIEN_Routes::LANG_VAR );
-		if ( 'en' === $language ) {
-			$ids              = NH_VIEN_Links::public_en_ids();
-			$args['post__in'] = $ids ? $ids : array( 0 );
-		} elseif ( 'vi' === $language ) {
-			$english = NH_VIEN_Links::en_ids();
-			if ( $english ) {
-				$excluded             = isset( $args['post__not_in'] ) ? array_map( 'intval', (array) $args['post__not_in'] ) : array();
-				$args['post__not_in'] = array_values( array_unique( array_merge( $excluded, $english ) ) );
+		if ( 'en' === $language || 'vi' === $language ) {
+			$scoped = self::scoped_ids(
+				isset( $args['post__in'] ) ? $args['post__in'] : array(),
+				isset( $args['post__not_in'] ) ? $args['post__not_in'] : array(),
+				'en' === $language,
+				true
+			);
+			foreach ( $scoped as $key => $ids ) {
+				if ( null !== $ids ) {
+					$args[ $key ] = $ids;
+				}
 			}
 		}
 		return $args;
@@ -166,7 +274,8 @@ final class NH_VIEN_Query {
 		}
 		// Yoast builds XML sitemaps with get_terms(). Do not hide English-only terms before its
 		// wpseo_sitemap_entry callback can rewrite their URLs to the /en/ archives.
-		if ( defined( 'WPSEO_VERSION' ) && function_exists( 'get_query_var' ) && get_query_var( 'sitemap' ) ) {
+		global $wp_query;
+		if ( defined( 'WPSEO_VERSION' ) && $wp_query instanceof WP_Query && $wp_query->get( 'sitemap' ) ) {
 			return $terms;
 		}
 		if ( ! empty( $args['include'] ) || ( isset( $args[ NH_VIEN_Routes::SCOPE_VAR ] ) && 'off' === $args[ NH_VIEN_Routes::SCOPE_VAR ] ) ) {

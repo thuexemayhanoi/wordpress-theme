@@ -14,9 +14,42 @@ defined( 'ABSPATH' ) || exit;
  * Purge hooks of the VI/EN pairs.
  */
 final class NH_VIEN_Cache {
-	/** Listen for changes of the pairs. */
+	/** Listen for changes of the pairs, and, when the English side is on, add the English pages to what a post change purges. */
 	public static function boot() {
 		add_action( 'nh_vien_pairs_changed', array( __CLASS__, 'pairs_changed' ), 10, 2 );
+		if ( NH_VIEN_Routes::enabled() ) {
+			add_filter( 'nh_seo_purge_post_urls', array( __CLASS__, 'purge_urls' ), 10, 2 );
+		}
+	}
+
+	/**
+	 * The Nguyen Ha SEO Companion purges the pages a post change makes stale, with the Vietnamese archives in mind. For a post
+	 * of a pair it must also purge the other side (its language switcher and hreflang name this post), and for an English post
+	 * the English home and the English archives of its categories and tags.
+	 *
+	 * @param string[] $urls The addresses the companion collected.
+	 * @param WP_Post  $post The post that changed.
+	 * @return string[]
+	 */
+	public static function purge_urls( $urls, $post ) {
+		if ( ! is_array( $urls ) || ! $post instanceof WP_Post || 'post' !== $post->post_type || ! NH_VIEN_Routes::live() ) {
+			return $urls;
+		}
+		$english = NH_VIEN_Links::is_en( $post->ID );
+		$other   = $english ? NH_VIEN_Links::vi_for_en( $post->ID ) : NH_VIEN_Links::en_for_vi( $post->ID );
+		if ( $other ) {
+			$urls[] = get_permalink( $other );
+		}
+		if ( $english ) {
+			$urls[] = NH_VIEN_Routes::url();
+			foreach ( array( 'category', 'post_tag' ) as $taxonomy ) {
+				$terms = get_the_terms( $post, $taxonomy );
+				foreach ( is_array( $terms ) ? $terms : array() as $term ) {
+					$urls[] = NH_VIEN_Urls::english_term_url( $term );
+				}
+			}
+		}
+		return array_values( array_filter( $urls ) );
 	}
 
 	/**

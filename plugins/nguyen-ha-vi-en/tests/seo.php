@@ -95,6 +95,8 @@ function get_term_children( $id ) {
 function get_term( $id ) { return isset( $GLOBALS['terms'][ $id ] ) ? $GLOBALS['terms'][ $id ] : null; }
 function must( $condition, $message ) { if ( ! $condition ) { throw new RuntimeException( $message ); } }
 
+require __DIR__ . '/lib/db-stub.php';
+
 foreach ( array( 'languages', 'links', 'gate', 'routes', 'context', 'urls', 'seo' ) as $part ) {
 	require dirname( __DIR__ ) . '/includes/class-nh-vien-' . $part . '.php';
 }

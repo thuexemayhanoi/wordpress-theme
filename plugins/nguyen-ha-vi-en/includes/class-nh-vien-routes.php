@@ -25,6 +25,12 @@ final class NH_VIEN_Routes {
 	const SCOPE_VAR = 'nh_vien_scope';
 
 	/**
+	 * The query variables a list of the English side (the home, a category, a tag, a search) may carry. WordPress also
+	 * takes query variables from the address (?p=, ?page_id=, ?author=), which would turn the list into something else.
+	 */
+	const LIST_VARS = array( self::LANG_VAR, 'paged', 's', 'category_name', 'tag', 'error' );
+
+	/**
 	 * Memo of live() for this request.
 	 *
 	 * @var bool|null
@@ -44,6 +50,14 @@ final class NH_VIEN_Routes {
 	 * @var array<string,int>|null
 	 */
 	private static $below_en = null;
+
+	/**
+	 * The English post whose former address was asked for in this request (0 when there is none): the request is answered
+	 * as a 404 and redirected to the post in redirect_old_slug().
+	 *
+	 * @var int
+	 */
+	private static $moved_to = 0;
 
 	/**
 	 * Gate: whether the English routes are switched on. Either wp-config.php decides (the constant
@@ -102,6 +116,7 @@ final class NH_VIEN_Routes {
 		self::$live      = null;
 		self::$home_page = false;
 		self::$below_en  = null;
+		self::$moved_to  = 0;
 	}
 
 	/**
@@ -209,6 +224,7 @@ final class NH_VIEN_Routes {
 		add_action( 'init', array( __CLASS__, 'register' ), 20 );
 		add_filter( 'query_vars', array( __CLASS__, 'query_vars' ) );
 		add_action( 'parse_request', array( __CLASS__, 'parse_request' ) );
+		add_action( 'template_redirect', array( __CLASS__, 'redirect_old_slug' ), 0 );
 	}
 
 	/**
@@ -259,6 +275,11 @@ final class NH_VIEN_Routes {
 		$rules = self::rules();
 		if ( ! isset( $wp->matched_rule ) || ! isset( $rules[ $wp->matched_rule ] ) ) {
 			unset( $wp->query_vars[ self::LANG_VAR ], $wp->query_vars[ self::QUERY_VAR ] );
+			// What else is below /en/ (a page deeper than the first level, a 404) is answered in English as well: its menus, its
+			// language switcher and the fragments it caches must not be those of the Vietnamese site.
+			if ( self::live() && NH_VIEN_Context::address_is_english() ) {
+				NH_VIEN_Context::set( 'en' );
+			}
 			return;
 		}
 		// A rule of ours matched. Answer only when the English side is live (gate open and every rule stored, the state in which
@@ -271,7 +292,12 @@ final class NH_VIEN_Routes {
 		NH_VIEN_Context::set( 'en' );
 		if ( self::REWRITE === $wp->matched_rule || self::MULTIPAGE === $wp->matched_rule ) {
 			self::resolve_post( $wp );
-		} elseif ( self::HOME === $wp->matched_rule || self::HOME_PAGE === $wp->matched_rule ) {
+			return;
+		}
+		// A list: the address may add a search and a page number, never another kind of query.
+		$wp->query_vars                   = array_intersect_key( $wp->query_vars, array_flip( self::LIST_VARS ) );
+		$wp->query_vars[ self::LANG_VAR ] = 'en';
+		if ( self::HOME === $wp->matched_rule || self::HOME_PAGE === $wp->matched_rule ) {
 			self::resolve_home( $wp );
 		}
 	}
@@ -299,6 +325,7 @@ final class NH_VIEN_Routes {
 		}
 		$id = self::post_id_for_slug( $slug );
 		if ( ! $id ) {
+			self::$moved_to = self::moved_post_id( $slug );
 			$wp->query_vars = array( 'error' => '404' );
 			return;
 		}
@@ -306,6 +333,66 @@ final class NH_VIEN_Routes {
 			'p'             => $id,
 			self::QUERY_VAR => $slug,
 		);
+	}
+
+	/**
+	 * The English post that used to have this slug: WordPress keeps the former slugs of a renamed post (_wp_old_slug). Nothing
+	 * is guessed: the slug must be free now, and exactly one public English post must have had it.
+	 *
+	 * @param string $slug The slug that was asked for, already known to be routable.
+	 * @return int Post ID, or 0.
+	 */
+	private static function moved_post_id( $slug ) {
+		$public = NH_VIEN_Links::public_en_posts();
+		foreach ( $public as $post ) {
+			if ( $post->post_name === $slug ) {
+				return 0;
+			}
+		}
+		if ( ! $public ) {
+			return 0;
+		}
+		$found = get_posts(
+			array(
+				'post_type'              => 'post',
+				'post_status'            => 'publish',
+				'post__in'               => array_keys( $public ),
+				'posts_per_page'         => 2,
+				'fields'                 => 'ids',
+				'orderby'                => 'none',
+				'ignore_sticky_posts'    => true,
+				'no_found_rows'          => true,
+				'suppress_filters'       => true,
+				'update_post_meta_cache' => false,
+				'update_post_term_cache' => false,
+				self::SCOPE_VAR          => 'off',
+				'meta_query'             => array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Only for an address that is a 404 otherwise, among the English posts.
+					array(
+						'key'   => '_wp_old_slug',
+						'value' => $slug,
+					),
+				),
+			)
+		);
+		return 1 === count( $found ) ? (int) $found[0] : 0;
+	}
+
+	/**
+	 * The English address of the post that used to have the address of this request, or an empty string when there is none.
+	 *
+	 * @return string
+	 */
+	public static function old_slug_url() {
+		return self::$moved_to ? self::english_url( self::$moved_to ) : '';
+	}
+
+	/** A request for the former address of an English post is redirected to its address now, as WordPress does for any post. */
+	public static function redirect_old_slug() {
+		$url = self::old_slug_url();
+		if ( '' !== $url ) {
+			wp_safe_redirect( $url, 301 );
+			exit;
+		}
 	}
 
 	/**
@@ -443,6 +530,21 @@ final class NH_VIEN_Routes {
 			}
 		}
 		return self::$below_en;
+	}
+
+	/**
+	 * The English pages that are published: the page /en/ (the English home) and the pages directly below it. Searches and
+	 * other lists that may return pages keep them out of the Vietnamese lists and the Vietnamese pages out of the English ones.
+	 *
+	 * @return int[] Page IDs.
+	 */
+	public static function english_page_ids() {
+		$ids  = array_values( self::pages_below_en() );
+		$home = self::home_page();
+		if ( $home instanceof WP_Post ) {
+			$ids[] = (int) $home->ID;
+		}
+		return array_values( array_unique( $ids ) );
 	}
 
 	/**

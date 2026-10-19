@@ -614,7 +614,10 @@ final class NH_VIEN_Links {
 	 * the English slug can be routed. Any other English post stays hidden, so nothing English goes public before the
 	 * Vietnamese post it belongs to does.
 	 *
-	 * @return array<int,WP_Post> English post ID => post.
+	 * Each entry holds the ID and the slug of the post and nothing else: every English page asks for this list, and the
+	 * text of hundreds of articles is of no use to it.
+	 *
+	 * @return array<int,object> English post ID => object with ID and post_name.
 	 */
 	public static function public_en_posts() {
 		if ( isset( self::$memo['public'] ) ) {
@@ -626,26 +629,7 @@ final class NH_VIEN_Links {
 		if ( ! $pairs && ! $standalone ) {
 			return array();
 		}
-		$ids       = array_values( array_unique( array_merge( array_keys( $pairs ), array_values( $pairs ), $standalone ) ) );
-		$published = get_posts(
-			array(
-				'post_type'              => 'post',
-				'post_status'            => 'publish',
-				'post__in'               => $ids,
-				'posts_per_page'         => count( $ids ),
-				'orderby'                => 'none',
-				'ignore_sticky_posts'    => true,
-				'no_found_rows'          => true,
-				'suppress_filters'       => true,
-				'update_post_meta_cache' => false,
-				'update_post_term_cache' => false,
-				'nh_vien_scope'          => 'off',
-			)
-		);
-		$by_id     = array();
-		foreach ( $published as $post ) {
-			$by_id[ (int) $post->ID ] = $post;
-		}
+		$by_id = self::published_rows( array_merge( array_keys( $pairs ), array_values( $pairs ), $standalone ) );
 		// A page below /en/ keeps its address. One lookup answers for all of them: asking per English post would cost a
 		// query for each of hundreds of posts on every request.
 		$taken = NH_VIEN_Routes::pages_below_en();
@@ -665,6 +649,43 @@ final class NH_VIEN_Links {
 	}
 
 	/**
+	 * The ID and the slug of the published posts (not pages) among the given IDs.
+	 *
+	 * @param int[] $ids Post IDs.
+	 * @return array<int,object> Post ID => object with ID and post_name.
+	 */
+	private static function published_rows( $ids ) {
+		global $wpdb;
+		$ids = array_values( array_unique( array_filter( array_map( 'intval', $ids ) ) ) );
+		if ( ! $ids ) {
+			return array();
+		}
+		sort( $ids );
+		// Cached until any post changes (the salt is the time of the last change of the posts).
+		$key    = 'public_rows_' . md5( implode( ',', $ids ) ) . '_' . wp_cache_get_last_changed( 'posts' );
+		$cached = wp_cache_get( $key, 'nh_vien' );
+		if ( is_array( $cached ) ) {
+			return $cached;
+		}
+		$placeholders = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
+		$rows         = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Cached just below; only two columns are wanted, which WP_Query cannot select.
+			$wpdb->prepare(
+				"SELECT ID, post_name FROM {$wpdb->posts} WHERE post_type = 'post' AND post_status = 'publish' AND ID IN ($placeholders)", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- $placeholders is a list of %d, one per ID.
+				$ids
+			)
+		);
+		$by_id        = array();
+		foreach ( is_array( $rows ) ? $rows : array() as $row ) {
+			$by_id[ (int) $row->ID ] = (object) array(
+				'ID'        => (int) $row->ID,
+				'post_name' => (string) $row->post_name,
+			);
+		}
+		wp_cache_set( $key, $by_id, 'nh_vien', HOUR_IN_SECONDS );
+		return $by_id;
+	}
+
+	/**
 	 * IDs of the English posts that may be shown.
 	 *
 	 * @return int[]
@@ -674,31 +695,59 @@ final class NH_VIEN_Links {
 	}
 
 	/**
-	 * The categories and tags that have an English archive: the terms of the English posts that may be shown, and the
-	 * parents of those categories, whose archives list the posts of their children too.
+	 * The categories and tags that have an English archive: the declared English categories, and the terms of the English
+	 * posts that may be shown with the parents of those categories, whose archives list the posts of their children too.
 	 *
 	 * @return array<int,true> Term ID => true.
 	 */
 	public static function en_term_ids() {
-		if ( isset( self::$memo['terms'] ) ) {
-			return self::$memo['terms'];
-		}
-		self::$memo['terms'] = array_fill_keys( self::declared_en_terms(), true );
-		$ids                 = self::public_en_ids();
-		if ( ! $ids ) {
-			return self::$memo['terms'];
-		}
-		$term_ids = wp_get_object_terms( $ids, array( 'category', 'post_tag' ), array( 'fields' => 'ids' ) );
-		if ( is_wp_error( $term_ids ) ) {
-			return array();
-		}
-		foreach ( $term_ids as $term_id ) {
-			self::$memo['terms'][ (int) $term_id ] = true;
-			foreach ( get_ancestors( (int) $term_id, 'category', 'taxonomy' ) as $ancestor_id ) {
-				self::$memo['terms'][ (int) $ancestor_id ] = true;
-			}
+		if ( ! isset( self::$memo['terms'] ) ) {
+			self::$memo['terms'] = array_fill_keys( self::declared_en_terms(), true ) + self::en_populated_term_ids();
 		}
 		return self::$memo['terms'];
+	}
+
+	/**
+	 * The categories and tags that have English posts that may be shown (the parents of those categories included): the
+	 * terms whose English archive is not empty. A declared English category without posts is not among them.
+	 *
+	 * @return array<int,true> Term ID => true.
+	 */
+	public static function en_populated_term_ids() {
+		if ( isset( self::$memo['populated'] ) ) {
+			return self::$memo['populated'];
+		}
+		self::$memo['populated'] = array();
+		$ids                     = self::public_en_ids();
+		if ( ! $ids ) {
+			return self::$memo['populated'];
+		}
+		// The whole terms, not only their IDs: they say which are categories (only those have parents to look up, and the
+		// lookup of an ID in the wrong taxonomy would cost a query each), and they fill the term cache for get_ancestors().
+		// The term lists of English pages are filtered by NH_VIEN_Query::filter_terms(), which asks for this very lookup: the
+		// opt-out keeps this call out of the filter (it would drop every term while the lookup is still being made).
+		$terms = wp_get_object_terms(
+			$ids,
+			array( 'category', 'post_tag' ),
+			array(
+				'fields'                  => 'all',
+				NH_VIEN_Routes::SCOPE_VAR => 'off',
+			)
+		);
+		if ( is_wp_error( $terms ) ) {
+			return self::$memo['populated'];
+		}
+		foreach ( $terms as $term ) {
+			$term_id                             = (int) $term->term_id;
+			self::$memo['populated'][ $term_id ] = true;
+			if ( 'category' !== $term->taxonomy ) {
+				continue;
+			}
+			foreach ( get_ancestors( $term_id, 'category', 'taxonomy' ) as $ancestor_id ) {
+				self::$memo['populated'][ (int) $ancestor_id ] = true;
+			}
+		}
+		return self::$memo['populated'];
 	}
 
 	/**
@@ -735,7 +784,14 @@ final class NH_VIEN_Links {
 		if ( ! $published ) {
 			return self::$memo['en_only'];
 		}
-		$rows = wp_get_object_terms( $published, array( 'category', 'post_tag' ), array( 'fields' => 'all_with_object_id' ) );
+		$rows = wp_get_object_terms(
+			$published,
+			array( 'category', 'post_tag' ),
+			array(
+				'fields'                  => 'all_with_object_id',
+				NH_VIEN_Routes::SCOPE_VAR => 'off',
+			)
+		);
 		if ( is_wp_error( $rows ) ) {
 			return self::$memo['en_only'];
 		}

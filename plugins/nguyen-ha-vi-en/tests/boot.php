@@ -124,7 +124,7 @@ foreach ( array( 'wp_body_open', 'nh_editorial_after_skip_link', 'pre_get_posts'
 $expected_front = hooks_of( 'NH_VIEN_Routes', 'NH_VIEN_Context', 'NH_VIEN_Urls', 'NH_VIEN_Cache', 'NH_VIEN_Query', 'NH_VIEN_Content', 'NH_VIEN_Seo', 'NH_VIEN_Switcher' );
 $booted_front   = boot_hooks( 'staging', false );
 must( $expected_front === $booted_front, 'Front end request hooks differ' );
-foreach ( array( 'init', 'parse_request', 'pre_get_posts', 'post_link', 'rest_url', 'rest_post_search_query', 'wp_body_open', 'nh_editorial_after_skip_link', 'wpseo_canonical', 'wp_head', 'the_title', 'shortcode:nh_vien_switcher', 'shortcode:nh_vien_posts' ) as $front_hook ) {
+foreach ( array( 'init', 'parse_request', 'template_redirect', 'pre_get_posts', 'post_link', 'rest_url', 'rest_post_search_query', 'wp_body_open', 'nh_editorial_after_skip_link', 'wpseo_canonical', 'wp_head', 'the_title', 'wp_nav_menu_args', 'pre_wp_nav_menu', 'wp', 'nh_seo_purge_post_urls', 'shortcode:nh_vien_switcher', 'shortcode:nh_vien_posts' ) as $front_hook ) {
 	must( in_array( $front_hook, $booted_front, true ), "Front-end hook $front_hook missing" );
 }
 foreach ( array( 'admin_menu', 'admin_post_nh_vien_link', 'admin_post_nh_vien_flush', 'admin_post_nh_vien_toggle', 'plugin_action_links_nguyen-ha-vi-en/nguyen-ha-vi-en.php' ) as $admin_hook ) {
