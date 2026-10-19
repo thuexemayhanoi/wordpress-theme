@@ -36,6 +36,7 @@ final class NH_VIEN_Seo {
 		add_filter( 'wpseo_sitemap_post_tag_content', array( __CLASS__, 'sitemap_tags' ) );
 		// The sitemap WordPress builds itself, used when no SEO plugin provides one.
 		add_filter( 'wp_sitemaps_posts_query_args', array( __CLASS__, 'core_sitemap_args' ), 10, 2 );
+		add_filter( 'wp_sitemaps_taxonomies_query_args', array( __CLASS__, 'core_sitemap_term_args' ), 10, 2 );
 	}
 
 	/**
@@ -266,6 +267,27 @@ final class NH_VIEN_Seo {
 			isset( $args['post__not_in'] ) ? (array) $args['post__not_in'] : array(),
 			array_diff( NH_VIEN_Links::en_ids(), NH_VIEN_Links::public_en_ids() )
 		);
+		return $args;
+	}
+
+	/**
+	 * In the sitemap of categories and tags of WordPress, leave out the terms that only English posts fill: their address
+	 * without /en/ answers 404. The sitemap of WordPress does not list the English archives; without an SEO plugin they
+	 * are found through the links of the pages.
+	 *
+	 * @param array  $args     The arguments of the terms query.
+	 * @param string $taxonomy The taxonomy of the sitemap.
+	 * @return array
+	 */
+	public static function core_sitemap_term_args( $args, $taxonomy ) {
+		if ( ! is_array( $args ) || ! in_array( $taxonomy, array( 'category', 'post_tag' ), true ) || ! NH_VIEN_Routes::live() ) {
+			return $args;
+		}
+		$only = array_keys( NH_VIEN_Links::en_only_term_ids() );
+		if ( $only ) {
+			$excluded        = isset( $args['exclude'] ) ? array_map( 'intval', (array) $args['exclude'] ) : array();
+			$args['exclude'] = array_values( array_unique( array_merge( $excluded, $only ) ) );
+		}
 		return $args;
 	}
 

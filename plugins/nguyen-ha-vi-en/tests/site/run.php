@@ -448,11 +448,13 @@ ok( 'a page below /en/ is served', false !== strpos( $r['body'], 'About (English
 echo "\n[2] Language of the page\n";
 foreach ( array( '/', '/thue-xe-may-ha-noi/', '/bai-chua-dich/', '/category/kinh-nghiem/', '/page/2/', '/nope-404-test/' ) as $url ) {
 	$xpath = xp( page( $url )['body'] );
-	ok( "$url is lang=vi", 'vi' === $xpath->query( '//html' )->item( 0 )->getAttribute( 'lang' ) );
+	$lang  = $xpath->query( '//html' )->item( 0 )->getAttribute( 'lang' );
+	ok( "$url is lang=vi", 'vi' === $lang, "lang=$lang" );
 }
 foreach ( array( '/en/', '/en/motorbike-rental-in-hanoi/', '/en/category/travel-tips/', '/en/tag/hanoi/', '/en/page/2/', '/en/nope/', '/en/about/' ) as $url ) {
 	$xpath = xp( page( $url )['body'] );
-	ok( "$url is lang=en-US", 'en-US' === $xpath->query( '//html' )->item( 0 )->getAttribute( 'lang' ) );
+	$lang  = $xpath->query( '//html' )->item( 0 )->getAttribute( 'lang' );
+	ok( "$url is lang=en-US", 'en-US' === $lang, "lang=$lang" );
 }
 $title = text_of( xp( page( '/en/motorbike-rental-in-hanoi/' )['body'] ), '//head/title' );
 ok( 'the English post has its own title', false !== strpos( $title, 'Motorbike rental in Hanoi' ), $title );
@@ -610,7 +612,8 @@ if ( 'yoast' === $seo ) {
 	$org_vi = node_of_type( $vi_nodes, 'Organization' );
 	$web_en = node_of_type( $en_nodes, 'WebSite' );
 	$web_vi = node_of_type( $vi_nodes, 'WebSite' );
-	ok( 'the organisation and the site have the same identifiers in both languages', $org_en && $org_vi && $org_en['@id'] === $org_vi['@id'] && $web_en && $web_vi && $web_en['@id'] === $web_vi['@id'], ( $org_en ? $org_en['@id'] : '-' ) . ' / ' . ( $org_vi ? $org_vi['@id'] : '-' ) );
+	// Yoast SEO writes the Organization only once the site is set up as one; the WebSite is always there.
+	ok( 'the site (and the organisation, when there is one) have the same identifiers in both languages', $web_en && $web_vi && $web_en['@id'] === $web_vi['@id'] && ( ! $org_en && ! $org_vi || $org_en && $org_vi && $org_en['@id'] === $org_vi['@id'] ), ( $web_en ? $web_en['@id'] : '-' ) . ' / ' . ( $web_vi ? $web_vi['@id'] : '-' ) . ' ; ' . ( $org_en ? $org_en['@id'] : '-' ) . ' / ' . ( $org_vi ? $org_vi['@id'] : '-' ) );
 	$yoast_crumb = array_map( 'path_of', attrs( $all_head, "//main//nav[contains(@class,'breadcrumb')]//a | //nav[contains(@aria-label,'readcrumb')]//a", 'href' ) );
 	ok( 'the visible breadcrumb of an English post follows the structured data', ! $yoast_crumb || ( '/en/' === $yoast_crumb[0] && ! array_filter( $yoast_crumb, function ( $p ) { return 0 !== strpos( $p, '/en/' ); } ) ), implode( ',', $yoast_crumb ) );
 
@@ -638,8 +641,14 @@ if ( 'yoast' === $seo ) {
 	ok( 'the category sitemap lists the English archives', in_array( '/en/category/guides/motorbike-rental/', $locs, true ) && in_array( '/en/category/travel-tips/', $locs, true ) && in_array( '/en/category/guides/', $locs, true ), implode( ',', $locs ) );
 	ok( 'the category sitemap lists the Vietnamese archives that have Vietnamese posts', in_array( '/category/kinh-nghiem/', $locs, true ) && in_array( '/category/thue-xe/', $locs, true ), implode( ',', $locs ) );
 	ok( 'the category sitemap no longer lists archives that only English posts fill', ! array_intersect( $locs, array( '/category/travel-tips/', '/category/guides/', '/category/guides/motorbike-rental/' ) ), implode( ',', array_intersect( $locs, array( '/category/travel-tips/', '/category/guides/' ) ) ) );
-	list( $valid, $locs ) = $maps_xml( '/post_tag-sitemap.xml' );
-	ok( 'the tag sitemap lists the English tag archives and not the Vietnamese address of them', $valid && in_array( '/en/tag/hanoi/', $locs, true ) && ! in_array( '/tag/hanoi/', $locs, true ), implode( ',', $locs ) );
+	if ( in_array( '/post_tag-sitemap.xml', $maps, true ) ) {
+		list( $valid, $locs ) = $maps_xml( '/post_tag-sitemap.xml' );
+		ok( 'the tag sitemap lists the English tag archives and not the Vietnamese address of them', $valid && in_array( '/en/tag/hanoi/', $locs, true ) && ! in_array( '/tag/hanoi/', $locs, true ), implode( ',', $locs ) );
+	} else {
+		// Yoast SEO keeps tags out of the index and out of the sitemap by default, for both languages alike.
+		ok( 'Yoast SEO has no tag sitemap here, so there is no tag entry to translate', true );
+		ok( 'the English tag archive is left out of the search results like every tag, not given a sitemap of its own', ! array_filter( $maps, function ( $p ) { return false !== strpos( $p, 'tag' ); } ), implode( ',', $maps ) );
+	}
 } else {
 	echo "\n[7] The sitemap of WordPress\n";
 	$r = page( '/wp-sitemap-posts-post-1.xml' );
@@ -647,6 +656,16 @@ if ( 'yoast' === $seo ) {
 	$locs = array_map( 'path_of', $m[1] );
 	ok( 'the WordPress sitemap lists English posts at their English address and Vietnamese posts as before', 200 === $r['status'] && in_array( '/en/motorbike-rental-in-hanoi/', $locs, true ) && in_array( '/thue-xe-may-ha-noi/', $locs, true ), 'status ' . $r['status'] . ' ' . count( $locs ) . ' urls' );
 	ok( 'the WordPress sitemap lists no ordinary address of an English post and no hidden post', ! array_intersect( $locs, array_merge( $en_native_paths, array( '/en/hidden-english-post/', '/en/english-draft/' ) ) ) );
+	$r = page( '/wp-sitemap-taxonomies-category-1.xml' );
+	preg_match_all( '#<loc>([^<]+)</loc>#', $r['body'], $m );
+	$locs = array_map( 'path_of', $m[1] );
+	ok( 'the WordPress category sitemap lists the Vietnamese archives that have Vietnamese posts', 200 === $r['status'] && in_array( '/category/kinh-nghiem/', $locs, true ) && in_array( '/category/thue-xe/', $locs, true ), 'status ' . $r['status'] . ' ' . implode( ',', $locs ) );
+	ok( 'the WordPress category sitemap no longer lists archives that only English posts fill (they answer 404)', ! array_intersect( $locs, array( '/category/travel-tips/', '/category/guides/', '/category/guides/motorbike-rental/' ) ), implode( ',', array_intersect( $locs, array( '/category/travel-tips/', '/category/guides/' ) ) ) );
+	$r = page( '/wp-sitemap-taxonomies-post_tag-1.xml' );
+	preg_match_all( '#<loc>([^<]+)</loc>#', $r['body'], $m );
+	ok( 'the WordPress tag sitemap does not list the Vietnamese address of a tag that only English posts use', ! in_array( '/tag/hanoi/', array_map( 'path_of', $m[1] ), true ) && ! in_array( '/tag/safety/', array_map( 'path_of', $m[1] ), true ), 'status ' . $r['status'] );
+	$index = page( '/wp-sitemap.xml' );
+	ok( 'the WordPress sitemap index does not point to an empty tag sitemap', false === strpos( $index['body'], 'post_tag' ) || 200 === $r['status'], 'tag sitemap status ' . $r['status'] );
 }
 
 echo "\n[8] Security\n";
@@ -662,7 +681,8 @@ $xpath   = xp( $special['body'] );
 $special_title = text_of( $xpath, '//head/title' );
 ok( 'a title with markup reaches the title tag as text only', 200 === $special['status'] && false !== strpos( $special_title, 'scooters' ) && false === strpos( $special_title, '<img' ) && false === strpos( preg_replace( '#<script.*?</script>#s', '', explode( '</head>', $special['body'] )[0] ), '<img src=x onerror' ), $special_title );
 $r = http( '/?nh_vien_lang=en' );
-ok( 'a raw nh_vien_lang variable does not make a page English', 'vi' === xp( $r['body'] )->query( '//html' )->item( 0 )->getAttribute( 'lang' ) );
+$lang = xp( $r['body'] )->query( '//html' )->item( 0 )->getAttribute( 'lang' );
+ok( 'a raw nh_vien_lang variable does not make a page English', 'vi' === $lang, "lang=$lang" );
 $r = http( '/?nh_vien_en_slug=motorbike-rental-in-hanoi' );
 ok( 'a raw nh_vien_en_slug variable does not open an English post', 200 === $r['status'] && false === strpos( text_of( xp( $r['body'] ), '//head/title' ), 'Motorbike rental' ) );
 $r = http( '/?nh_vien_scope=off' );

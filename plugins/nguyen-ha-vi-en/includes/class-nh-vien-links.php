@@ -380,6 +380,20 @@ final class NH_VIEN_Links {
 			$terms[ $term_id ]         = $term;
 			$english_posts[ $term_id ] = isset( $english_posts[ $term_id ] ) ? $english_posts[ $term_id ] + 1 : 1;
 		}
+		// The parents of those categories list the English posts of their children too, so they can be English only as well.
+		foreach ( array_keys( $terms ) as $term_id ) {
+			if ( 'category' !== $terms[ $term_id ]->taxonomy ) {
+				continue;
+			}
+			foreach ( get_ancestors( $term_id, 'category', 'taxonomy' ) as $ancestor_id ) {
+				$ancestor_id = (int) $ancestor_id;
+				$ancestor    = isset( $terms[ $ancestor_id ] ) ? null : get_term( $ancestor_id, 'category' );
+				if ( $ancestor instanceof WP_Term ) {
+					$terms[ $ancestor_id ]         = $ancestor;
+					$english_posts[ $ancestor_id ] = 0;
+				}
+			}
+		}
 		foreach ( $terms as $term_id => $term ) {
 			$ids = array( $term_id );
 			if ( 'category' === $term->taxonomy ) {

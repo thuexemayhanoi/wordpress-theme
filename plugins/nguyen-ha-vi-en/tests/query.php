@@ -105,8 +105,26 @@ function wp_get_object_terms( $ids, $taxonomies, $args ) {
 	}
 	return $rows;
 }
-function get_ancestors() { return array(); }
-function get_term_children() { return array(); }
+/** Parent of a term, by ID (a child => its parent); empty unless a test sets it. */
+$GLOBALS['parents'] = array();
+function get_ancestors( $id ) {
+	$out = array();
+	while ( isset( $GLOBALS['parents'][ $id ] ) ) {
+		$id    = $GLOBALS['parents'][ $id ];
+		$out[] = $id;
+	}
+	return $out;
+}
+function get_term_children( $id ) {
+	$out = array();
+	foreach ( $GLOBALS['parents'] as $child => $parent ) {
+		if ( $parent === $id ) {
+			$out[] = $child;
+			$out   = array_merge( $out, get_term_children( $child ) );
+		}
+	}
+	return $out;
+}
 function get_term( $id ) { return isset( $GLOBALS['terms'][ $id ] ) ? $GLOBALS['terms'][ $id ] : null; }
 function add_query_arg( $key, $value, $url ) { return $url . ( false === strpos( $url, '?' ) ? '?' : '&' ) . $key . '=' . $value; }
 function must( $condition, $message ) { if ( ! $condition ) { throw new RuntimeException( $message ); } }
@@ -242,6 +260,26 @@ $kept = NH_VIEN_Query::filter_terms( $all, array( 'category' ), array() );
 must( array( 1, 2, 5 ) === array_map( static function ( $term ) { return $term->term_id; }, $kept ), 'Vietnamese pages must drop the terms whose posts are all English' );
 must( $all === NH_VIEN_Query::filter_terms( $all, array( 'category' ), array( 'include' => array( 3 ) ) ), 'An explicit include must not be filtered' );
 must( array( 1, 2 ) === NH_VIEN_Query::filter_terms( array( 1, 2 ), array( 'category' ), array( 'fields' => 'ids' ) ), 'Lists of IDs are left alone' );
+
+// ---- The parent of an English-only category is English only as well, unless it has Vietnamese posts of its own.
+$GLOBALS['terms'][6] = new WP_Term( 6, 'category', 'en-parent', 0 );
+$GLOBALS['terms'][7] = new WP_Term( 7, 'category', 'mixed-parent', 4 );
+$GLOBALS['parents']  = array(
+	3 => 6,
+	2 => 7,
+);
+fresh( 'vi' );
+$only = NH_VIEN_Links::en_only_term_ids();
+must( isset( $only[3] ) && isset( $only[4] ), 'The English-only category and tag must be English only' );
+must( isset( $only[6] ), 'The parent of an English-only category must be English only' );
+must( ! isset( $only[7] ) && ! isset( $only[2] ) && ! isset( $only[1] ), 'A category with Vietnamese posts, its own or in a child, must not be English only' );
+$kept = NH_VIEN_Query::filter_terms( array( $GLOBALS['terms'][1], $GLOBALS['terms'][2], $GLOBALS['terms'][6], $GLOBALS['terms'][7] ), array( 'category' ), array() );
+must( array( 1, 2, 7 ) === array_map( static function ( $term ) { return $term->term_id; }, $kept ), 'Vietnamese pages must drop the English-only parent' );
+fresh( 'en' );
+$kept = NH_VIEN_Query::filter_terms( array( $GLOBALS['terms'][1], $GLOBALS['terms'][2], $GLOBALS['terms'][6], $GLOBALS['terms'][7] ), array( 'category' ), array() );
+must( array( 2, 6, 7 ) === array_map( static function ( $term ) { return $term->term_id; }, $kept ), 'English pages must keep the parents of the categories of English posts' );
+$GLOBALS['parents'] = array();
+unset( $GLOBALS['terms'][6], $GLOBALS['terms'][7] );
 
 // ---- Empty archives are a 404 only when the language is the reason.
 fresh( 'en' );
