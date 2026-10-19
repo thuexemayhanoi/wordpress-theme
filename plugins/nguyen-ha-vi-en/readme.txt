@@ -3,25 +3,32 @@ Contributors: nguyen-ha-editorial
 Tags: multilingual, vietnamese, english
 Requires at least: 6.0
 Requires PHP: 7.4
-Stable tag: 0.1.0
+Stable tag: 0.2.0
 License: GPLv2 or later
 
 == Description ==
-Safety-first scaffold for a future native VI/EN language system on blog.rentbikehanoi.com. This version exposes read-only language metadata and registers no routes, redirects, switcher, content linkage, admin UI, Yoast filters, or sitemap endpoints.
+Development-only VI/EN post-pair manager for blog.rentbikehanoi.com. This version does not enable translated URLs or frontend SEO.
 
-== Installation ==
-Development branch only. Do not install on production until a separate WordPress compatibility QA and deployment approval.
+== Features in step 3 ==
+- Vietnamese remains the default; /en/ is only reserved metadata.
+- Site administrators may manually link two existing normal WordPress posts using Tools > VI/EN Links once installed on staging.
+- Each post may belong to only one VI/EN pair; reusing an ID is rejected.
+- Pairs are stored only in the plugin-owned non-autoloaded option nh_vien_translation_pairs_v1, not in post content, post meta, Yoast metadata, or taxonomy.
+- Link/unlink require administrator capability, edit permission for BOTH posts, and a valid WordPress nonce. They reject self-links, invalid IDs, missing posts, trash, revisions, pages and duplicate relationships.
+- Existing posts, slugs, permalinks, canonical, Yoast, sitemap and hreflang remain untouched.
+- No write happens during plugin load or admin reads; only an explicit authorized link/unlink changes the private option.
+- Corrupt relationship maps fail closed without overwriting data.
 
-== Safety ==
-- Preserves every existing Vietnamese post, URL, term and SEO value.
-- Does not create or update options, post meta, posts, terms or database tables.
-- Does not register activation/uninstall/deactivation mutations or rewrite rules.
-- Does not override Yoast SEO or register sitemap, canonical or hreflang tags.
-- Remains independent of any WordPress theme and of third-party translation plugins.
+== Limits ==
+- Direction VI -> EN is selected manually; language detection and automatic translation do not exist in this version.
+- There is no /en/ route, language switcher, translation editor, hreflang, canonical or sitemap integration yet.
+- The option map is not transaction-safe for simultaneous administrators editing at the same instant; review concurrent-write handling before production release.
+- Staging WordPress, PHP 7.4 and Yoast integration tests are still required before merging or installing production.
 
-== Next milestones ==
-1. Translation relationship storage and nonce/capability-protected editorial UI.
-2. English URLs and correct 404/redirect behavior after permalink review.
-3. VI/EN switcher, translated categories and language-aware search.
-4. Reciprocal hreflang, canonical, Yoast sitemap integration and cache separation.
-5. WordPress staging tests, no-regression checks and separate plugin ZIP release.
+== CLI checks ==
+php plugins/nguyen-ha-vi-en/tests/smoke.php
+php plugins/nguyen-ha-vi-en/tests/links.php
+php -l plugins/nguyen-ha-vi-en/includes/class-nh-vien-links.php
+
+== Deployment policy ==
+Keep this code on a separate development branch. Do not merge into main or activate in production without specific approval and staging verification.

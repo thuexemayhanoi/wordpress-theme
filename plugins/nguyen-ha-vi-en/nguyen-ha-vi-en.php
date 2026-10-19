@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: Nguyen Ha VI-EN Core
- * Description: Safe, independent VI/EN foundation. Features are intentionally inactive until separately implemented and verified.
- * Version: 0.1.0
+ * Description: Safe VI/EN editorial post links; no frontend routing or SEO changes.
+ * Version: 0.2.0
  * Requires at least: 6.0
  * Requires PHP: 7.4
  * Author: Nguyen Ha Editorial
@@ -13,7 +13,7 @@
 defined( 'ABSPATH' ) || exit;
 
 if ( ! defined( 'NH_VIEN_VERSION' ) ) {
-	define( 'NH_VIEN_VERSION', '0.1.0' );
+	define( 'NH_VIEN_VERSION', '0.2.0' );
 }
 
 if ( ! defined( 'NH_VIEN_PLUGIN_FILE' ) ) {
@@ -21,6 +21,8 @@ if ( ! defined( 'NH_VIEN_PLUGIN_FILE' ) ) {
 }
 
 require_once __DIR__ . '/includes/class-nh-vien-languages.php';
+require_once __DIR__ . '/includes/class-nh-vien-links.php';
+require_once __DIR__ . '/includes/class-nh-vien-admin.php';
 require_once __DIR__ . '/includes/class-nh-vien-plugin.php';
 
 /**
@@ -32,5 +34,5 @@ function nh_vien() {
 	return NH_VIEN_Plugin::instance();
 }
 
-// No activation handler, rewrite rule, SEO hook, database write, or URL change.
+// Only explicit administrator link/unlink actions can update the plugin-owned option.
 add_action( 'plugins_loaded', array( 'NH_VIEN_Plugin', 'boot' ), 20 );
