@@ -31,7 +31,7 @@ Plugin chạy độc lập (có ZIP riêng, không cần theme hay plugin đồn
 
 **Bộ chuyển ngôn ngữ.** Hai liên kết VI và EN, mục tiêu chạm 44 px, dùng được bằng bàn phím và trình đọc màn hình; trên bài viết dẫn tới bản dịch, ở nơi khác dẫn về trang chủ của ngôn ngữ kia, và ẩn khi không có nơi để dẫn. Theme Nguyen Ha Editorial đặt nó ngay **sau** liên kết "Skip to content"; theme khác nhận nó ở `wp_body_open()`; theme không gọi `wp_body_open()` nhận nó phía trên nội dung bài; ở mọi nơi khác dùng shortcode `[nh_vien_switcher]`.
 
-**SEO.** `hreflang` (vi, en, x-default) giữa hai bài của một cặp và giữa hai trang chủ; canonical riêng cho từng ngôn ngữ; breadcrumb tiếng Anh; địa chỉ tiếng Anh trong sơ đồ trang. Với **Yoast SEO** (plugin SEO của website): Yoast vẫn là chủ của tiêu đề, canonical và **một** `sitemap_index.xml`; plugin chỉ dùng các filter được tài liệu hóa của Yoast để (1) lấy canonical và `og:url` là địa chỉ `/en/…`, tôn trọng canonical biên tập viên đã gõ tay, (2) ghi breadcrumb và `BreadcrumbList` tiếng Anh, (3) thêm trang chủ, danh mục và thẻ tiếng Anh vào các sơ đồ trang Yoast đã có, (4) bỏ bài Anh chưa được phép hiện khỏi sơ đồ. Yoast không in hreflang cho các bài riêng lẻ nên plugin in hreflang (chỉ cho cặp bài và hai trang chủ).
+**SEO.** `hreflang` (vi, en, x-default) giữa hai bài của một cặp và giữa hai trang chủ; canonical riêng cho từng ngôn ngữ; breadcrumb tiếng Anh; địa chỉ tiếng Anh trong sơ đồ trang. Với **Yoast SEO** (plugin SEO của website): Yoast vẫn là chủ của tiêu đề, canonical và **một** `sitemap_index.xml`; plugin chỉ dùng các filter được tài liệu hóa của Yoast để (1) lấy canonical và `og:url` là địa chỉ `/en/…`, tôn trọng canonical biên tập viên đã gõ tay, (2) ghi breadcrumb và `BreadcrumbList` tiếng Anh, (3) thêm trang chủ và danh mục tiếng Anh (và thẻ, khi Yoast có sơ đồ thẻ; mặc định Yoast không có) vào các sơ đồ trang Yoast đã có, (4) bỏ bài Anh chưa được phép hiện, cùng danh mục/thẻ chỉ có bài Anh (địa chỉ không có `/en/` của chúng trả 404), khỏi sơ đồ. Không có plugin SEO, sơ đồ của WordPress liệt kê bài Anh ở địa chỉ `/en/…` và bỏ các danh mục/thẻ chỉ có bài Anh, nhưng không thêm trang chủ hay lưu trữ tiếng Anh (WordPress không cho plugin thêm mục vào sơ đồ này). Yoast không in hreflang cho các bài riêng lẻ nên plugin in hreflang (chỉ cho cặp bài và hai trang chủ).
 
 **Cache.** Địa chỉ `/en/…` là URL riêng nên cache trang theo URL tự tách hai ngôn ngữ. Cache mảnh của theme Nguyen Ha Editorial có hậu tố ngôn ngữ; khi thêm hoặc bỏ một cặp, plugin báo cho cache mảnh của theme và hàng đợi xóa cache trang của plugin đồng hành (cả hai tùy chọn). Với cache khác, hãy xóa cache sau khi ghép bài.
 
@@ -50,7 +50,7 @@ Làm trên **bản sao** có cùng theme, cùng plugin SEO, cùng cấu trúc pe
 
 - [ ] Có sao lưu **mới** (CSDL + `wp-content`) đã mở thử được; biết cách quay lại (mục 6).
 - [ ] Trước khi bật, lưu HTML của trang chủ, một danh mục, một bài, `/?s=xe`, `/feed/`; sau khi bật hằng số và bấm "Store the rewrite rules" (chưa ghép bài nào) các trang đó **giống hệt**.
-- [ ] Không có trang hay bài nào đã dùng `/en/` hoặc `/en/…` ngoài ý muốn (*Công cụ → VI/EN Links* báo khi một cặp bị ẩn vì trang chiếm địa chỉ).
+- [ ] Không có trang hay bài nào đã dùng `/en/` hoặc `/en/…` ngoài ý muốn. Một **bài** đã xuất bản có slug `en` làm plugin từ chối lưu quy tắc (màn hình *Công cụ → VI/EN Links* ghi "Address /en/ used by a post"); một **trang** đã xuất bản ở `/en/` trở thành trang chủ tiếng Anh; một trang dưới `/en/…` giữ địa chỉ và làm ẩn bài Anh cùng slug (màn hình báo trạng thái của từng cặp).
 - [ ] Một bài Việt đã ghép: có hreflang `vi`, `en`, `x-default` đúng hai chiều; một canonical; bộ chuyển ngôn ngữ dẫn đúng.
 - [ ] Bài Anh tương ứng: `<html lang="en-US">`, canonical là `/en/{slug}/`, JSON-LD (`WebPage`/`Article`/`BreadcrumbList`) có `url` là `/en/{slug}/`; địa chỉ `/{slug}/` trả **301** sang `/en/{slug}/` và không bị vòng lặp.
 - [ ] `/sitemap_index.xml` vẫn là **một** sơ đồ; bài Anh xuất hiện ở `/en/{slug}/`, không có nháp, không có địa chỉ gốc của bài Anh.
@@ -106,6 +106,7 @@ Trang tiếng Việt không đổi ở mọi bước (kiểm thử CI so sánh H
 - Logo và ô tìm kiếm đổi ngôn ngữ nhờ `home_url( '/' )`; theme dựng các liên kết đó bằng cách khác (một số theme khối) vẫn dẫn về trang chủ tiếng Việt.
 - Chỉ bài tiếng Anh có slug ASCII đơn giản mới truy cập được; mục menu, widget và văn bản gõ tay không tự dịch.
 - Khi có trang tĩnh tại `/en/` thì trang đó là trang chủ tiếng Anh và không có `/en/page/2/`.
+- Không có plugin SEO: sơ đồ của WordPress không liệt kê trang chủ và lưu trữ tiếng Anh.
 
 ## 9. Lệnh kiểm tra nhanh
 

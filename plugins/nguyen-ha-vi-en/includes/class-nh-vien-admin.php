@@ -54,6 +54,10 @@ final class NH_VIEN_Admin {
 	 */
 	public static function flush() {
 		self::authorize( self::FLUSH_NONCE );
+		// Closing the English side must always work; opening it must not take /en/ away from a post.
+		if ( NH_VIEN_Routes::enabled() && NH_VIEN_Routes::post_at_en() ) {
+			self::redirect( 'address_taken' );
+		}
 		flush_rewrite_rules( false );
 		NH_VIEN_Routes::reset();
 		do_action( 'nh_vien_pairs_changed', 0, 0 );
@@ -127,6 +131,7 @@ final class NH_VIEN_Admin {
 		return array(
 			'saved'                 => array( 'notice-success', __( 'Translation link operation completed.', 'nguyen-ha-vi-en' ) ),
 			'flushed'               => array( 'notice-success', __( 'The rewrite rules were stored again.', 'nguyen-ha-vi-en' ) ),
+			'address_taken'         => array( 'notice-error', __( 'Nothing was changed: a published post already has the address /en/. Give that post another slug first, or the English home would take its address away.', 'nguyen-ha-vi-en' ) ),
 			'home_exists'           => array( 'notice-warning', __( 'A page with the address /en/ already exists; it was left as it is.', 'nguyen-ha-vi-en' ) ),
 			'home_failed'           => array( 'notice-error', __( 'The English home page could not be created.', 'nguyen-ha-vi-en' ) ),
 			'nh_vien_forbidden'     => $error,
@@ -192,6 +197,7 @@ final class NH_VIEN_Admin {
 			array( __( 'Rewrite rules stored', 'nguyen-ha-vi-en' ), $stored ? $yes : $no ),
 			array( __( 'English pages are live', 'nguyen-ha-vi-en' ), $enabled && $stored ? $yes : $no ),
 			array( __( 'English home', 'nguyen-ha-vi-en' ), $home ),
+			array( __( 'Address /en/ used by a post', 'nguyen-ha-vi-en' ), NH_VIEN_Routes::post_at_en() ? __( 'Yes: the rules cannot be stored until that post has another slug', 'nguyen-ha-vi-en' ) : $no ),
 			array( __( 'Yoast SEO active', 'nguyen-ha-vi-en' ), defined( 'WPSEO_VERSION' ) ? $yes : $no ),
 			array( __( 'Pretty permalinks', 'nguyen-ha-vi-en' ), get_option( 'permalink_structure' ) ? $yes : $no ),
 		);

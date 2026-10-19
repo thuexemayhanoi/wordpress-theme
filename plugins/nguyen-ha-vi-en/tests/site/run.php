@@ -87,6 +87,11 @@ function http( $path, $options = array() ) {
 	return $out;
 }
 
+/** JSON for a request body. */
+function wp_json_encode_compat( $value ) {
+	return json_encode( $value, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE );
+}
+
 /** The path of an address on the site. */
 function path_of( $url ) {
 	global $base;
@@ -759,6 +764,31 @@ if ( $flush ) {
 	ok( 'a missing nonce is refused (CSRF)', 403 === $r['status'], 'got ' . $r['status'] );
 	$r = http( '/wp-admin/admin-post.php', array( 'method' => 'POST', 'headers' => array( 'Content-Type: application/x-www-form-urlencoded' ), 'body' => http_build_query( $flush ) ) );
 	ok( 'a visitor who is not logged in cannot store the rules', in_array( $r['status'], array( 302, 400, 403 ), true ) && ( 302 !== $r['status'] || false !== strpos( $r['location'], 'wp-login.php' ) || '' === $r['location'] ), $r['status'] . ' ' . $r['location'] );
+}
+// A published post that already has the address /en/ must not lose it to the English home: the rules are not stored.
+$rest_nonce = trim( $admin( '/wp-admin/admin-ajax.php?action=rest-nonce' )['body'] );
+$rest       = function ( $method, $path, $payload = null ) use ( &$jar, $rest_nonce ) {
+	$o = array(
+		'method'  => $method,
+		'headers' => array( 'Cookie: ' . implode( '; ', $jar ), 'X-WP-Nonce: ' . $rest_nonce, 'Content-Type: application/json' ),
+	);
+	if ( null !== $payload ) {
+		$o['body'] = wp_json_encode_compat( $payload );
+	}
+	return http( $path, $o );
+};
+$created = $rest( 'POST', '/wp-json/wp/v2/posts', array( 'title' => 'En', 'slug' => 'en', 'status' => 'publish' ) );
+$taken   = json_decode( $created['body'], true );
+if ( 201 === $created['status'] && ! empty( $taken['id'] ) && 'en' === $taken['slug'] ) {
+	$tools_taken = $admin( '/wp-admin/tools.php?page=nh-vien-links' );
+	ok( 'the Tools screen says that a post has the address /en/', (bool) preg_match( '#Address /en/ used by a post</th><td>Yes#', $tools_taken['body'] ) );
+	$flush_taken = $form_for( $tools_taken['body'], 'nh_vien_flush' );
+	$r           = $flush_taken ? $admin( '/wp-admin/admin-post.php', $flush_taken ) : array( 'status' => 0, 'location' => '' );
+	ok( 'the rules are not stored while a post has the address /en/', 302 === $r['status'] && false !== strpos( $r['location'], 'nh_vien_status=address_taken' ), $r['status'] . ' ' . $r['location'] );
+	$deleted = $rest( 'DELETE', '/wp-json/wp/v2/posts/' . (int) $taken['id'] . '?force=true' );
+	ok( 'the post used for that test is deleted again', 200 === $deleted['status'], 'status ' . $deleted['status'] );
+} else {
+	ok( 'a post with the address /en/ could be created for the test', false, 'status ' . $created['status'] . ' ' . substr( $created['body'], 0, 160 ) );
 }
 $pair_form = $form_for( $tools['body'], 'nh_vien_link' );
 ok( 'the Tools screen has the pair form with a nonce', $pair_form && ! empty( $pair_form['_wpnonce'] ) );

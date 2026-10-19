@@ -285,6 +285,29 @@ final class NH_VIEN_Routes {
 	}
 
 	/**
+	 * Whether a published post (not a page) already has the address /en/. The English home would take that address away
+	 * from it, so the administration refuses to store the rules while it exists.
+	 *
+	 * @return bool
+	 */
+	public static function post_at_en() {
+		$found = get_posts(
+			array(
+				'name'                => 'en',
+				'post_type'           => 'post',
+				'post_status'         => 'publish',
+				'posts_per_page'      => 1,
+				'fields'              => 'ids',
+				'ignore_sticky_posts' => true,
+				'no_found_rows'       => true,
+				'suppress_filters'    => true,
+				self::SCOPE_VAR       => 'off',
+			)
+		);
+		return ! empty( $found );
+	}
+
+	/**
 	 * The published page at a path, if there is one.
 	 *
 	 * @param string $path Page path, for instance en/about.

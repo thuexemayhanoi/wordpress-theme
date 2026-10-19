@@ -21,7 +21,7 @@ The Vietnamese site stays exactly where it is. The English side is a second set 
 * **One language per list.** Vietnamese lists (home, categories, tags, archives, search, widgets and previous/next links of the theme) never show English posts, English lists never show Vietnamese ones. A language that has nothing in an archive answers 404 there. The suggestions under a search box follow too: inside the body of a page, the address of the REST search route (`/wp-json/wp/v2/search`) carries `nh_vien_lang=vi|en`, and a request that carries it is answered with that language only; any other REST client sees both languages.
 * **No duplicate content.** The ordinary address of an English post (`/{slug}/`) redirects with a 301 to `/en/{slug}/`, and the English post has one canonical address. Posts that may not be shown yet (draft, unpublished partner, a slug that cannot be routed, a page that owns the address) answer 404 on every address.
 * **Language switcher.** A small navigation with VI and EN links, 44 px touch targets, keyboard and screen reader friendly. On a post it links to the translation, elsewhere to the home page of the other language, and it is left out where there is nothing to link to.
-* **Search engines.** `hreflang` (vi, en, x-default) between the two posts of a pair and between the two home pages, a separate canonical per language, English breadcrumbs, and the English addresses in the sitemap. Yoast SEO is supported through its documented filters and stays in charge of titles, canonicals and its single sitemap index.
+* **Search engines.** `hreflang` (vi, en, x-default) between the two posts of a pair and between the two home pages, a separate canonical per language, English breadcrumbs, and the English addresses in the sitemap (without an SEO plugin the sitemap of WordPress lists the English posts at their English address and leaves out the archives that only English posts fill, which would answer 404). Yoast SEO is supported through its documented filters and stays in charge of titles, canonicals and its single sitemap index.
 * **English pages are English.** Inside `/en/` the locale is `en_US` (`<html lang="en-US">`, WordPress and theme strings in English), the logo and the search form of the theme lead to `/en/`, and a menu named `{menu-slug}-en` replaces the Vietnamese menu of the same location when it exists.
 * **Caches stay apart.** The fragment cache of the Nguyen Ha Editorial theme gets a language suffix, and it and the page cache purge of the Nguyen Ha SEO Companion plugin are told when a pair changes. Both are optional.
 
@@ -51,7 +51,7 @@ Then open Tools > VI/EN Links and press **Store the rewrite rules**. Until that 
 
 * A complete backup of the database and `wp-content` exists and was opened once.
 * The Vietnamese pages are identical with the plugin switched on and off (compare the HTML of the home, a category, a post, the search and the feed). The plugin's own tests do this on a seeded site.
-* No page or post already lives at `/en/` or below it. A published page at `/en/` becomes the English home (put `[nh_vien_posts]` in it); a page below `/en/` keeps its address and wins over an English post with the same slug.
+* No post already has the address `/en/` (a published post with the slug `en` makes the plugin refuse to store the rules, so that it is never shadowed). A published page at `/en/` becomes the English home (put `[nh_vien_posts]` in it); a page below `/en/` keeps its address and wins over an English post with the same slug.
 * `/sitemap_index.xml` (Yoast SEO) or `/wp-sitemap.xml` lists the English posts at `/en/{slug}/`, no draft, and no second sitemap exists.
 * One canonical and the right hreflang pair on a Vietnamese post, its English partner, both home pages and an English category; the English post has no ordinary-address copy that answers 200.
 * The switcher is visible and usable on a phone, a tablet and a desktop, with the keyboard, in the theme that is live.
@@ -74,7 +74,7 @@ Then open Tools > VI/EN Links and press **Store the rewrite rules**. Until that 
 
 == Yoast SEO ==
 
-* Yoast SEO keeps `/sitemap_index.xml`, its post, category and tag sitemaps, titles and descriptions. English posts are listed at their English address, the English home and the English category and tag archives are added to the sitemaps Yoast already builds, English posts that may not be shown yet are left out. The plugin adds no sitemap and no sitemap index.
+* Yoast SEO keeps `/sitemap_index.xml`, its post, category and tag sitemaps, titles and descriptions. English posts are listed at their English address, the English home and the English category archives (and the tag archives when Yoast builds a tag sitemap, which it does not by default) are added to the sitemaps Yoast already builds, and English posts that may not be shown yet are left out, as are the categories and tags that only English posts fill. The plugin adds no sitemap and no sitemap index.
 * The canonical and `og:url` of an English page are the English address. A canonical an editor typed in Yoast SEO for a post is respected. The Yoast breadcrumb on English pages starts at the English home and links to English addresses, so the page and the BreadcrumbList stay the same.
 * Yoast does not write hreflang for separate posts: this plugin prints it, for pairs and for the two home pages only.
 * The Yoast integration is exercised in the project's CI against Yoast SEO from wordpress.org; Rank Math, All in One SEO, SEOPress and The SEO Framework are detected (the plugin does not print a second canonical beside them) but not tested.
@@ -105,6 +105,7 @@ The CI also installs the plugin from its zip on real WordPress sites (WordPress 
 
 * One site per installation: WordPress multisite is not tested.
 * There is no English feed (`/en/feed/` answers 404); the main feed stays Vietnamese.
+* Without an SEO plugin the sitemap of WordPress does not list the English home or the English archives (WordPress gives plugins no way to add entries to it).
 * The post counts that WordPress keeps for categories and tags, and the monthly Archives widget, count both languages.
 * The logo and the search form follow the language through `home_url( '/' )`. A theme that builds those links another way (some block themes) keeps linking to the Vietnamese home.
 * Only English posts with a plain ASCII slug can be routed. Menu items, widgets and text that a person typed by hand are not translated.

@@ -43,6 +43,14 @@ function add_filter( $tag ) { $GLOBALS['hooks'][] = $tag; }
 function add_rewrite_rule( $regex, $query, $position ) { $GLOBALS['rewrite'][] = array( $regex, $query, $position ); }
 function get_page_by_path( $path ) { return isset( $GLOBALS['pages'][ $path ] ) ? $GLOBALS['pages'][ $path ] : null; }
 function get_posts( $args ) {
+	if ( isset( $args['name'] ) ) {
+		foreach ( $GLOBALS['published'] as $post ) {
+			if ( $post->post_name === $args['name'] && $post->post_type === $args['post_type'] && $post->post_status === $args['post_status'] ) {
+				return array( $post->ID );
+			}
+		}
+		return array();
+	}
 	$found = array();
 	foreach ( $GLOBALS['published'] as $post ) {
 		if ( in_array( $post->ID, $args['post__in'], true ) && 'publish' === $post->post_status ) {
@@ -230,6 +238,13 @@ must( array( 'error' => '404' ) === $wp->query_vars, 'The English home without E
 fresh();
 NH_VIEN_Routes::boot();
 must( array( 'init', 'query_vars', 'parse_request' ) === $GLOBALS['hooks'], 'Open gate: wrong hooks' );
+
+// ---- A published post that already has the address /en/ is noticed (a page is the English home, not a collision).
+$GLOBALS['published'] = array( new WP_Post( 1, 'something' ), new WP_Post( 2, 'en', 'publish', 'page' ), new WP_Post( 3, 'en', 'draft' ) );
+must( ! NH_VIEN_Routes::post_at_en(), 'A page or a draft with the slug en must not count as a post at /en/' );
+$GLOBALS['published'][] = new WP_Post( 4, 'en' );
+must( NH_VIEN_Routes::post_at_en(), 'A published post with the slug en must be noticed' );
+$GLOBALS['published'] = array();
 
 // ---- Deactivation takes the plugin's own rules out of the stored ones and nothing else.
 $ours   = NH_VIEN_Routes::rules();
