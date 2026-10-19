@@ -178,6 +178,31 @@ function node_of_type( $nodes, $type ) {
 	return null;
 }
 
+/** The suggestions of the REST search route: status and the paths of the posts it lists. */
+function rest_suggestions( $term, $language = '' ) {
+	$query = array(
+		'search'   => $term,
+		'type'     => 'post',
+		'subtype'  => 'post',
+		'per_page' => 50,
+		'_fields'  => 'id,title,url',
+	);
+	if ( '' !== $language ) {
+		$query['nh_vien_lang'] = $language;
+	}
+	$r    = http( '/wp-json/wp/v2/search?' . http_build_query( $query ) );
+	$data = json_decode( $r['body'], true );
+	$urls = array();
+	if ( is_array( $data ) ) {
+		foreach ( $data as $entry ) {
+			if ( isset( $entry['url'] ) ) {
+				$urls[] = parse_url( path_of( $entry['url'] ), PHP_URL_PATH );
+			}
+		}
+	}
+	return array( $r['status'], $urls );
+}
+
 // ---- The fixture, as known from seed.php.
 $vi_paths = array( '/thue-xe-may-ha-noi/', '/kinh-nghiem-di-phuot/', '/bai-chua-dich/', '/bai-trung-trang/', '/bai-slug-rieng/', '/bai-ky-tu-dac-biet/', '/bai-co-ban-dich-nhap/' );
 $en_paths = array( '/en/motorbike-rental-in-hanoi/', '/en/travel-tips-for-riders/', '/en/bikes-and-scooters/' );
@@ -245,6 +270,9 @@ if ( 'inert' === $suite ) {
 		$r = page( $url );
 		ok( "$url is not served while the gate is closed (404)", 404 === $r['status'], 'status ' . $r['status'] );
 	}
+	list( $status, $urls ) = rest_suggestions( 'Bulk', 'vi' );
+	ok( 'the suggestions ignore the language marker while the gate is closed', 200 === $status && $urls, $status . ' ' . implode( ',', $urls ) );
+	ok( 'the search box carries no language marker while the gate is closed', false === strpos( page( '/' )['body'], 'nh_vien_lang' ) );
 	$home = xp( page( '/' )['body'] );
 	ok( 'English posts are in the Vietnamese home again, as they were before the plugin', count( post_links_in_main( $home, array( '/motorbike-rental-in-hanoi/', '/travel-tips-for-riders/' ) ) ) > 0 || count( post_links_in_main( $home, array( '/bulk-article-14/', '/bulk-article-13/' ) ) ) > 0 );
 	echo "\n$checks checks, $failures failed\n";
@@ -368,6 +396,8 @@ $expect = array(
 	'/en/category/'                                    => 404,
 	'/en/page/'                                        => 404,
 	'/en/feed/'                                        => 404,
+	'/en/author/admin/'                                => 404,
+	'/en/2026/10/'                                     => 404,
 	'/en/english-draft/'                               => 404,
 	'/en/translation-in-progress/'                     => 404,
 	'/en/hidden-english-post/'                         => 404,
@@ -734,5 +764,33 @@ $tools = $admin( '/wp-admin/tools.php?page=nh-vien-links' );
 ok( 'while a draft page has the address /en/ the plugin does not offer to create another', null === $form_for( $tools['body'], 'nh_vien_home_page' ) );
 $r = page( '/en/' );
 ok( 'a draft page at /en/ leaves the list of English posts in place', false !== strpos( text_of( xp( $r['body'] ), '//head/title' ), 'Latest articles' ) || false !== strpos( text_of( xp( $r['body'] ), '//head/title' ), 'English' ) );
+
+echo "\n[12] Search suggestions follow the language of the page\n";
+if ( 'editorial' === $theme ) {
+	foreach ( array(
+		'/'                              => 'vi',
+		'/thue-xe-may-ha-noi/'           => 'vi',
+		'/en/'                           => 'en',
+		'/en/motorbike-rental-in-hanoi/' => 'en',
+	) as $url => $language ) {
+		$endpoint = attrs( xp( page( $url )['body'] ), '//form[@data-suggest-url]', 'data-suggest-url' );
+		ok( "the search box on $url asks for $language suggestions", $endpoint && false !== strpos( $endpoint[0], 'nh_vien_lang=' . $language ), $endpoint ? $endpoint[0] : 'no search box' );
+	}
+}
+list( $status, $urls ) = rest_suggestions( 'Bulk', 'en' );
+ok( 'the English suggestions list English posts only', 200 === $status && $urls && ! array_diff( $urls, $all_en ), $status . ' ' . implode( ',', array_diff( $urls, $all_en ) ) );
+list( $status, $urls ) = rest_suggestions( 'Bulk', 'vi' );
+ok( 'the Vietnamese suggestions list no English post', 200 === $status && ! $urls, $status . ' ' . implode( ',', $urls ) );
+list( $status, $urls ) = rest_suggestions( 'hàng loạt', 'vi' );
+ok( 'the Vietnamese suggestions find Vietnamese posts', 200 === $status && $urls && ! array_diff( $urls, $all_vi ), $status . ' ' . implode( ',', array_diff( $urls, $all_vi ) ) );
+list( $status, $urls ) = rest_suggestions( 'hàng loạt', 'en' );
+ok( 'the English suggestions list no Vietnamese post', 200 === $status && ! $urls, $status . ' ' . implode( ',', $urls ) );
+list( $status, $urls ) = rest_suggestions( 'Bulk', '' );
+ok( 'a request without a language is answered as before, with the English posts at their English address', 200 === $status && $urls && ! array_diff( $urls, $all_en ), $status . ' ' . implode( ',', $urls ) );
+list( $status, $urls ) = rest_suggestions( 'Bulk', 'xx' );
+ok( 'an unknown language is ignored', 200 === $status && $urls && ! array_diff( $urls, $all_en ), $status . ' ' . implode( ',', $urls ) );
+list( $status, $urls ) = rest_suggestions( 'English draft', 'en' );
+ok( 'a draft English post is never suggested', 200 === $status && ! in_array( '/en/english-draft/', $urls, true ) && ! in_array( '/english-draft/', $urls, true ) );
+
 echo "\n$checks checks, $failures failed\n";
 exit( $failures ? 1 : 0 );

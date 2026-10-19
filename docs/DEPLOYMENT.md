@@ -18,7 +18,7 @@ Tên thư mục của theme là danh tính của nó: thiết lập Customizer l
 
 ### A. ZIP (khuyến nghị cho lần cài đầu và cho production)
 
-1. Lấy `nguyen-ha-editorial-<phiên bản>.zip` và `nguyen-ha-seo-companion-<phiên bản>.zip` từ artifact `release-<sha>` của một lần chạy GitHub Actions **xanh** (Actions → *Theme QA* → run → Artifacts). Đối chiếu SHA-256 với `SHA256SUMS` / `manifest.json` trong cùng artifact.
+1. Lấy `nguyen-ha-editorial-<phiên bản>.zip` và `nguyen-ha-seo-companion-<phiên bản>.zip` (và, chỉ khi cần phần tiếng Anh, `nguyen-ha-vi-en-<phiên bản>.zip`, xem [VI-EN-PLUGIN.md](VI-EN-PLUGIN.md): cài và kích hoạt không đổi gì cho đến khi chủ sở hữu bật công tắc) từ artifact `release-<sha>` của một lần chạy GitHub Actions **xanh** (Actions → *Theme QA* → run → Artifacts). Đối chiếu SHA-256 với `SHA256SUMS` / `manifest.json` trong cùng artifact.
 2. **Plugins → Add New → Upload Plugin** → cài plugin đồng hành (tùy chọn nhưng khuyến nghị). **Đừng kích hoạt vội**: xem checklist.
 3. **Appearance → Themes → Add New → Upload Theme** → cài theme. **Không bấm Activate.**
 4. Cập nhật về sau: tải ZIP mới và dùng "Replace current with uploaded" (WordPress tự đề nghị khi trùng tên thư mục). Theme đã kích hoạt vẫn giữ thiết lập.

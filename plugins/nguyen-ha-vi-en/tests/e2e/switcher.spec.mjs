@@ -111,3 +111,38 @@ test('the switcher link of the current language is marked as the current page, o
   await expect(tab.locator('.nh-vien-switcher a[aria-current="page"]')).toHaveCount(1);
   await expect(tab.locator('.nh-vien-switcher a[aria-current="page"]')).toHaveAttribute('lang', 'en');
 });
+
+// The search box of the Nguyen Ha Editorial theme asks the REST search route for suggestions; the plugin makes the page
+// say which language it is in, so a Vietnamese page is not offered English articles and the other way round.
+const SUGGESTIONS = [
+  { name: 'an English page offers English articles', url: '/en/', term: 'Bulk article', language: 'en', home: '/en/' },
+  { name: 'a Vietnamese page offers Vietnamese articles', url: '/', term: 'hàng loạt', language: 'vi', home: '/' },
+  { name: 'a Vietnamese page offers no English article', url: '/', term: 'Bulk article', language: 'none', home: '/' },
+  { name: 'an English page offers no Vietnamese article', url: '/en/', term: 'hàng loạt', language: 'none', home: '/en/' },
+];
+
+for (const suggestion of SUGGESTIONS) {
+  test(`search suggestions: ${suggestion.name}`, async ({ page: tab }) => {
+    await tab.goto(suggestion.url);
+    test.skip((await tab.locator('.search-toggle').count()) === 0, 'the search box belongs to the editorial theme');
+    await tab.locator('.search-toggle').click();
+    const input = tab.locator('#header-search .search-field');
+    await expect(input).toBeVisible();
+    await Promise.all([
+      tab.waitForResponse((response) => response.url().includes('/wp/v2/search') && response.ok()),
+      input.fill(suggestion.term),
+    ]);
+    if (suggestion.language === 'none') {
+      await expect(tab.locator('.search-suggest')).toBeHidden();
+      return;
+    }
+    const links = tab.locator('.search-suggest__list li:not(.search-suggest__all) a');
+    await expect(links.first()).toBeVisible();
+    const paths = await links.evaluateAll((anchors) => anchors.map((a) => new URL(a.href).pathname));
+    expect(paths.length).toBeGreaterThan(0);
+    for (const path of paths) {
+      expect(path.startsWith('/en/'), `${path} is in the language of the page`).toBe(suggestion.language === 'en');
+    }
+    await expect(tab.locator('.search-suggest__all a')).toHaveAttribute('href', new RegExp(`^${suggestion.home === '/' ? '(https?://[^/]+)?/\\?' : '(https?://[^/]+)?/en/\\?'}s=`));
+  });
+}

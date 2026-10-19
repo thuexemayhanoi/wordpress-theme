@@ -1,70 +1,99 @@
 # VI-EN native multilingual: checkpoint
 
-Working notes so that any session can continue the VI-EN plugin (`plugins/nguyen-ha-vi-en/`) without redoing
-finished work. Development only: nothing here is authorised for production, and nothing is merged into `main`
-without the owner's decision.
+Working notes so that any session can continue the VI-EN plugin (`plugins/nguyen-ha-vi-en/`) without redoing finished
+work. The user-facing description (how it works, switching it on, production conditions, rollback) is
+[VI-EN-PLUGIN.md](VI-EN-PLUGIN.md); the plugin's own `readme.txt` is the developer reference.
 
 ## Rules that stay in force
 
 - The ~500 Vietnamese posts are never edited, deleted, re-slugged, redirected or re-canonicalised, and their SEO
-  fields are never touched.
+  fields are never touched. The plugin writes to no post.
 - No Polylang, WPML or any other multilingual plugin; no paid AI API; no automatic translation; no English post is
   published automatically.
-- The plugin works on its own (no dependency on the theme) and does not override Yoast SEO or add a second sitemap.
-- Own branches only (`feature/...` so that Theme QA runs); no force-push; never push onto another session's branch.
+- The plugin works on its own (no dependency on the theme or the companion plugin) and does not override Yoast SEO or
+  add a second sitemap.
+- Own branches only (`feature/...` so that Theme QA runs); no force-push; never push onto another session's branch;
+  never merge into `main` or activate on production without the owner's decision.
 - A step is not reported as finished while Theme QA has a red job.
 
-## Branches and commits
+## Branches
 
-| Branch | Head | Note |
+| Branch | Note |
+| --- | --- |
+| `main` | theme 2.0.1; no VI-EN code (`8b173d5`) |
+| `feature/vi-en-core-step2-20261019` | step 2, inert scaffold (`81a4483`) |
+| `feature/chat-vi-en-links-step3-20261019` | step 3, manual VI/EN pairs (`4037673`) |
+| `feature/chat-vi-en-routes-step4-20261019` | step 4; fast-forwarded to the green CI fix `67cadc2` |
+| `feature/vi-en-step4-ci-fix-20261019` | step 4 plus the CI fixes (`67cadc2`) |
+| `feature/vi-en-complete-20261019` | **the complete plugin** (pieces B, C and D below), built on `67cadc2`; continue here |
+
+## What exists (architecture in one page)
+
+- **Pairs**: one option, `nh_vien_translation_pairs_v1` (Vietnamese post ID => English post ID), written only by an
+  administrator with a nonce (Tools > VI/EN Links). A post is English iff it is the English side of a pair. An English
+  post is *public* when both posts are published, its slug is routable (`[a-z0-9][a-z0-9_-]*`, not reserved) and no
+  page lives at `en/{slug}`.
+- **Gate** (`NH_VIEN_Routes::enabled()`): constant `NH_VIEN_ENABLE_EN_ROUTES === true` and a local/development/staging
+  environment, or on production also `NH_VIEN_ALLOW_PRODUCTION === true`. **Live** = gate open and all eight rewrite
+  rules present in the stored `rewrite_rules`; until an administrator presses "Store the rewrite rules" the plugin
+  changes nothing. A stale stored rule with a closed gate answers 404; deactivating the plugin removes its own stored
+  rules (`NH_VIEN_Routes::deactivate()`; without it every `/en/...` address answered 200 with the Vietnamese home).
+- **Addresses** (`class-nh-vien-urls.php`): `post_link` makes `/en/{slug}/` the permalink of a public English post
+  (canonical, sitemaps, theme lists); the native address 301-redirects there; hidden posts are 404 everywhere;
+  `term_link` gives English archives inside English pages; the home address is rewritten to `/en/` only between the end
+  of `wp_head` and `wp_footer` (so SEO plugins keep one site identity); the address of the REST search route carries
+  `nh_vien_lang` inside the body.
+- **Lists** (`class-nh-vien-query.php`): `pre_get_posts` scopes front-end lists (not admin, AJAX, cron, REST, XML-RPC,
+  WP-CLI, singular queries, other post types, `nh_vien_scope=off`); previous/next, term lists, empty-archive 404s and
+  the REST search suggestions follow the same rule.
+- **Language** (`class-nh-vien-context.php`): set by the matched rule; the locale filter switches to `en_US` early
+  from the address; the theme's fragment cache version gets the suffix `-en`.
+- **Switcher** (`class-nh-vien-switcher.php`): after the editorial theme's skip link (action
+  `nh_editorial_after_skip_link` + theme support `nguyen-ha-vi-en-switcher`, the only two changes in the theme), else
+  at `wp_body_open`, else before the content of a single post, plus `[nh_vien_switcher]`.
+- **SEO** (`class-nh-vien-seo.php`): hreflang for pairs and homes; own canonical for English lists only without an SEO
+  plugin; Yoast through documented filters (canonical, og:url, dynamic permalinks, title of the virtual English
+  home, breadcrumbs, sitemap exclusions and extra entries); core sitemap arguments without an SEO plugin.
+- **Admin** (`class-nh-vien-admin.php`): status table, store-rules button, draft English home page button, pair form
+  and table; every action needs `manage_options` and a nonce; every value is escaped.
+- **Package**: `tools/package.sh` builds `dist/nguyen-ha-vi-en-<version>.zip` (the plugin's `.gitattributes` keeps
+  `tests/` out); `tools/verify-package.sh` checks it, including independence from the theme and the companion plugin.
+
+## Tests
+
+| What | Where | How |
 | --- | --- | --- |
-| `main` | `8b173d5` | theme 2.0.1; no VI-EN code |
-| `feature/vi-en-core-step2-20261019` | `81a4483` | step 2, inert scaffold |
-| `feature/chat-vi-en-links-step3-20261019` | `4037673` | step 3, manual VI/EN pairs |
-| `feature/chat-vi-en-routes-step4-20261019` | `44ed3d5` | step 4 by another session; Theme QA run 39268633324 is red (three PHPUnit jobs and the release gate) |
-| `feature/vi-en-step4-ci-fix-20261019` | `0a4cf13` plus this note | step 4 plus the fixes below; `0a4cf13` is a direct child of `44ed3d5`, so it fast-forwards onto the step-4 branch |
+| Offline scripts (PHP only) | `plugins/nguyen-ha-vi-en/tests/*.php` | `for t in plugins/nguyen-ha-vi-en/tests/*.php; do php "$t"; done`; CI runs them on PHP 7.4 to 8.4 |
+| Real WordPress over HTTP | `tests/site/seed.php`, `tests/site/run.php` (suites `snapshot`, `compare`, `main`, `homepage`, `legacy`, `inert`, `deactivated`) | job `vi-en-site` of `.github/workflows/theme-qa.yml` (four variants: editorial + Yoast, editorial, Twenty Twenty-Five, WordPress 6.3.5); the plugin is installed from its zip |
+| Browser | `tests/e2e/switcher.spec.mjs` | Playwright + axe at 375/768/1440 px, in the same job (`NH_E2E_THEME=other` for a theme the plugin does not know) |
+| Packages | `tools/verify-package.sh dist` | job `static` |
 
-## Why step 4 was red, and what fixed it
-
-1. **PHPCS** (`Static checks, build and packages`): WPCS findings in the plugin and its CLI test scripts. Production
-   code was brought to zero findings; `plugins/nguyen-ha-vi-en/tests/*` is excluded from PHPCS in `phpcs.xml.dist`
-   (standalone CLI scripts with WordPress stubs, not runtime code).
-2. **A corrupted file**: a scripted text replacement expanded `$'` in a JavaScript replacement string and spliced a
-   second copy of `class-nh-vien-routes.php` into itself (PHP parse error on line 18). Restored in `44ed3d5`.
-3. **PHPUnit theme suites and the PHP 7.4 job**: `NH_Test_Theme_Source::
-   test_no_php_file_of_the_repository_runs_when_requested_directly` listed `tests/links.php`, `routes.php` and
-   `smoke.php` as files that would run when requested over the web. Fixed by the CLI-only guard
-   (`if ( 'cli' !== PHP_SAPI ) { exit; }`) at the top of every test script.
-4. **A functional bug**: `NH_VIEN_Plugin::boot()` registered the `/en/{slug}/` rewrite rule on the front end only.
-   A flush from Settings > Permalinks (an admin request) therefore left the rule out of the stored rules. The rule is
-   now registered on every request when the preview is enabled; `tests/boot.php` pins this.
-5. **No CI coverage**: the plugin's offline tests did not run in CI. They now run in the PHP 7.4 to 8.4 matrix.
+A local lab is easy with `tests/bin/setup-site.sh` (MySQL) or any WordPress with SQLite: seed with
+`NH_VIEN_SEED_STEP=content wp eval-file plugins/nguyen-ha-vi-en/tests/site/seed.php`, open the gate with
+`wp config set NH_VIEN_ENABLE_EN_ROUTES true --raw`, `wp rewrite flush`, seed the pairs (`NH_VIEN_SEED_STEP=pairs`),
+then run the suites in the order the workflow uses.
 
 ## What is verified, and what is not
 
-Verified: Theme QA run 39269384059 on `0a4cf13` has 20 of 20 jobs green: PHPCS (WordPress, WordPress-Docs,
-PHPCompatibilityWP 7.4+) with zero findings on the whole repository; PHP syntax and the four offline scripts in
-`plugins/nguyen-ha-vi-en/tests/` on PHP 7.4, 8.0, 8.1, 8.2, 8.3 and 8.4; PHPUnit on WordPress 7.1.3 and latest and on
-PHP 7.4; browser tests at three widths; the Yoast, Rank Math and no-plugin comparisons; the release gate. The plugin
-is not activated in any of those sites, so they show only that the existing theme and companion plugin are unaffected.
+Verified by the project's CI on the head of `feature/vi-en-complete-20261019` (see the QA report of its Theme QA run):
+the offline scripts on PHP 7.4 to 8.4; the real-site suites and the browser tests listed above; PHPCS (WordPress,
+WordPress-Docs, PHPCompatibilityWP 7.4+) with zero findings; the packages.
 
-Not verified yet (do not claim otherwise):
+Not verified (do not claim otherwise):
 
-- Behaviour inside a real WordPress: rewrite flush from the admin and from WP-CLI, the real 404 and redirect
-  behaviour of `/en/{slug}/`, interaction with a real `/en/` page. The offline scripts use WordPress stubs.
-- Yoast SEO: canonical, hreflang and sitemap are not touched yet.
-- A staging site: none was available to these sessions.
+- A staging site or the production site: none was available. The checklist in [VI-EN-PLUGIN.md](VI-EN-PLUGIN.md)
+  section 4 is the work that remains, on a copy of the live site.
+- The live Yoast SEO configuration; Rank Math, All in One SEO, SEOPress and The SEO Framework (detected, not tested).
+- Multisite, browsers other than Chromium, real devices and screen readers, real page caches and CDNs.
 
-Known limitation of the preview route (to be solved in piece C, with the duplicate-content work): for a verified
-`/en/{slug}/` request the plugin switches core's canonical redirect off completely, so `/en/{slug}` without the
-trailing slash, or on another host or scheme, answers 200 instead of redirecting to the one canonical address. The
-native address of an English post also still answers 200.
+## Known limitations
 
-## Next pieces (only after the owner types DUYỆT)
+See `readme.txt` ("Known limitations") and [VI-EN-PLUGIN.md](VI-EN-PLUGIN.md) section 8: no English feed, mixed term
+counts and monthly archives widget, themes that build the home link without `home_url( '/' )`, ASCII English slugs
+only, a real page at `/en/` has no page 2.
 
-- B: English URLs beyond single posts (home, categories, pagination, search), language switcher on those pages,
-  breadcrumbs and internal links per language.
-- C: Yoast: `/sitemap_index.xml` entries for valid English URLs, separate canonical, two-way hreflang, the
-  native URL of English posts (duplicate content), language-aware caching.
-- D: WordPress integration tests (own PHPUnit suite and bootstrap), Yoast tests, browser tests at three widths,
-  XSS/CSRF checks, an independent plugin ZIP, staging checklist, comparison with the base branch.
+## Next steps (owner's decision)
+
+1. Review the branch; merge into `main` only when the owner says so.
+2. Run the staging checklist, then the production procedure of [VI-EN-PLUGIN.md](VI-EN-PLUGIN.md) section 5.
+3. After production, watch Search Console (coverage, hreflang, canonical) for a few weeks.

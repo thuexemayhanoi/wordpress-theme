@@ -18,7 +18,7 @@ The Vietnamese site stays exactly where it is. The English side is a second set 
 
 * **Paired posts.** An administrator pairs an English post with a Vietnamese one, by post ID, under Tools > VI/EN Links. A pair is one to one and works in both directions. Each post keeps its own title, content, slug, excerpt and SEO fields.
 * **English addresses.** A public English post is served at `/en/{slug}/`. The English home is `/en/` (with `/en/page/2/`, ...), categories and tags are `/en/category/{slug}/` and `/en/tag/{slug}/`, and the search is `/en/?s=...`.
-* **One language per list.** Vietnamese lists (home, categories, tags, archives, search, widgets and previous/next links of the theme) never show English posts, English lists never show Vietnamese ones. A language that has nothing in an archive answers 404 there.
+* **One language per list.** Vietnamese lists (home, categories, tags, archives, search, widgets and previous/next links of the theme) never show English posts, English lists never show Vietnamese ones. A language that has nothing in an archive answers 404 there. The suggestions under a search box follow too: inside the body of a page, the address of the REST search route (`/wp-json/wp/v2/search`) carries `nh_vien_lang=vi|en`, and a request that carries it is answered with that language only; any other REST client sees both languages.
 * **No duplicate content.** The ordinary address of an English post (`/{slug}/`) redirects with a 301 to `/en/{slug}/`, and the English post has one canonical address. Posts that may not be shown yet (draft, unpublished partner, a slug that cannot be routed, a page that owns the address) answer 404 on every address.
 * **Language switcher.** A small navigation with VI and EN links, 44 px touch targets, keyboard and screen reader friendly. On a post it links to the translation, elsewhere to the home page of the other language, and it is left out where there is nothing to link to.
 * **Search engines.** `hreflang` (vi, en, x-default) between the two posts of a pair and between the two home pages, a separate canonical per language, English breadcrumbs, and the English addresses in the sitemap. Yoast SEO is supported through its documented filters and stays in charge of titles, canonicals and its single sitemap index.
@@ -86,6 +86,7 @@ Then open Tools > VI/EN Links and press **Store the rewrite rules**. Until that 
 * Action `nh_vien_pairs_changed( $vi_id, $en_id )`: fired when a pair is made or removed (with zero IDs when the rules are stored again). Purge your own caches here.
 * Theme support `nguyen-ha-vi-en-switcher` together with the action `nh_editorial_after_skip_link`: how a theme places the switcher after its skip link.
 * Query variable `nh_vien_scope=off` on a `WP_Query`/`get_posts()` call: a list that must see both languages (a sitemap, an administration tool).
+* Request parameter `nh_vien_lang=vi|en` on the REST search route: the language of the suggestions (the plugin adds it to the route's address inside the pages it prints).
 * Constants: `NH_VIEN_ENABLE_EN_ROUTES`, `NH_VIEN_ALLOW_PRODUCTION`.
 
 == Tests ==

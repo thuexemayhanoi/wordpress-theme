@@ -25,6 +25,7 @@ final class NH_VIEN_Query {
 		add_filter( 'get_next_post_where', array( __CLASS__, 'adjacent_where' ), 10, 5 );
 		add_action( 'wp', array( __CLASS__, 'send_empty_404' ), 1 );
 		add_filter( 'get_terms', array( __CLASS__, 'filter_terms' ), 10, 3 );
+		add_filter( 'rest_post_search_query', array( __CLASS__, 'rest_search_query' ), 10, 2 );
 		add_filter( 'get_the_archive_title', array( __CLASS__, 'archive_title' ) );
 		add_filter( 'document_title_parts', array( __CLASS__, 'document_title_parts' ) );
 	}
@@ -51,6 +52,32 @@ final class NH_VIEN_Query {
 			$excluded = array_map( 'intval', array_filter( (array) $query->get( 'post__not_in' ) ) );
 			$query->set( 'post__not_in', array_values( array_unique( array_merge( $excluded, $english ) ) ) );
 		}
+	}
+
+	/**
+	 * The suggestions of a search box: when the request says which language the page is in (NH_VIEN_Urls::rest_url()),
+	 * they list the posts of that language only. A request without the marker is answered as before.
+	 *
+	 * @param array           $args    The arguments of the posts query.
+	 * @param WP_REST_Request $request The request to the REST search route.
+	 * @return array
+	 */
+	public static function rest_search_query( $args, $request ) {
+		if ( ! is_array( $args ) || ! $request instanceof WP_REST_Request || ! NH_VIEN_Routes::live() ) {
+			return $args;
+		}
+		$language = $request->get_param( NH_VIEN_Routes::LANG_VAR );
+		if ( 'en' === $language ) {
+			$ids              = NH_VIEN_Links::public_en_ids();
+			$args['post__in'] = $ids ? $ids : array( 0 );
+		} elseif ( 'vi' === $language ) {
+			$english = NH_VIEN_Links::en_ids();
+			if ( $english ) {
+				$excluded             = isset( $args['post__not_in'] ) ? array_map( 'intval', (array) $args['post__not_in'] ) : array();
+				$args['post__not_in'] = array_values( array_unique( array_merge( $excluded, $english ) ) );
+			}
+		}
+		return $args;
 	}
 
 	/**

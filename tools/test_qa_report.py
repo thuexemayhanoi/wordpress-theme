@@ -26,12 +26,18 @@ def success(*jobs):
 
 class QaReportTest(unittest.TestCase):
 
-    def run_report(self, needs, required, junit=None):
+    def run_report(self, needs, required, junit=None, manifest=None):
         """Run the script; return (exit status, parsed qa-report.json, markdown)."""
         with tempfile.TemporaryDirectory() as tmp:
             needs_file = os.path.join(tmp, 'needs.json')
             with open(needs_file, 'w', encoding='utf-8') as handle:
                 json.dump(needs, handle)
+            extra = []
+            if manifest is not None:
+                manifest_file = os.path.join(tmp, 'manifest.json')
+                with open(manifest_file, 'w', encoding='utf-8') as handle:
+                    json.dump(manifest, handle)
+                extra = ['--manifest', manifest_file]
             junit_dir = os.path.join(tmp, 'junit')
             os.makedirs(junit_dir)
             for name, xml in (junit or {}).items():
@@ -41,7 +47,7 @@ class QaReportTest(unittest.TestCase):
                     handle.write(xml)
             out = os.path.join(tmp, 'out')
             result = subprocess.run(
-                [sys.executable, '-I', SCRIPT, '--needs', needs_file, '--required', ','.join(required), '--junit-dir', junit_dir, '--out', out],
+                [sys.executable, '-I', SCRIPT, '--needs', needs_file, '--required', ','.join(required), '--junit-dir', junit_dir, '--out', out] + extra,
                 capture_output=True, text=True, check=False,
             )
             with open(os.path.join(out, 'qa-report.json'), encoding='utf-8') as handle:
@@ -105,6 +111,14 @@ class QaReportTest(unittest.TestCase):
         status, report, _ = self.run_report(success('e2e'), ['e2e'], {'e2e.xml': PLAYWRIGHT_FAILING})
         self.assertEqual(1, status)
         self.assertEqual(1, report['totals']['failures_and_errors'])
+
+    def test_the_artifact_table_lists_the_theme_and_both_plugins(self):
+        manifest = {key: {'zip': key + '.zip', 'version': '1.0.0', 'requires_wordpress': '6.3', 'requires_php': '7.4', 'sha256': 'abc'} for key in ('theme', 'plugin', 'vi_en_plugin')}
+        status, report, markdown = self.run_report(success('static'), ['static'], manifest=manifest)
+        self.assertEqual(0, status)
+        self.assertEqual(['theme', 'plugin', 'vi_en_plugin'], list(report['artifacts']))
+        for key in manifest:
+            self.assertIn(key + '.zip', markdown)
 
     def test_phpunit_and_browser_results_add_up(self):
         status, report, _ = self.run_report(success('phpunit', 'e2e'), ['phpunit', 'e2e'], {'theme.xml': PHPUNIT_OK, 'e2e.xml': PLAYWRIGHT})

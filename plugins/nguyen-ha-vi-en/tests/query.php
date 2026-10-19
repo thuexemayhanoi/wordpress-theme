@@ -108,9 +108,16 @@ function wp_get_object_terms( $ids, $taxonomies, $args ) {
 function get_ancestors() { return array(); }
 function get_term_children() { return array(); }
 function get_term( $id ) { return isset( $GLOBALS['terms'][ $id ] ) ? $GLOBALS['terms'][ $id ] : null; }
+function add_query_arg( $key, $value, $url ) { return $url . ( false === strpos( $url, '?' ) ? '?' : '&' ) . $key . '=' . $value; }
 function must( $condition, $message ) { if ( ! $condition ) { throw new RuntimeException( $message ); } }
+/** A REST request with the few parameters the suggestions look at. */
+class WP_REST_Request {
+	private $params;
+	public function __construct( $params = array() ) { $this->params = $params; }
+	public function get_param( $key ) { return isset( $this->params[ $key ] ) ? $this->params[ $key ] : null; }
+}
 
-foreach ( array( 'languages', 'links', 'routes', 'context', 'query' ) as $part ) {
+foreach ( array( 'languages', 'links', 'routes', 'context', 'urls', 'query' ) as $part ) {
 	require dirname( __DIR__ ) . '/includes/class-nh-vien-' . $part . '.php';
 }
 
@@ -278,4 +285,43 @@ $q = query();
 NH_VIEN_Query::scope( $q );
 must( array() === $q->vars, 'REST requests must see every post' );
 
-echo "PASS: language scoping of lists, terms, neighbours and empty archives.\n";
+// ---- The suggestions under a search box: the page tells the REST route which language it is in.
+$language_of = function ( $language ) {
+	return new WP_REST_Request( array( NH_VIEN_Routes::LANG_VAR => $language ) );
+};
+$base = array( 'post_type' => 'post' );
+fresh( 'vi' );
+must( array( 'post_type' => 'post', 'post__in' => array( 22 ) ) === NH_VIEN_Query::rest_search_query( $base, $language_of( 'en' ) ), 'English suggestions must be the public English posts' );
+$out = NH_VIEN_Query::rest_search_query( array( 'post__not_in' => array( 9, 22 ) ), $language_of( 'vi' ) );
+must( array( 9, 22, 44 ) === $out['post__not_in'], 'Vietnamese suggestions must exclude every English post and keep the exclusions that were there' );
+must( $base === NH_VIEN_Query::rest_search_query( $base, new WP_REST_Request( array() ) ), 'A request without a language must be answered as before' );
+must( $base === NH_VIEN_Query::rest_search_query( $base, $language_of( 'xx' ) ), 'An unknown language must be ignored' );
+must( $base === NH_VIEN_Query::rest_search_query( $base, $language_of( array( 'en' ) ) ), 'A language that is not a string must be ignored' );
+must( $base === NH_VIEN_Query::rest_search_query( $base, null ), 'Anything that is not a REST request must be ignored' );
+$saved                = $GLOBALS['published'];
+$GLOBALS['published'] = array( new WP_Post( 11, 'bai-viet' ) );
+fresh( 'vi' );
+must( array( 0 ) === NH_VIEN_Query::rest_search_query( $base, $language_of( 'en' ) )['post__in'], 'English suggestions without English posts must be empty, never unrestricted' );
+$GLOBALS['published'] = $saved;
+NH_VIEN_Routes::reset();
+$GLOBALS['options']['rewrite_rules'] = array();
+must( $base === NH_VIEN_Query::rest_search_query( $base, $language_of( 'en' ) ), 'A site whose rules are not stored must not be touched' );
+$GLOBALS['options']['rewrite_rules'] = $rules;
+
+// ---- The address of the REST search route carries the language, inside the body of a page that has English pairs.
+$route = 'https://example.test/wp-json/wp/v2/search';
+fresh( 'en' );
+must( $route === NH_VIEN_Urls::rest_url( $route, 'wp/v2/search' ), 'Nothing may change in the head of the page' );
+NH_VIEN_Urls::open_body_phase();
+must( $route . '?nh_vien_lang=en' === NH_VIEN_Urls::rest_url( $route, 'wp/v2/search' ), 'An English page must ask for English suggestions' );
+must( $route . '?nh_vien_lang=en' === NH_VIEN_Urls::rest_url( $route, '/wp/v2/search/' ), 'The route is recognised with slashes' );
+must( 'https://example.test/?rest_route=/wp/v2/search&nh_vien_lang=en' === NH_VIEN_Urls::rest_url( 'https://example.test/?rest_route=/wp/v2/search', 'wp/v2/search' ), 'Plain permalinks must work too' );
+must( 'https://example.test/wp-json/wp/v2/posts' === NH_VIEN_Urls::rest_url( 'https://example.test/wp-json/wp/v2/posts', 'wp/v2/posts' ), 'Other routes must be left alone' );
+fresh( 'vi' );
+must( $route . '?nh_vien_lang=vi' === NH_VIEN_Urls::rest_url( $route, 'wp/v2/search' ), 'A Vietnamese page must ask for Vietnamese suggestions' );
+$GLOBALS['options'][ NH_VIEN_Links::OPTION ] = array();
+fresh( 'vi' );
+must( $route === NH_VIEN_Urls::rest_url( $route, 'wp/v2/search' ), 'Without English posts the address must stay as it is' );
+NH_VIEN_Urls::close_body_phase();
+
+echo "PASS: language scoping of lists, terms, neighbours, empty archives and search suggestions.\n";

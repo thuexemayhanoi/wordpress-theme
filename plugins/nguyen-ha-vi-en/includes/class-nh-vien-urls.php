@@ -35,6 +35,7 @@ final class NH_VIEN_Urls {
 		add_action( 'wp_head', array( __CLASS__, 'open_body_phase' ), 9999 );
 		add_action( 'wp_footer', array( __CLASS__, 'close_body_phase' ), 0 );
 		add_filter( 'home_url', array( __CLASS__, 'home_url' ), 10, 3 );
+		add_filter( 'rest_url', array( __CLASS__, 'rest_url' ), 10, 2 );
 	}
 
 	/**
@@ -190,6 +191,23 @@ final class NH_VIEN_Urls {
 	public static function home_url( $url, $path = '', $orig_scheme = null ) {
 		if ( self::$body_phase && '/' === $path && null === $orig_scheme && NH_VIEN_Context::is_english() && NH_VIEN_Routes::live() ) {
 			return NH_VIEN_Routes::url();
+		}
+		return $url;
+	}
+
+	/**
+	 * The suggestions under a search box come from the REST search route, which knows nothing about the page that asks.
+	 * Inside the body of a page, the address of that route says which language the page is in, so that a Vietnamese page
+	 * is not offered English articles and the other way round (see NH_VIEN_Query::rest_search_query()). Without English
+	 * posts there is nothing to tell apart and the address is left as it is.
+	 *
+	 * @param string $url  The REST address.
+	 * @param string $path The route that was asked for.
+	 * @return string
+	 */
+	public static function rest_url( $url, $path = '' ) {
+		if ( self::$body_phase && 'wp/v2/search' === trim( (string) $path, '/' ) && NH_VIEN_Routes::live() && NH_VIEN_Links::en_ids() ) {
+			return add_query_arg( NH_VIEN_Routes::LANG_VAR, NH_VIEN_Context::language(), $url );
 		}
 		return $url;
 	}

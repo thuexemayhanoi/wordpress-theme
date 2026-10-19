@@ -102,7 +102,7 @@ def main():
             'failures_and_errors': failed_tests,
             'skipped': sum(r.get('skipped', 0) for r in gated),
         },
-        'artifacts': {key: manifest.get(key, {}) for key in ('theme', 'plugin') if manifest.get(key)},
+        'artifacts': {key: manifest.get(key, {}) for key in ('theme', 'plugin', 'vi_en_plugin') if manifest.get(key)},
     }
 
     lines = ['# Nguyen Ha Editorial: QA report', '']
@@ -129,7 +129,7 @@ def main():
 
     if manifest:
         lines += ['', '## Artifacts', '', '| Package | Version | Requires WordPress / PHP | SHA-256 |', '|---|---|---|---|']
-        for key in ('theme', 'plugin'):
+        for key in ('theme', 'plugin', 'vi_en_plugin'):
             item = manifest.get(key)
             if item:
                 lines.append('| {} | {} | {} / {} | `{}` |'.format(item['zip'], item['version'], item['requires_wordpress'], item['requires_php'], item['sha256']))
