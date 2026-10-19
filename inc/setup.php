@@ -123,9 +123,9 @@ function nh_editorial_widgets() {
 		register_sidebar(
 			array(
 				/* translators: %d: English footer column number. */
-				'name'          => sprintf( __( 'English Footer Column %d', 'nguyen-ha-editorial' ), $i ),
+				'name'          => sprintf( 'English %s', sprintf( __( 'Footer Column %d', 'nguyen-ha-editorial' ), $i ) ),
 				'id'            => 'footer-en-' . $i,
-				'description'   => __( 'Widgets for English pages only; never inherit Vietnamese footer widgets.', 'nguyen-ha-editorial' ),
+				'description'   => 'English: ' . __( 'When this column has widgets they replace its default content.', 'nguyen-ha-editorial' ),
 				'before_widget' => '<section id="%1$s" class="widget footer-widget %2$s">',
 				'after_widget'  => '</section>',
 				'before_title'  => '<h2 class="widget-title footer-title">',

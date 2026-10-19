@@ -718,21 +718,3 @@ msgstr ""
 #, php-format
 msgid "View all (%s)"
 msgstr ""
-
-#. translators: %d: English footer column number.
-#: inc/setup.php
-#, php-format
-msgid "English Footer Column %d"
-msgstr ""
-
-#: inc/setup.php
-msgid "Widgets for English pages only; never inherit Vietnamese footer widgets."
-msgstr ""
-
-#: page-templates/template-english-home.php
-msgid "Questions about motorbike rental in Hanoi?"
-msgstr ""
-
-#: page-templates/template-english-home.php
-msgid "Contact us"
-msgstr ""

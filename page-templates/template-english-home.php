@@ -134,8 +134,11 @@ if ( $nh_editorial_en_contact instanceof WP_Post && 'publish' === $nh_editorial_
 	?>
 	<div class="wrap section section--cta">
 		<aside class="cta cta--home" aria-label="<?php esc_attr_e( 'Get in touch', 'nguyen-ha-editorial' ); ?>">
-			<p class="cta__text"><?php esc_html_e( 'Questions about motorbike rental in Hanoi?', 'nguyen-ha-editorial' ); ?></p>
-			<a class="button cta__button" href="<?php echo esc_url( get_permalink( $nh_editorial_en_contact ) ); ?>"><?php esc_html_e( 'Contact us', 'nguyen-ha-editorial' ); ?></a>
+			<?php $nh_editorial_en_cta = trim( (string) get_post_field( 'post_excerpt', $nh_editorial_en_contact->ID ) ); ?>
+			<?php if ( '' !== $nh_editorial_en_cta ) : ?>
+				<p class="cta__text"><?php echo esc_html( $nh_editorial_en_cta ); ?></p>
+			<?php endif; ?>
+			<a class="button cta__button" href="<?php echo esc_url( get_permalink( $nh_editorial_en_contact ) ); ?>"><?php esc_html_e( 'Get in touch', 'nguyen-ha-editorial' ); ?></a>
 		</aside>
 	</div>
 	<?php
