@@ -73,7 +73,13 @@ final class NH_VIEN_Content {
 		$locations = get_nav_menu_locations();
 		$location  = (string) $args['theme_location'];
 		$menu      = ! empty( $locations[ $location ] ) ? wp_get_nav_menu_object( $locations[ $location ] ) : false;
-		$english   = $menu ? wp_get_nav_menu_object( $menu->slug . '-en' ) : false;
+		// English navigation has its own stable slug per theme location (primary-en,
+		// footer-en). Also recognize the old Vietnamese-menu-slug-en convention so
+		// existing setups keep working without renaming either menu.
+		$english   = wp_get_nav_menu_object( $location . '-en' );
+		if ( ! $english && $menu ) {
+			$english = wp_get_nav_menu_object( $menu->slug . '-en' );
+		}
 		if ( $english ) {
 			$args['menu'] = $english;
 		} else {
