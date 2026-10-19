@@ -13,6 +13,7 @@ defined( 'ABSPATH' ) || exit;
  */
 final class NH_VIEN_Links {
 	const OPTION       = 'nh_vien_translation_pairs_v1';
+	const INDEPENDENT_OPTION = 'nh_vien_independent_en_posts_v1';
 	const NONCE_ACTION = 'nh_vien_manage_links';
 
 	/**
@@ -118,6 +119,9 @@ final class NH_VIEN_Links {
 		if ( is_wp_error( $pairs ) ) {
 			return $pairs;
 		}
+		if ( in_array( $vi, self::independent_ids(), true ) ) {
+			return new WP_Error( 'nh_vien_conflict', 'The Vietnamese post has already been designated as English.' );
+		}
 		if ( isset( $pairs[ $vi ] ) ) {
 			return $pairs[ $vi ] === $en ? true : new WP_Error( 'nh_vien_conflict', 'The Vietnamese post is already linked.' );
 		}
@@ -196,13 +200,93 @@ final class NH_VIEN_Links {
 		return self::$memo['reverse'];
 	}
 
+
+	/**
+	 * Explicitly designated English articles. No existing Vietnamese article is modified.
+	 *
+	 * @return int[] Registered WordPress post IDs.
+	 */
+	public static function independent_ids() {
+		if ( ! isset( self::$memo['independent'] ) ) {
+			$stored = get_option( self::INDEPENDENT_OPTION, array() );
+			$ids    = is_array( $stored ) ? array_map( 'intval', $stored ) : array();
+			$ids    = array_values( array_unique( array_filter( $ids, static function ( $id ) {
+				return $id > 0;
+			} ) ) );
+			self::$memo['independent'] = array_values( array_diff( $ids, array_keys( self::pairs() ) ) );
+		}
+		return self::$memo['independent'];
+	}
+
+	/**
+	 * Assign the English language to an article without requiring a Vietnamese counterpart.
+	 * Requires a real administrator action; cannot relabel the Vietnamese side of an existing pair.
+	 *
+	 * @param mixed $post_id Article ID.
+	 * @param mixed $nonce Action nonce.
+	 * @return true|WP_Error
+	 */
+	public static function mark_english( $post_id, $nonce ) {
+		$security = self::authorize( $nonce );
+		if ( is_wp_error( $security ) ) {
+			return $security;
+		}
+		if ( ! self::positive_id( $post_id ) || ! self::eligible_post( (int) $post_id ) ) {
+			return new WP_Error( 'nh_vien_invalid_posts', 'Enter an existing WordPress article ID.' );
+		}
+		$post_id = (int) $post_id;
+		if ( ! current_user_can( 'edit_post', $post_id ) || isset( self::pairs()[ $post_id ] ) ) {
+			return new WP_Error( 'nh_vien_conflict', 'The article cannot be designated English.' );
+		}
+		$ids = self::independent_ids();
+		if ( in_array( $post_id, $ids, true ) ) {
+			return true;
+		}
+		$ids[] = $post_id;
+		if ( ! update_option( self::INDEPENDENT_OPTION, $ids, false ) ) {
+			return new WP_Error( 'nh_vien_save_failed', 'Could not save the English article.' );
+		}
+		self::flush_cache();
+		do_action( 'nh_vien_pairs_changed', 0, $post_id );
+		return true;
+	}
+
+	/**
+	 * Remove an independent English designation without deleting or editing the article.
+	 *
+	 * @param mixed $post_id Article ID.
+	 * @param mixed $nonce Action nonce.
+	 * @return true|WP_Error
+	 */
+	public static function unmark_english( $post_id, $nonce ) {
+		$security = self::authorize( $nonce );
+		if ( is_wp_error( $security ) ) {
+			return $security;
+		}
+		if ( ! self::positive_id( $post_id ) || ! current_user_can( 'edit_post', (int) $post_id ) ) {
+			return new WP_Error( 'nh_vien_forbidden', 'You must be allowed to edit this article.' );
+		}
+		$post_id = (int) $post_id;
+		$ids     = self::independent_ids();
+		if ( ! in_array( $post_id, $ids, true ) ) {
+			return new WP_Error( 'nh_vien_not_found', 'No independent English designation exists.' );
+		}
+		$ids = array_values( array_diff( $ids, array( $post_id ) ) );
+		if ( ! update_option( self::INDEPENDENT_OPTION, $ids, false ) ) {
+			return new WP_Error( 'nh_vien_save_failed', 'Could not update the English article list.' );
+		}
+		self::flush_cache();
+		do_action( 'nh_vien_pairs_changed', 0, $post_id );
+		return true;
+	}
+
 	/**
 	 * Every post paired as the English side, whatever state the pair is in.
 	 *
 	 * @return int[]
 	 */
 	public static function en_ids() {
-		return array_keys( self::reverse() );
+		return array_values( array_unique( array_merge( array_keys( self::reverse() ), self::independent_ids() ) ) );
 	}
 
 	/**
@@ -213,7 +297,7 @@ final class NH_VIEN_Links {
 	 */
 	public static function is_en( $post_id ) {
 		$reverse = self::reverse();
-		return isset( $reverse[ (int) $post_id ] );
+		return isset( $reverse[ (int) $post_id ] ) || in_array( (int) $post_id, self::independent_ids(), true );
 	}
 
 	/**
@@ -261,10 +345,11 @@ final class NH_VIEN_Links {
 		}
 		self::$memo['public'] = array();
 		$pairs                = self::pairs();
-		if ( ! $pairs ) {
+		$standalone           = self::independent_ids();
+		if ( ! $pairs && ! $standalone ) {
 			return array();
 		}
-		$ids       = array_merge( array_keys( $pairs ), array_values( $pairs ) );
+		$ids       = array_values( array_unique( array_merge( array_keys( $pairs ), array_values( $pairs ), $standalone ) ) );
 		$published = get_posts(
 			array(
 				'post_type'              => 'post',
@@ -286,6 +371,15 @@ final class NH_VIEN_Links {
 		}
 		// Only a page below /en/ can take an address away from an English post.
 		$pages_below_en = null !== get_page_by_path( 'en', OBJECT, 'page' );
+		foreach ( $standalone as $en ) {
+			if ( ! isset( $by_id[ $en ] ) || ! NH_VIEN_Routes::slug_is_routable( $by_id[ $en ]->post_name ) ) {
+				continue;
+			}
+			if ( $pages_below_en && null !== NH_VIEN_Routes::page_at( 'en/' . $by_id[ $en ]->post_name ) ) {
+				continue;
+			}
+			self::$memo['public'][ $en ] = $by_id[ $en ];
+		}
 		foreach ( $pairs as $vi => $en ) {
 			if ( ! isset( $by_id[ $vi ], $by_id[ $en ] ) || ! NH_VIEN_Routes::slug_is_routable( $by_id[ $en ]->post_name ) ) {
 				continue;
