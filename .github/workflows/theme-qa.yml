@@ -801,6 +801,15 @@ jobs:
           php "$SITE_TESTS/run.php" --base="$SITE_URL" --suite=snapshot --dir="$RUNNER_TEMP/snap-deactivated"
           php "$SITE_TESTS/run.php" --suite=compare --dir="$RUNNER_TEMP/snap-closed" --other="$RUNNER_TEMP/snap-deactivated"
 
+      - name: The switch of the dashboard (no constant in wp-config.php), on the same site
+        run: |
+          wp() { php "$RUNNER_TEMP/wp-cli.phar" --allow-root --path="$WP_DIR" "$@"; }
+          # The plugin was deactivated by the step before: activating it again starts closed. Everything the administrator
+          # can do in Tools > VI/EN Links is tried: security, switching on and off, a production site, the address of the
+          # site, the constants of wp-config.php, the refusals and the deactivation.
+          wp plugin activate nguyen-ha-vi-en
+          php "$SITE_TESTS/run.php" --base="$SITE_URL" --fixture="$NH_VIEN_FIXTURE" --suite=dashboard --seo=${{ matrix.seo }} --theme=${{ matrix.theme }} --wp="php $RUNNER_TEMP/wp-cli.phar --allow-root --path=$WP_DIR"
+
       - name: Upload the traces and screenshots of the browser tests that failed
         if: ${{ failure() }}
         uses: actions/upload-artifact@v4

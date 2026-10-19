@@ -12,6 +12,8 @@
  *   homepage  the English home is a real page at /en/ that holds [nh_vien_posts]
  *   legacy    the active theme never calls wp_body_open() (tests/site/legacy-theme): one switcher, in the post
  *   deactivated  the plugin was deactivated after the English side had been live: no /en/ address may answer
+ *   dashboard    the plugin was activated again, wp-config.php defines no constant, and the administrator switches the English
+ *                side on and off in Tools > VI/EN Links (needs --wp="php wp-cli.phar --allow-root --path=<wordpress>")
  *
  * Exit code 0 when every check passed.
  *
@@ -23,7 +25,7 @@ if ( 'cli' !== PHP_SAPI ) {
 	exit;
 }
 
-$opts = getopt( '', array( 'base:', 'fixture:', 'suite:', 'seo::', 'theme::', 'dir::', 'other::' ) );
+$opts = getopt( '', array( 'base:', 'fixture:', 'suite:', 'seo::', 'theme::', 'dir::', 'other::', 'wp::' ) );
 $base = rtrim( isset( $opts['base'] ) ? $opts['base'] : 'http://127.0.0.1:8080', '/' );
 $suite = isset( $opts['suite'] ) ? $opts['suite'] : 'main';
 $seo   = isset( $opts['seo'] ) ? $opts['seo'] : 'none';
@@ -229,8 +231,9 @@ function vietnamese_urls() {
 	return array( '/', '/thue-xe-may-ha-noi/', '/kinh-nghiem-di-phuot/', '/bai-chua-dich/', '/bai-slug-rieng/', '/category/kinh-nghiem/', '/category/thue-xe/', '/page/2/', '/?s=xe', '/feed/', '/hello-world/', '/author/admin/', '/wp-sitemap.xml', '/nope-404-test/' );
 }
 
-if ( 'snapshot' === $suite ) {
-	$dir = isset( $opts['dir'] ) ? $opts['dir'] : sys_get_temp_dir() . '/nh-vien-snap';
+
+/** Save the Vietnamese pages (status, address redirected to, body) into a directory. */
+function save_snapshot( $dir ) {
 	if ( ! is_dir( $dir ) ) {
 		mkdir( $dir, 0777, true ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir -- Test tooling.
 	}
@@ -239,14 +242,10 @@ if ( 'snapshot' === $suite ) {
 		file_put_contents( "$dir/$n.status", $r['status'] . ' ' . $r['location'] . ' ' . ( isset( $r['headers']['content-type'] ) ? $r['headers']['content-type'] : '' ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Test tooling.
 		file_put_contents( "$dir/$n.body", $r['body'] ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Test tooling.
 	}
-	echo 'saved ' . count( vietnamese_urls() ) . " Vietnamese pages to $dir\n";
-	exit( 0 );
 }
 
-if ( 'compare' === $suite ) {
-	$a = isset( $opts['dir'] ) ? $opts['dir'] : '';
-	$b = isset( $opts['other'] ) ? $opts['other'] : '';
-	echo "Vietnamese pages with the gate closed ($a) and open with no pairs ($b)\n";
+/** Check that two saved snapshots of the Vietnamese pages are identical. */
+function compare_snapshots( $a, $b, $label = 'identical' ) {
 	foreach ( vietnamese_urls() as $n => $url ) {
 		$status_a = (string) @file_get_contents( "$a/$n.status" );
 		$status_b = (string) @file_get_contents( "$b/$n.status" );
@@ -256,8 +255,78 @@ if ( 'compare' === $suite ) {
 		$strip = function ( $html ) {
 			return preg_replace( array( '#<lastBuildDate>.*?</lastBuildDate>#', '#<lastmod>.*?</lastmod>#', '#<sy:updatePeriod>.*?</sy:updatePeriod>#' ), '', $html );
 		};
-		ok( "identical: $url", '' !== $status_a && $status_a === $status_b && $strip( $body_a ) === $strip( $body_b ), 'status ' . trim( $status_a ) . ' / ' . trim( $status_b ) );
+		ok( "$label: $url", '' !== $status_a && $status_a === $status_b && $strip( $body_a ) === $strip( $body_b ), 'status ' . trim( $status_a ) . ' / ' . trim( $status_b ) );
 	}
+}
+
+/** Run a WP-CLI command on the site under test (--wp holds the command line up to the sub-command); returns what it printed. */
+function wp_cli( $arguments ) {
+	global $opts;
+	if ( empty( $opts['wp'] ) ) {
+		fwrite( STDERR, "This suite needs --wp=\"<wp-cli command line>\"\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Test tooling.
+		exit( 2 );
+	}
+	return trim( (string) shell_exec( $opts['wp'] . ' ' . $arguments ) ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_shell_exec -- Test tooling.
+}
+
+// ---- The administrator's browser: logs in, fetches screens, posts forms, finds the fields of a form.
+$jar   = array();
+$login = function ( $user, $pass ) use ( &$jar ) {
+	$jar = array( 'wordpress_test_cookie=WP%20Cookie%20check' );
+	$r   = http(
+		'/wp-login.php',
+		array(
+			'method'  => 'POST',
+			'headers' => array( 'Content-Type: application/x-www-form-urlencoded', 'Cookie: ' . implode( '; ', $jar ) ),
+			'body'    => http_build_query(
+				array(
+					'log'        => $user,
+					'pwd'        => $pass,
+					'wp-submit'  => 'Log In',
+					'redirect_to' => '/wp-admin/',
+					'testcookie' => '1',
+				)
+			),
+		)
+	);
+	$jar = array_merge( $jar, $r['cookies'] );
+	return 302 === $r['status'];
+};
+$admin = function ( $path, $fields = null ) use ( &$jar ) {
+	$o = array( 'headers' => array( 'Cookie: ' . implode( '; ', $jar ) ) );
+	if ( null !== $fields ) {
+		$o['method']    = 'POST';
+		$o['headers'][] = 'Content-Type: application/x-www-form-urlencoded';
+		$o['body']      = http_build_query( $fields );
+	}
+	return http( $path, $o );
+};
+$form_for = function ( $html, $action ) {
+	foreach ( preg_split( '#</form>#', $html ) as $form ) {
+		if ( false !== strpos( $form, 'name="action" value="' . $action . '"' ) ) {
+			preg_match_all( '#<input[^>]*name="([^"]+)"[^>]*value="([^"]*)"#', $form, $f, PREG_SET_ORDER );
+			$fields = array();
+			foreach ( $f as $field ) {
+				$fields[ $field[1] ] = html_entity_decode( $field[2] );
+			}
+			return $fields;
+		}
+	}
+	return null;
+};
+
+if ( 'snapshot' === $suite ) {
+	$dir = isset( $opts['dir'] ) ? $opts['dir'] : sys_get_temp_dir() . '/nh-vien-snap';
+	save_snapshot( $dir );
+	echo 'saved ' . count( vietnamese_urls() ) . " Vietnamese pages to $dir\n";
+	exit( 0 );
+}
+
+if ( 'compare' === $suite ) {
+	$a = isset( $opts['dir'] ) ? $opts['dir'] : '';
+	$b = isset( $opts['other'] ) ? $opts['other'] : '';
+	echo "Vietnamese pages with the gate closed ($a) and open with no pairs ($b)\n";
+	compare_snapshots( $a, $b );
 	echo "\n$checks checks, $failures failed\n";
 	exit( $failures ? 1 : 0 );
 }
@@ -352,6 +421,223 @@ if ( 'deactivated' === $suite ) {
 		$alternates = array_filter( head_links( $xp, 'alternate' ), function ( $l ) { return '' !== $l['hreflang']; } );
 		ok( "$url answers 200 in Vietnamese with no switcher and no hreflang", 200 === $r['status'] && 'vi' === $xp->query( '//html' )->item( 0 )->getAttribute( 'lang' ) && 0 === $xp->query( "//nav[contains(@class,'nh-vien-switcher')]" )->length && ! $alternates, 'status ' . $r['status'] );
 	}
+	echo "\n$checks checks, $failures failed\n";
+	exit( $failures ? 1 : 0 );
+}
+
+if ( 'dashboard' === $suite ) {
+	echo "The switch of the dashboard: wp-config.php defines no constant, the administrator decides in Tools > VI/EN Links\n";
+	$work     = sys_get_temp_dir() . '/nh-vien-dashboard-' . getmypid();
+	$tools_at = '/wp-admin/tools.php?page=nh-vien-links';
+	$post_at  = '/wp-admin/admin-post.php';
+	$const    = function ( $name, $value = null ) {
+		null === $value ? wp_cli( 'config delete ' . $name . ' 2>/dev/null' ) : wp_cli( 'config set ' . $name . ' ' . $value . ' --raw' );
+	};
+	$environment = function ( $type ) {
+		wp_cli( 'config set WP_ENVIRONMENT_TYPE ' . escapeshellarg( $type ) );
+	};
+	$stored_rules = function () {
+		return (int) wp_cli( 'eval ' . escapeshellarg( 'echo count( array_filter( array_keys( (array) get_option( "rewrite_rules" ) ), function ( $k ) { return 0 === strpos( $k, "^en/" ); } ) );' ) );
+	};
+	$status_is = function ( $r, $token ) {
+		return 302 === $r['status'] && false !== strpos( $r['location'], 'nh_vien_status=' . $token );
+	};
+	$live = function () {
+		$r = http( '/en/motorbike-rental-in-hanoi/' );
+		return 200 === $r['status'] && 'en' === substr( xp( $r['body'] )->query( '//html' )->item( 0 )->getAttribute( 'lang' ), 0, 2 );
+	};
+	// No rule of the plugin is stored: WordPress answers as it would without the plugin. /en/ is a draft page (404), the
+	// English post is an ordinary post that WordPress finds by its slug (301 to its native address), a page below /en/
+	// keeps being served by WordPress itself.
+	$off = function () use ( $stored_rules ) {
+		$guess = http( '/en/motorbike-rental-in-hanoi/' );
+		return 0 === $stored_rules() && 404 === http( '/en/' )['status'] && 404 === http( '/en/category/travel-tips/' )['status'] && 404 === http( '/en/page/2/' )['status']
+			&& 301 === $guess['status'] && '/motorbike-rental-in-hanoi/' === path_of( $guess['location'] ) && 200 === http( '/en/about/' )['status'];
+	};
+	// The gate is closed while the rules are still stored: the plugin answers every English address with a 404 (the page
+	// below /en/ included), so that nothing answers with the Vietnamese home page.
+	$guarded = function () {
+		return 404 === http( '/en/' )['status'] && 404 === http( '/en/motorbike-rental-in-hanoi/' )['status'] && 404 === http( '/en/about/' )['status'] && 404 === http( '/en/category/travel-tips/' )['status'];
+	};
+	$tools_body = function () use ( $admin, $tools_at ) {
+		return $admin( $tools_at )['body'];
+	};
+	$row = function ( $body, $label ) {
+		return preg_match( '#' . preg_quote( $label, '#' ) . '</th><td>([^<]*)</td>#', $body, $m ) ? html_entity_decode( $m[1] ) : '';
+	};
+
+	ok( 'the administrator can log in', $login( 'admin', 'admin' ) );
+	save_snapshot( "$work/closed" );
+
+	echo "\n[1] Closed after the plugin was activated\n";
+	ok( 'WordPress answers as it would without the plugin, and no rewrite rule of the English side is stored', $off(), (string) $stored_rules() );
+	$body = $tools_body();
+	ok( 'the Tools screen says English routing is not switched on', 'No' === $row( $body, 'English routing is switched on' ), $row( $body, 'English routing is switched on' ) );
+	ok( 'it says that nothing was switched on yet', false !== strpos( $row( $body, 'Decided by' ), 'not switched on yet' ), $row( $body, 'Decided by' ) );
+	$form = $form_for( $body, 'nh_vien_toggle' );
+	ok( 'it offers the switch, with a nonce, to switch on', $form && 'enable' === $form['nh_vien_mode'] && ! empty( $form['_wpnonce'] ) );
+	ok( 'on a local site it asks for no confirmation', false === strpos( $body, 'name="nh_vien_confirm"' ) );
+	$nonce  = $form ? $form['_wpnonce'] : 'x';
+	$toggle = function ( $mode, $extra = array() ) use ( $admin, $post_at, &$nonce ) {
+		return $admin( $post_at, array_merge( array( 'action' => 'nh_vien_toggle', '_wpnonce' => $nonce, 'nh_vien_mode' => $mode ), $extra ) );
+	};
+	// A nonce belongs to the session of the person who got it: after logging in again, ask for a new one.
+	$new_nonce = function () use ( $form_for, $tools_body, &$nonce ) {
+		$form  = $form_for( $tools_body(), 'nh_vien_toggle' );
+		$nonce = $form ? $form['_wpnonce'] : $nonce;
+	};
+
+	echo "\n[2] Nobody else can switch it, and nothing odd does\n";
+	$r = $admin( $post_at, array( 'action' => 'nh_vien_toggle', '_wpnonce' => '0000000000', 'nh_vien_mode' => 'enable' ) );
+	ok( 'a wrong nonce is refused (CSRF)', 403 === $r['status'], 'got ' . $r['status'] );
+	$r = $admin( $post_at, array( 'action' => 'nh_vien_toggle', 'nh_vien_mode' => 'enable' ) );
+	ok( 'a missing nonce is refused (CSRF)', 403 === $r['status'], 'got ' . $r['status'] );
+	$r = http( $post_at, array( 'method' => 'POST', 'headers' => array( 'Content-Type: application/x-www-form-urlencoded' ), 'body' => http_build_query( array( 'action' => 'nh_vien_toggle', '_wpnonce' => $nonce, 'nh_vien_mode' => 'enable' ) ) ) );
+	ok( 'a visitor who is not logged in cannot switch it on', in_array( $r['status'], array( 302, 400, 403 ), true ) && ( 302 !== $r['status'] || false !== strpos( $r['location'], 'wp-login.php' ) || '' === $r['location'] ), $r['status'] . ' ' . $r['location'] );
+	$r = $admin( $post_at . '?action=nh_vien_toggle&nh_vien_mode=enable&_wpnonce=' . rawurlencode( $nonce ) );
+	ok( 'a link (GET) cannot switch it on, even with a valid nonce', $status_is( $r, 'nh_vien_invalid_mode' ), $r['status'] . ' ' . $r['location'] );
+	foreach ( array( 'foo', '', 'ENABLE ', 'enable;disable' ) as $mode ) {
+		$r = $toggle( $mode );
+		ok( 'an unknown mode is refused: ' . json_encode( $mode ), $status_is( $r, 'nh_vien_invalid_mode' ), $r['status'] . ' ' . $r['location'] );
+	}
+	$login( 'sub1', 'sub1pass' );
+	$r = $toggle( 'enable' );
+	ok( 'a subscriber cannot switch it on, even with an administrator nonce', 403 === $r['status'], 'got ' . $r['status'] );
+	$login( 'admin', 'admin' );
+	$new_nonce();
+	ok( 'after all that, nothing changed', $off() );
+
+	echo "\n[3] Switching on\n";
+	$r = $toggle( 'enable' );
+	ok( 'switching on works', $status_is( $r, 'routes_enabled' ), $r['status'] . ' ' . $r['location'] );
+	ok( 'an English post is served at its English address, in English', $live() );
+	$en_home = http( '/en/' );
+	ok( 'the English home answers 200, in English', 200 === $en_home['status'] && 'en' === substr( xp( $en_home['body'] )->query( '//html' )->item( 0 )->getAttribute( 'lang' ), 0, 2 ), 'status ' . $en_home['status'] );
+	ok( 'a page below /en/ answers 200', 200 === http( '/en/about/' )['status'] );
+	$r = http( '/motorbike-rental-in-hanoi/' );
+	ok( 'the native address of an English post moves to its English address', 301 === $r['status'] && '/en/motorbike-rental-in-hanoi/' === path_of( $r['location'] ), $r['status'] . ' ' . $r['location'] );
+	$vi_links = head_links( xp( http( '/thue-xe-may-ha-noi/' )['body'] ), 'alternate' );
+	ok( 'the Vietnamese post names its English partner (hreflang)', (bool) array_filter( $vi_links, function ( $l ) { return 'en' === $l['hreflang'] && '/en/motorbike-rental-in-hanoi/' === $l['href']; } ), json_encode( $vi_links ) );
+	$body = $tools_body();
+	ok( 'the Tools screen says it is on, and live', 'Yes' === $row( $body, 'English routing is switched on' ) && 'Yes' === $row( $body, 'English pages are live' ) && 'Yes' === $row( $body, 'Rewrite rules stored' ) );
+	ok( 'it says who switched it on', false !== strpos( $row( $body, 'Decided by' ), 'switched on by admin' ), $row( $body, 'Decided by' ) );
+	$form = $form_for( $body, 'nh_vien_toggle' );
+	ok( 'it now offers to switch it off', $form && 'disable' === $form['nh_vien_mode'] );
+	ok( 'the eight rules of the plugin are stored', 8 === $stored_rules(), (string) $stored_rules() );
+	$r = $toggle( 'enable' );
+	ok( 'switching on twice changes nothing', $status_is( $r, 'routes_enabled' ) && $live() && 8 === $stored_rules() );
+
+	echo "\n[4] Switching off\n";
+	$r = $toggle( 'disable' );
+	ok( 'switching off works', $status_is( $r, 'routes_disabled' ), $r['status'] . ' ' . $r['location'] );
+	ok( 'the English side is off again: no rule is stored, WordPress answers as it would without the plugin', $off(), (string) $stored_rules() );
+	$body = $tools_body();
+	ok( 'the Tools screen says it is off, and who switched it off', 'No' === $row( $body, 'English routing is switched on' ) && false !== strpos( $row( $body, 'Decided by' ), 'switched off by admin' ), $row( $body, 'Decided by' ) );
+	save_snapshot( "$work/off" );
+	compare_snapshots( "$work/closed", "$work/off", 'the Vietnamese page is as before' );
+	$r = $toggle( 'disable' );
+	ok( 'switching off twice is harmless', $status_is( $r, 'routes_disabled' ) && $off() );
+	$r = $toggle( 'enable' );
+	ok( 'switching on again works', $status_is( $r, 'routes_enabled' ) && $live() );
+	$toggle( 'disable' );
+
+	echo "\n[5] A production site\n";
+	$environment( 'production' );
+	$body = $tools_body();
+	ok( 'the Tools screen says the site is a production site and asks for the confirmation', false !== strpos( $row( $body, 'Environment type' ), 'production' ) && false !== strpos( $body, 'name="nh_vien_confirm"' ), $row( $body, 'Environment type' ) );
+	$r = $toggle( 'enable' );
+	ok( 'switching on without the confirmation is refused', $status_is( $r, 'nh_vien_confirm_required' ) && $off(), $r['status'] . ' ' . $r['location'] );
+	$r = $toggle( 'enable', array( 'nh_vien_confirm' => 'no' ) );
+	ok( 'a confirmation that is not "yes" is refused', $status_is( $r, 'nh_vien_confirm_required' ) && $off() );
+	$r = $toggle( 'enable', array( 'nh_vien_confirm' => 'yes' ) );
+	ok( 'switching on with the confirmation works', $status_is( $r, 'routes_enabled' ) && $live(), $r['status'] . ' ' . $r['location'] );
+	$environment( 'staging' );
+	ok( 'the decision holds when the site is a staging site', $live() );
+	$environment( 'production' );
+	ok( 'the confirmation holds while the site stays a production site', $live() );
+	$const( 'NH_VIEN_ALLOW_PRODUCTION', 'false' );
+	ok( 'NH_VIEN_ALLOW_PRODUCTION = false closes a production site whatever the dashboard says (the stored rules answer 404)', $guarded() );
+	$body = $tools_body();
+	ok( 'the Tools screen says why, and offers no switch', false !== strpos( $row( $body, 'Decided by' ), 'NH_VIEN_ALLOW_PRODUCTION' ) && null === $form_for( $body, 'nh_vien_toggle' ), $row( $body, 'Decided by' ) );
+	$r = $toggle( 'enable', array( 'nh_vien_confirm' => 'yes' ) );
+	ok( 'the dashboard cannot switch it on against that constant', $status_is( $r, 'nh_vien_production_denied' ) && $guarded(), $r['status'] . ' ' . $r['location'] );
+	$const( 'NH_VIEN_ALLOW_PRODUCTION' );
+	ok( 'without that constant the confirmed decision counts again', $live() );
+	$toggle( 'disable' );
+	$const( 'NH_VIEN_ALLOW_PRODUCTION', 'true' );
+	$body = $tools_body();
+	ok( 'with NH_VIEN_ALLOW_PRODUCTION = true wp-config.php vouches for the production site: no confirmation is asked', false === strpos( $body, 'name="nh_vien_confirm"' ) );
+	$r = $toggle( 'enable' );
+	ok( 'switching on works without the confirmation then', $status_is( $r, 'routes_enabled' ) && $live() );
+	$const( 'NH_VIEN_ALLOW_PRODUCTION' );
+	ok( 'without that constant a decision that was never confirmed does not open a production site', $guarded() );
+	$body = $tools_body();
+	ok( 'the Tools screen says it was not confirmed', false !== strpos( $row( $body, 'Decided by' ), 'not confirmed' ), $row( $body, 'Decided by' ) );
+	$r = $toggle( 'disable' );
+	ok( 'switching off cleans the stored rules up', $status_is( $r, 'routes_disabled' ) && 0 === $stored_rules() );
+	$environment( 'local' );
+
+	echo "\n[6] A database copied to another address stays closed\n";
+	$toggle( 'enable' );
+	ok( 'it is on', $live() );
+	wp_cli( 'eval ' . escapeshellarg( '$o = get_option( "nh_vien_gate_v1" ); $o["site"] = "0123456789abcdef"; update_option( "nh_vien_gate_v1", $o, true );' ) );
+	ok( 'a decision taken at another address does not open the site, and every English address answers 404', $guarded() );
+	$body = $tools_body();
+	ok( 'the Tools screen says why', false !== strpos( $row( $body, 'Decided by' ), 'another address' ) && 'No' === $row( $body, 'English routing is switched on' ), $row( $body, 'Decided by' ) );
+	$r = $toggle( 'enable' );
+	ok( 'switching it on at this address works', $status_is( $r, 'routes_enabled' ) && $live() );
+
+	echo "\n[7] wp-config.php decides when it defines the constant\n";
+	$const( 'NH_VIEN_ENABLE_EN_ROUTES', 'false' );
+	ok( 'NH_VIEN_ENABLE_EN_ROUTES = false closes the English side whatever the dashboard says (the emergency brake)', $guarded() );
+	$body = $tools_body();
+	ok( 'the Tools screen says wp-config.php decides, and offers no switch', false !== strpos( $row( $body, 'Decided by' ), 'wp-config.php' ) && null === $form_for( $body, 'nh_vien_toggle' ), $row( $body, 'Decided by' ) );
+	$r = $toggle( 'enable' );
+	ok( 'the dashboard cannot switch it on against the constant', $status_is( $r, 'nh_vien_config_controls' ) && $guarded() );
+	$r = $toggle( 'disable' );
+	ok( 'nor off', $status_is( $r, 'nh_vien_config_controls' ) );
+	$const( 'NH_VIEN_ENABLE_EN_ROUTES' );
+	ok( 'without the constant the dashboard decides again', $live() );
+	$const( 'NH_VIEN_ENABLE_EN_ROUTES', 'true' );
+	ok( 'the constant true opens the English side', $live() );
+	$r = $toggle( 'disable' );
+	ok( 'the dashboard cannot switch it off against the constant', $status_is( $r, 'nh_vien_config_controls' ) && $live() );
+	$const( 'NH_VIEN_ENABLE_EN_ROUTES' );
+	$toggle( 'disable' );
+	ok( 'switched off in the dashboard, it is off', $off() );
+
+	echo "\n[8] Refusals that change nothing\n";
+	$permalinks = wp_cli( 'option get permalink_structure' );
+	wp_cli( 'option update permalink_structure ""' );
+	$body = $tools_body();
+	ok( 'the Tools screen says pretty permalinks are off', 'No' === $row( $body, 'Pretty permalinks' ) );
+	$r = $toggle( 'enable' );
+	ok( 'plain permalinks refuse the switch-on', $status_is( $r, 'nh_vien_pretty_links_required' ) && 0 === $stored_rules(), $r['status'] . ' ' . $r['location'] );
+	wp_cli( 'rewrite structure ' . escapeshellarg( '' === $permalinks ? '/%postname%/' : $permalinks ) );
+	wp_cli( 'rewrite flush' );
+	$id = (int) wp_cli( 'post create --post_type=post --post_status=publish --post_title=En --post_name=en --porcelain' );
+	ok( 'a post with the address /en/ could be created for the test', $id > 0 );
+	$r = $toggle( 'enable' );
+	ok( 'a published post at /en/ refuses the switch-on', $status_is( $r, 'address_taken' ) && 0 === $stored_rules(), $r['status'] . ' ' . $r['location'] );
+	wp_cli( 'post delete ' . $id . ' --force' );
+	$r = $toggle( 'enable' );
+	ok( 'once that post is gone it works', $status_is( $r, 'routes_enabled' ) && $live() );
+	$toggle( 'disable' );
+
+	echo "\n[9] Deactivating the plugin\n";
+	$toggle( 'enable' );
+	ok( 'it is on', $live() && 8 === $stored_rules() );
+	wp_cli( 'plugin deactivate nguyen-ha-vi-en' );
+	ok( 'the rules of the plugin are gone', 0 === $stored_rules(), (string) $stored_rules() );
+	ok( 'the decision is forgotten', 'gone' === wp_cli( 'eval ' . escapeshellarg( 'echo null === get_option( "nh_vien_gate_v1", null ) ? "gone" : "kept";' ) ) );
+	ok( 'WordPress answers as it would without the plugin', $off() );
+	save_snapshot( "$work/deactivated" );
+	compare_snapshots( "$work/closed", "$work/deactivated", 'the Vietnamese page is as before the plugin was switched on' );
+	wp_cli( 'plugin activate nguyen-ha-vi-en' );
+	ok( 'after activating it again the English side is closed', $off() );
+	$body = $tools_body();
+	ok( 'and the Tools screen says it is off, not switched on yet', 'No' === $row( $body, 'English routing is switched on' ) && false !== strpos( $row( $body, 'Decided by' ), 'not switched on yet' ), $row( $body, 'Decided by' ) );
+
 	echo "\n$checks checks, $failures failed\n";
 	exit( $failures ? 1 : 0 );
 }
@@ -718,50 +1004,6 @@ ok( 'the Vietnamese home is the same before and after an English page was built'
 ok( 'the English home is the same twice', $en_one === $en_two );
 
 echo "\n[10] Administration\n";
-$jar   = array();
-$login = function ( $user, $pass ) use ( &$jar ) {
-	$jar = array( 'wordpress_test_cookie=WP%20Cookie%20check' );
-	$r   = http(
-		'/wp-login.php',
-		array(
-			'method'  => 'POST',
-			'headers' => array( 'Content-Type: application/x-www-form-urlencoded', 'Cookie: ' . implode( '; ', $jar ) ),
-			'body'    => http_build_query(
-				array(
-					'log'        => $user,
-					'pwd'        => $pass,
-					'wp-submit'  => 'Log In',
-					'redirect_to' => '/wp-admin/',
-					'testcookie' => '1',
-				)
-			),
-		)
-	);
-	$jar = array_merge( $jar, $r['cookies'] );
-	return 302 === $r['status'];
-};
-$admin = function ( $path, $fields = null ) use ( &$jar ) {
-	$o = array( 'headers' => array( 'Cookie: ' . implode( '; ', $jar ) ) );
-	if ( null !== $fields ) {
-		$o['method']    = 'POST';
-		$o['headers'][] = 'Content-Type: application/x-www-form-urlencoded';
-		$o['body']      = http_build_query( $fields );
-	}
-	return http( $path, $o );
-};
-$form_for = function ( $html, $action ) {
-	foreach ( preg_split( '#</form>#', $html ) as $form ) {
-		if ( false !== strpos( $form, 'name="action" value="' . $action . '"' ) ) {
-			preg_match_all( '#<input[^>]*name="([^"]+)"[^>]*value="([^"]*)"#', $form, $f, PREG_SET_ORDER );
-			$fields = array();
-			foreach ( $f as $field ) {
-				$fields[ $field[1] ] = html_entity_decode( $field[2] );
-			}
-			return $fields;
-		}
-	}
-	return null;
-};
 ok( 'the administrator can log in', $login( 'admin', 'admin' ) );
 $tools = $admin( '/wp-admin/tools.php?page=nh-vien-links' );
 ok( 'the Tools screen of the plugin opens for the administrator', 200 === $tools['status'] && false !== strpos( $tools['body'], 'English pages are live' ) );
