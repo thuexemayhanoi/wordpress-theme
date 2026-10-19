@@ -757,6 +757,8 @@ jobs:
         env:
           NH_BASE_URL: ${{ env.SITE_URL }}
           NH_E2E_THEME: ${{ matrix.theme == 'editorial' && 'editorial' || 'other' }}
+          # The whole page is checked on the current WordPress; on the oldest one only the switcher is.
+          NH_E2E_AXE_SCOPED: ${{ matrix.wp && '1' || '' }}
           NH_E2E_WORKERS: '2'
         run: npx playwright test -c plugins/nguyen-ha-vi-en/tests/e2e/playwright.config.mjs
 

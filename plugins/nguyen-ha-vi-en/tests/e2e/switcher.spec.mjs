@@ -6,6 +6,8 @@
  * NH_E2E_THEME=editorial (the default) checks the whole page of the Nguyen Ha Editorial theme, where the switcher comes
  * right after the theme's skip link. With any other value (a theme the plugin knows nothing about) axe checks the
  * switcher itself, and the place of the skip link is left to the theme.
+ * NH_E2E_AXE_SCOPED=1 limits axe to the switcher even for the editorial theme: on an old WordPress the markup of core
+ * widgets is not what this plugin answers for.
  */
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
@@ -21,6 +23,7 @@ const PAGES = [
 const AXE_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa', 'best-practice'];
 
 const OWN_THEME = (process.env.NH_E2E_THEME || 'editorial') === 'editorial';
+const WHOLE_PAGE_AXE = OWN_THEME && !process.env.NH_E2E_AXE_SCOPED;
 
 // The name of the navigation is in the language of the page; the name of each link starts with its visible text.
 const NAV_NAME = { vi: 'Ngôn ngữ', 'en-US': 'Language' };
@@ -98,7 +101,7 @@ for (const page of PAGES) {
         // title as typed, so the probe shows up as a bare image in lists. It is not what this test is about.
         await tab.evaluate(() => document.querySelectorAll('img[src="x"]').forEach((img) => img.remove()));
         const axe = new AxeBuilder({ page: tab }).withTags(AXE_TAGS);
-        const results = await (OWN_THEME ? axe : axe.include('.nh-vien-bar')).analyze();
+        const results = await (WHOLE_PAGE_AXE ? axe : axe.include('.nh-vien-bar')).analyze();
         const report = results.violations.map((v) => `${v.id}: ${v.nodes.slice(0, 3).map((n) => n.target.join(' ')).join(' | ')}`);
         expect(report, report.join('\n')).toEqual([]);
       });
