@@ -32,6 +32,21 @@ final class NH_VIEN_Admin {
 		add_action( 'admin_post_nh_vien_flush', array( __CLASS__, 'flush' ) );
 		add_action( 'admin_post_nh_vien_toggle', array( __CLASS__, 'toggle' ) );
 		add_action( 'admin_post_nh_vien_home_page', array( __CLASS__, 'home_page' ) );
+		add_filter( 'plugin_action_links_' . plugin_basename( NH_VIEN_PLUGIN_FILE ), array( __CLASS__, 'action_links' ) );
+	}
+
+	/**
+	 * A link to the Tools screen under the name of the plugin in Plugins, where the switch is.
+	 *
+	 * @param mixed $links The action links WordPress prints for the plugin.
+	 * @return mixed
+	 */
+	public static function action_links( $links ) {
+		if ( ! is_array( $links ) || ! current_user_can( 'manage_options' ) ) {
+			return $links;
+		}
+		array_unshift( $links, '<a href="' . esc_url( admin_url( 'tools.php?page=' . self::PAGE ) ) . '">' . esc_html__( 'VI/EN Links', 'nguyen-ha-vi-en' ) . '</a>' );
+		return $links;
 	}
 
 	/** Add the Tools navigation entry. */

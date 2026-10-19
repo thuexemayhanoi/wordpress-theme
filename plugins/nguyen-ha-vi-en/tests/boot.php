@@ -22,6 +22,7 @@ function get_option( $key, $default = false ) { return array_key_exists( $key, $
 function add_action( $tag, $callback = null ) { $GLOBALS['hooks'][] = $tag; $GLOBALS['callbacks'][ $tag ][] = $callback; }
 function add_filter( $tag, $callback = null ) { $GLOBALS['hooks'][] = $tag; $GLOBALS['callbacks'][ $tag ][] = $callback; }
 function add_shortcode( $tag, $callback = null ) { $GLOBALS['hooks'][] = 'shortcode:' . $tag; $GLOBALS['callbacks'][ 'shortcode:' . $tag ][] = $callback; }
+function plugin_basename( $file ) { return basename( dirname( $file ) ) . '/' . basename( $file ); }
 function must( $condition, $message ) { if ( ! $condition ) { throw new RuntimeException( $message ); } }
 
 /** Every callback that was registered must exist and be public: WordPress would fatal on the first request otherwise. */
@@ -77,6 +78,7 @@ $GLOBALS['options'] = array();
 
 // The switch of the dashboard (no constant in wp-config.php) opens the gate; a production site also needs its confirmation.
 must( in_array( 'admin_post_nh_vien_toggle', $admin_only, true ), 'The administration must offer the switch' );
+must( in_array( 'plugin_action_links_nguyen-ha-vi-en/nguyen-ha-vi-en.php', $admin_only, true ), 'The Plugins screen must link to the switch' );
 $GLOBALS['options']['home']                 = 'https://example.test';
 $GLOBALS['options'][ NH_VIEN_Gate::OPTION ] = array(
 	'on'        => true,
@@ -116,7 +118,7 @@ must( $expected_front === $booted_front, 'Front end request hooks differ' );
 foreach ( array( 'init', 'parse_request', 'pre_get_posts', 'post_link', 'rest_url', 'rest_post_search_query', 'wp_body_open', 'nh_editorial_after_skip_link', 'wpseo_canonical', 'wp_head', 'the_title', 'shortcode:nh_vien_switcher', 'shortcode:nh_vien_posts' ) as $front_hook ) {
 	must( in_array( $front_hook, $booted_front, true ), "Front-end hook $front_hook missing" );
 }
-foreach ( array( 'admin_menu', 'admin_post_nh_vien_link', 'admin_post_nh_vien_flush', 'admin_post_nh_vien_toggle' ) as $admin_hook ) {
+foreach ( array( 'admin_menu', 'admin_post_nh_vien_link', 'admin_post_nh_vien_flush', 'admin_post_nh_vien_toggle', 'plugin_action_links_nguyen-ha-vi-en/nguyen-ha-vi-en.php' ) as $admin_hook ) {
 	must( ! in_array( $admin_hook, $booted_front, true ), "Admin hook $admin_hook registered on the front end" );
 }
 

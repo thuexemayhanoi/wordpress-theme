@@ -8,6 +8,21 @@
 - Nút nổi "Hỏi nhanh" của Local Site Assistant Lite được thu gọn còn 44 × 44 px và đưa sát mép trái trên màn hình điện thoại để giảm che nội dung. Plugin/chatbot giữ nguyên.
 - Không chỉnh sửa menu WordPress hoặc dữ liệu SEO từ theme. Liên kết "Trang chủ" của menu #26 đang được WordPress quản lý và phải cập nhật tại nguồn.
 
+## [Chưa phát hành] — plugin `nguyen-ha-vi-en` 0.5.1 (nhánh `feature/vi-en-final-20261019`)
+
+Hợp nhất hai nhánh 0.5.1 cạnh tranh nhau (#9 và #10) thành một thiết kế duy nhất, cộng một sửa hiệu năng. Vẫn **tắt cho đến khi quản trị viên bật**; không sửa bài tiếng Việt; chưa kích hoạt trên website thật.
+
+- Công tắc trong WordPress: *Công cụ → VI/EN Links → Switch English routing on/off*, chỉ quản trị viên và có nonce, **không phải sửa `wp-config.php`**. Bật lưu quy tắc rewrite trong cùng bước và hoàn tác nếu WordPress không lưu được; tắt chỉ rút quy tắc của plugin (không flush, quy tắc của plugin khác giữ nguyên) và luôn đóng được. Gỡ kích hoạt quên công tắc.
+- `wp-config.php` vẫn là cơ quan quyết định: hằng số `NH_VIEN_ENABLE_EN_ROUTES` (khi đã khai báo) quyết định một mình và là **phanh khẩn cấp** (`false` tắt ngay, bất kể nút); `NH_VIEN_ALLOW_PRODUCTION` khác `true` cấm nút bật trên production.
+- An toàn production: quyết định gắn với **địa chỉ website** (chép cơ sở dữ liệu staging lên địa chỉ khác không bật được gì) và, trên production, đòi tick xác nhận đã sao lưu và đã kiểm tra staging. Từ chối khi đường dẫn tĩnh là "Plain" hoặc khi một bài đã xuất bản có slug `en`.
+- Hiệu năng: 0.5.0 hỏi WordPress "trang nào chiếm địa chỉ dưới `/en/`" riêng cho từng bài tiếng Anh trên **mọi** trang (đo: 241–258 truy vấn mỗi trang so với 26–47 khi không có plugin, với 200 bài Anh); 0.5.1 hỏi một lần cho cả yêu cầu (39–53 truy vấn). Bộ định tuyến, danh sách bài và menu dự phòng dùng chung kết quả đó.
+- Kiểm thử: `tests/gate.php` và `tests/gate-config.php` (offline, kiểm tra đột biến), kiểm tra số lần tra cứu trang dưới `/en/` trong `tests/routes.php`, bộ `dashboard` của `tests/site/run.php` (155 kiểm tra trên site WordPress thật, bốn biến thể trong CI). Tài liệu: [docs/VI-EN-PLUGIN.md](docs/VI-EN-PLUGIN.md), `plugins/nguyen-ha-vi-en/readme.txt`.
+
+## [Chưa phát hành] — plugin `nguyen-ha-vi-en` 0.5.0 (đã vào `main`)
+
+- Bài tiếng Anh độc lập (không cần bản tiếng Việt; đăng ký khi còn nháp), cây danh mục tiếng Anh rỗng đăng ký trước, ghép trang tiếng Việt với trang tiếng Anh tương đương dưới `/en/`.
+- Theme: mẫu trang chủ tiếng Anh kiểu biên tập (`page-templates/template-english-home.php`), chân trang tiếng Anh với bốn vùng widget `footer-en-1…4`, menu `primary-en`/`footer-en`, cache mảnh tách theo ngôn ngữ. Hướng dẫn thiết lập an toàn (staging trước): [docs/EN-HOME-SETUP.md](docs/EN-HOME-SETUP.md); hiện trạng nháp trong WordPress: [docs/EN-STAGE3-WORDPRESS-INVENTORY.md](docs/EN-STAGE3-WORDPRESS-INVENTORY.md).
+
 ## [Chưa phát hành] — plugin `nguyen-ha-vi-en` 0.4.0 và hai dòng trong theme (nhánh `feature/vi-en-complete-20261019`)
 
 - Plugin mới `plugins/nguyen-ha-vi-en` (ZIP riêng): phần tiếng Anh dưới `/en/` cho blog, bài ghép cặp bằng tay, mỗi danh sách một ngôn ngữ, bộ chuyển ngôn ngữ, hreflang, canonical và sơ đồ trang tương thích Yoast SEO. **Tắt cho đến khi chủ sở hữu bật công tắc**; không sửa bài tiếng Việt. Xem [docs/VI-EN-PLUGIN.md](docs/VI-EN-PLUGIN.md).

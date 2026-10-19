@@ -74,3 +74,7 @@ No Page↔Page links have been configured in production; plugin 0.4.0 remains in
 ## Writer handoff
 
 The /wp-aiwriter pipeline may plan about 500 independently researched English article drafts across these eleven term IDs, but should not publish or assign a category until VI-EN 0.5.0 is active and the term has been marked EN in the target environment. Keep posts human-readable, original and naturally optimized; treat all location, law and pricing statements as fact-checked editorial information.
+
+## Update — VI-EN Core 0.5.1 (switch in WordPress)
+
+The facts above are unchanged. Version 0.5.1 replaces the two `wp-config.php` constants of step 7 with a switch in **Tools → VI/EN Links** (the constants still work and, when `NH_VIEN_ENABLE_EN_ROUTES` is defined, decide alone; `false` is the emergency brake). On a production site the switch asks for a confirmation (backup done, staging checks passed) and is tied to the address of the site. The staging gate above (steps 1–7) is still **not** completed, and nothing in the code release publishes the draft pages or switches anything on. See [VI-EN-PLUGIN.md](VI-EN-PLUGIN.md) sections 3, 5 and 6 and [VI-EN-CHECKPOINT.md](VI-EN-CHECKPOINT.md).

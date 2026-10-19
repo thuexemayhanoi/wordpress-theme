@@ -493,6 +493,7 @@ if ( 'dashboard' === $suite ) {
 	$form = $form_for( $body, 'nh_vien_toggle' );
 	ok( 'it offers the switch, with a nonce, to switch on', $form && 'enable' === $form['nh_vien_mode'] && ! empty( $form['_wpnonce'] ) );
 	ok( 'on a local site it asks for no confirmation', false === strpos( $body, 'name="nh_vien_confirm"' ) );
+	ok( 'the Plugins screen links to the switch', false !== strpos( $admin( '/wp-admin/plugins.php' )['body'], 'tools.php?page=nh-vien-links' ) );
 	$nonce  = $form ? $form['_wpnonce'] : 'x';
 	$toggle = function ( $mode, $extra = array() ) use ( $admin, $post_at, &$nonce ) {
 		return $admin( $post_at, array_merge( array( 'action' => 'nh_vien_toggle', '_wpnonce' => $nonce, 'nh_vien_mode' => $mode ), $extra ) );
@@ -592,6 +593,8 @@ if ( 'dashboard' === $suite ) {
 	$r = $toggle( 'disable' );
 	ok( 'switching off cleans the stored rules up', $status_is( $r, 'routes_disabled' ) && 0 === $stored_rules() );
 	$environment( 'local' );
+	save_snapshot( "$work/after-production" );
+	compare_snapshots( "$work/closed", "$work/after-production", 'after the production scenarios, the Vietnamese page is as before' );
 
 	echo "\n[6] A database copied to another address stays closed\n";
 	$toggle( 'enable' );
@@ -621,6 +624,8 @@ if ( 'dashboard' === $suite ) {
 	$const( 'NH_VIEN_ENABLE_EN_ROUTES' );
 	$toggle( 'disable' );
 	ok( 'switched off in the dashboard, it is off', $off() );
+	save_snapshot( "$work/after-constants" );
+	compare_snapshots( "$work/closed", "$work/after-constants", 'after the address and constant scenarios, the Vietnamese page is as before' );
 
 	echo "\n[8] Refusals that change nothing\n";
 	$permalinks = wp_cli( 'option get permalink_structure' );
@@ -639,6 +644,8 @@ if ( 'dashboard' === $suite ) {
 	$r = $toggle( 'enable' );
 	ok( 'once that post is gone it works', $status_is( $r, 'routes_enabled' ) && $live() );
 	$toggle( 'disable' );
+	save_snapshot( "$work/after-refusals" );
+	compare_snapshots( "$work/closed", "$work/after-refusals", 'after the refusals, the Vietnamese page is as before' );
 
 	echo "\n[9] Deactivating the plugin\n";
 	$toggle( 'enable' );
