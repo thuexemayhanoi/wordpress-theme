@@ -254,15 +254,15 @@ final class NH_VIEN_Seo {
 	 *
 	 * @param array|false $url    The sitemap entry.
 	 * @param string      $type   What the entry is for: post, term or user.
-	 * @param mixed       $object The post, term or user.
+	 * @param mixed       $term   The post, term or user.
 	 * @return array|false
 	 */
-	public static function sitemap_entry( $url, $type, $object = null ) {
-		if ( 'term' !== $type || ! is_array( $url ) || ! $object instanceof WP_Term || ! NH_VIEN_Routes::live() ) {
+	public static function sitemap_entry( $url, $type, $term = null ) {
+		if ( 'term' !== $type || ! is_array( $url ) || ! $term instanceof WP_Term || ! NH_VIEN_Routes::live() ) {
 			return $url;
 		}
-		$english = NH_VIEN_Urls::english_term_url( $object );
-		if ( isset( NH_VIEN_Links::en_only_term_ids()[ (int) $object->term_id ] ) ) {
+		$english = NH_VIEN_Urls::english_term_url( $term );
+		if ( isset( NH_VIEN_Links::en_only_term_ids()[ (int) $term->term_id ] ) ) {
 			if ( '' === $english ) {
 				// Only English posts that may not be shown yet use the term: it has no archive in either language.
 				return array();
@@ -271,7 +271,7 @@ final class NH_VIEN_Seo {
 			return $url;
 		}
 		if ( '' !== $english ) {
-			self::$english_entries[ $object->taxonomy ][ $english ] = true;
+			self::$english_entries[ $term->taxonomy ][ $english ] = true;
 		}
 		return $url;
 	}

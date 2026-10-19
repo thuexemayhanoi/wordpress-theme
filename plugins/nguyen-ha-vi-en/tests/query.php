@@ -83,6 +83,8 @@ function status_header( $code ) { $GLOBALS['status'] = $code; }
 function nocache_headers() {}
 function __( $text ) { return $text; }
 function get_queried_object() { return $GLOBALS['wp_query']->queried; }
+function get_query_var( $name ) { return 'sitemap' === $name ? ( isset( $GLOBALS['sitemap'] ) ? $GLOBALS['sitemap'] : '' ) : ''; }
+define( 'WPSEO_VERSION', '28.7' );
 function get_page_by_path() { return null; }
 function get_posts( $args ) {
 	if ( isset( $args['tax_query'] ) ) {
@@ -278,6 +280,14 @@ must( isset( $only[6] ), 'The parent of an English-only category must be English
 must( ! isset( $only[7] ) && ! isset( $only[2] ) && ! isset( $only[1] ), 'A category with Vietnamese posts, its own or in a child, must not be English only' );
 $kept = NH_VIEN_Query::filter_terms( array( $GLOBALS['terms'][1], $GLOBALS['terms'][2], $GLOBALS['terms'][6], $GLOBALS['terms'][7] ), array( 'category' ), array() );
 must( array( 1, 2, 7 ) === array_map( static function ( $term ) { return $term->term_id; }, $kept ), 'Vietnamese pages must drop the English-only parent' );
+// XML sitemap term queries must preserve English-only terms for Yoast's sitemap_entry hook.
+$GLOBALS['sitemap'] = 'category';
+$kept = NH_VIEN_Query::filter_terms( array( $GLOBALS['terms'][1], $GLOBALS['terms'][2], $GLOBALS['terms'][6] ), array( 'category' ), array() );
+must( array( 1, 2, 6 ) === array_map( static function ( $term ) { return $term->term_id; }, $kept ), 'Yoast category sitemap must retain English-only terms for rewriting' );
+$GLOBALS['sitemap'] = 'post_tag';
+$kept = NH_VIEN_Query::filter_terms( array( $GLOBALS['terms'][4] ), array( 'post_tag' ), array() );
+must( array( 4 ) === array_map( static function ( $term ) { return $term->term_id; }, $kept ), 'Yoast tag sitemap must retain English-only terms for rewriting' );
+$GLOBALS['sitemap'] = '';
 fresh( 'en' );
 $kept = NH_VIEN_Query::filter_terms( array( $GLOBALS['terms'][1], $GLOBALS['terms'][2], $GLOBALS['terms'][6], $GLOBALS['terms'][7] ), array( 'category' ), array() );
 must( array( 2, 6, 7 ) === array_map( static function ( $term ) { return $term->term_id; }, $kept ), 'English pages must keep the parents of the categories of English posts' );

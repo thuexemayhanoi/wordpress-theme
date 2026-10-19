@@ -164,6 +164,11 @@ final class NH_VIEN_Query {
 		if ( ! is_array( $terms ) || ! $terms || ! NH_VIEN_Routes::live() || self::outside_the_front_end() ) {
 			return $terms;
 		}
+		// Yoast builds XML sitemaps with get_terms(). Do not hide English-only terms before its
+		// wpseo_sitemap_entry callback can rewrite their URLs to the /en/ archives.
+		if ( defined( 'WPSEO_VERSION' ) && function_exists( 'get_query_var' ) && get_query_var( 'sitemap' ) ) {
+			return $terms;
+		}
 		if ( ! empty( $args['include'] ) || ( isset( $args[ NH_VIEN_Routes::SCOPE_VAR ] ) && 'off' === $args[ NH_VIEN_Routes::SCOPE_VAR ] ) ) {
 			return $terms;
 		}
