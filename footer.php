@@ -16,21 +16,21 @@ $nh_editorial_english  = class_exists( 'NH_VIEN_Routes', false ) && NH_VIEN_Rout
 $nh_editorial_home_url = $nh_editorial_english ? NH_VIEN_Routes::url() : home_url( '/' );
 $nh_editorial_tagline  = get_bloginfo( 'description' );
 $nh_editorial_slots    = array();
-for ( $i = 1; $i <= 4; $i++ ) {
-	$nh_editorial_slots[ $i ] = $nh_editorial_english ? 'footer-en-' . $i : 'footer-' . $i;
+for ( $nh_editorial_footer_index = 1; $nh_editorial_footer_index <= 4; $nh_editorial_footer_index++ ) {
+	$nh_editorial_slots[ $nh_editorial_footer_index ] = $nh_editorial_english ? 'footer-en-' . $nh_editorial_footer_index : 'footer-' . $nh_editorial_footer_index;
 }
 $nh_editorial_has_footer_menu = has_nav_menu( 'footer' );
 if ( $nh_editorial_english ) {
-	$nh_editorial_home_page = NH_VIEN_Routes::home_page();
-	$nh_editorial_tagline   = $nh_editorial_home_page ? (string) get_post_field( 'post_excerpt', $nh_editorial_home_page->ID ) : '';
-	$nh_editorial_locations = get_nav_menu_locations();
-	$nh_editorial_base_menu = ! empty( $nh_editorial_locations['footer'] ) ? wp_get_nav_menu_object( $nh_editorial_locations['footer'] ) : false;
-	$nh_editorial_en_menu   = $nh_editorial_base_menu ? wp_get_nav_menu_object( $nh_editorial_base_menu->slug . '-en' ) : false;
+	$nh_editorial_home_page       = NH_VIEN_Routes::home_page();
+	$nh_editorial_tagline         = $nh_editorial_home_page ? (string) get_post_field( 'post_excerpt', $nh_editorial_home_page->ID ) : '';
+	$nh_editorial_locations       = get_nav_menu_locations();
+	$nh_editorial_base_menu       = ! empty( $nh_editorial_locations['footer'] ) ? wp_get_nav_menu_object( $nh_editorial_locations['footer'] ) : false;
+	$nh_editorial_en_menu         = $nh_editorial_base_menu ? wp_get_nav_menu_object( $nh_editorial_base_menu->slug . '-en' ) : false;
 	$nh_editorial_has_footer_menu = (bool) $nh_editorial_en_menu;
 
 	// Never link a Vietnamese-only privacy policy from the English footer.
-	$nh_editorial_privacy = '';
-	$nh_editorial_privacy_id = (int) get_option( 'wp_page_for_privacy_policy' );
+	$nh_editorial_privacy      = '';
+	$nh_editorial_privacy_id   = (int) get_option( 'wp_page_for_privacy_policy' );
 	$nh_editorial_privacy_pair = $nh_editorial_privacy_id ? NH_VIEN_Links::for_page( $nh_editorial_privacy_id ) : null;
 	if ( $nh_editorial_privacy_pair && 'publish' === get_post_status( $nh_editorial_privacy_pair['en'] ) ) {
 		$nh_editorial_privacy = (string) get_permalink( $nh_editorial_privacy_pair['en'] );
@@ -44,8 +44,8 @@ if ( $nh_editorial_english ) {
 		<div class="footer-grid">
 
 			<div class="footer-col footer-col--brand">
-				<?php if ( is_active_sidebar( $nh_editorial_slots[ 1 ] ) ) : ?>
-					<?php dynamic_sidebar( $nh_editorial_slots[ 1 ] ); ?>
+				<?php if ( is_active_sidebar( $nh_editorial_slots[1] ) ) : ?>
+					<?php dynamic_sidebar( $nh_editorial_slots[1] ); ?>
 				<?php else : ?>
 					<a class="brand brand--footer" href="<?php echo esc_url( $nh_editorial_home_url ); ?>" rel="home">
 						<?php echo nh_editorial_brand_markup(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped inside the helper. ?>
@@ -58,8 +58,8 @@ if ( $nh_editorial_english ) {
 			</div>
 
 			<div class="footer-col footer-col--menu">
-				<?php if ( is_active_sidebar( $nh_editorial_slots[ 2 ] ) ) : ?>
-					<?php dynamic_sidebar( $nh_editorial_slots[ 2 ] ); ?>
+				<?php if ( is_active_sidebar( $nh_editorial_slots[2] ) ) : ?>
+					<?php dynamic_sidebar( $nh_editorial_slots[2] ); ?>
 				<?php elseif ( $nh_editorial_has_footer_menu ) : ?>
 					<h2 class="footer-title"><?php esc_html_e( 'Explore', 'nguyen-ha-editorial' ); ?></h2>
 					<nav class="footer-menu" aria-label="<?php esc_attr_e( 'Footer', 'nguyen-ha-editorial' ); ?>">
@@ -78,8 +78,8 @@ if ( $nh_editorial_english ) {
 			</div>
 
 			<div class="footer-col footer-col--topics">
-				<?php if ( is_active_sidebar( $nh_editorial_slots[ 3 ] ) ) : ?>
-					<?php dynamic_sidebar( $nh_editorial_slots[ 3 ] ); ?>
+				<?php if ( is_active_sidebar( $nh_editorial_slots[3] ) ) : ?>
+					<?php dynamic_sidebar( $nh_editorial_slots[3] ); ?>
 				<?php else : ?>
 					<?php $nh_editorial_topics = nh_editorial_get_hubs( 6 ); ?>
 					<?php if ( ! empty( $nh_editorial_topics ) ) : ?>
@@ -94,8 +94,8 @@ if ( $nh_editorial_english ) {
 			</div>
 
 			<div class="footer-col footer-col--contact">
-				<?php if ( is_active_sidebar( $nh_editorial_slots[ 4 ] ) ) : ?>
-					<?php dynamic_sidebar( $nh_editorial_slots[ 4 ] ); ?>
+				<?php if ( is_active_sidebar( $nh_editorial_slots[4] ) ) : ?>
+					<?php dynamic_sidebar( $nh_editorial_slots[4] ); ?>
 				<?php elseif ( nh_editorial_has_business_contact() ) : ?>
 					<?php get_template_part( 'template-parts/components/contact', null, array( 'business' => $nh_editorial_business ) ); ?>
 				<?php endif; ?>

@@ -63,7 +63,7 @@ function nh_editorial_fallback_menu() {
 		$nh_editorial_en_home = class_exists( 'NH_VIEN_Routes', false ) && NH_VIEN_Routes::live() &&
 			class_exists( 'NH_VIEN_Context', false ) && NH_VIEN_Context::is_english();
 		$nh_editorial_home_page = $nh_editorial_en_home ? NH_VIEN_Routes::home_page() : null;
-		$args = array(
+		$args                   = array(
 			'title_li'    => '',
 			'depth'       => 1,
 			'number'      => 5,

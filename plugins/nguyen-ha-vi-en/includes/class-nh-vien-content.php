@@ -36,7 +36,7 @@ final class NH_VIEN_Content {
 			return $template;
 		}
 		$home = NH_VIEN_Routes::home_page();
-		if ( ! $home instanceof WP_Post || (int) $home->ID !== (int) get_queried_object_id() ) {
+		if ( ! $home instanceof WP_Post || (int) get_queried_object_id() !== (int) $home->ID ) {
 			return $template;
 		}
 		$front = get_theme_file_path( 'front-page.php' );
