@@ -10,7 +10,7 @@ Plugin chạy độc lập (có ZIP riêng, không cần theme hay plugin đồn
 |---|---|
 | ~500 bài tiếng Việt không bị sửa, xóa, đổi slug, URL, canonical, tiêu đề hay trường SEO | Plugin không ghi vào bài viết nào. Dữ liệu duy nhất nó ghi: một tùy chọn riêng (danh sách cặp bài `nh_vien_translation_pairs_v1`), quy tắc rewrite của chính nó (một nút bấm, và khi gỡ kích hoạt để rút lại), và khi bạn bấm nút, một trang **nháp** `en`. |
 | Cài hoặc kích hoạt plugin không làm đổi website | Công tắc kép: hằng số `NH_VIEN_ENABLE_EN_ROUTES` **và** quản trị viên bấm "Store the rewrite rules". Trước đó plugin không đổi URL, truy vấn, trang hay thẻ nào. Trên production cần thêm hằng số thứ hai `NH_VIEN_ALLOW_PRODUCTION`. |
-| Không tự đăng bài tiếng Anh | Một bài tiếng Anh chỉ hiện khi **cả hai** bài của cặp đã xuất bản, slug dùng được và không có trang nào chiếm địa chỉ đó. Nháp, bài chưa ghép, slug lạ → 404 ở mọi địa chỉ. |
+| Không tự đăng bài tiếng Anh | Một bài tiếng Anh đã ghép chỉ hiện khi **cả hai** bài của cặp đã xuất bản, slug dùng được và không có trang nào chiếm địa chỉ đó; chưa đủ điều kiện (nháp, bài Việt chưa xuất bản, slug lạ) → 404 ở mọi địa chỉ. Bài chưa ghép là bài thường, giữ nguyên địa chỉ gốc và không bị đổi. |
 | Không dùng plugin đa ngôn ngữ, không API trả phí | Chỉ mã trong thư mục plugin; không gọi dịch vụ ngoài; không nạp JavaScript. |
 
 ## 2. Cách hoạt động
@@ -23,7 +23,7 @@ Plugin chạy độc lập (có ZIP riêng, không cần theme hay plugin đồn
 | `/en/{slug}/` (và `/en/{slug}/2/`) | Bài tiếng Anh. Slug chỉ gồm chữ thường, số, gạch ngang/gạch dưới; không dùng từ dành riêng (`page`, `category`, `tag`, `author`, `search`, `feed`, …). |
 | `/en/category/{đường dẫn}/`, `/en/tag/{slug}/` (có phân trang) | Danh mục và thẻ chỉ liệt kê bài tiếng Anh; danh mục không có bài Anh → 404. |
 | `/en/?s=…` | Tìm kiếm chỉ trong bài tiếng Anh (không lập chỉ mục, `noindex`). |
-| `/{slug}/` của một bài Anh đã ghép | **301** sang `/en/{slug}/` (chống nội dung trùng). |
+| `/{slug}/` của một bài Anh đã ghép | **301** sang `/en/{slug}/` khi bài được phép hiện (chống nội dung trùng); chưa được phép hiện thì 404. |
 | Trang tĩnh dưới `/en/…` | Giữ nguyên địa chỉ và thắng bài Anh cùng slug. |
 | `/en/feed/`, trang tác giả, lưu trữ theo ngày | Không có (404). Feed chính vẫn là tiếng Việt. |
 
@@ -58,7 +58,7 @@ Làm trên **bản sao** có cùng theme, cùng plugin SEO, cùng cấu trúc pe
 - [ ] Trang chủ, danh mục và tìm kiếm tiếng Việt **không** chứa bài Anh; bài trước/sau, widget "bài mới" và gợi ý khi gõ ở ô tìm kiếm không lẫn ngôn ngữ.
 - [ ] Bộ chuyển ngôn ngữ nhìn thấy và dùng được ở điện thoại (375 px), máy tính bảng (768 px), máy tính (1440 px), bằng bàn phím và trình đọc màn hình; không có cuộn ngang.
 - [ ] Cache trang/CDN: `/en/…` được lưu riêng, đã xóa cache sau khi ghép bài; không có nội dung ngôn ngữ này hiện ở URL của ngôn ngữ kia.
-- [ ] Bài nháp, bài chưa ghép, slug lạ, trang đang chiếm địa chỉ: tất cả 404; không có "soft 404" (trang 200 nhưng rỗng).
+- [ ] Bài Anh đã ghép nhưng chưa được phép hiện (nháp, bài Việt chưa xuất bản, slug lạ, trang đang chiếm địa chỉ) và mọi địa chỉ `/en/…` không có thật: tất cả 404; không có "soft 404" (trang 200 nhưng rỗng).
 - [ ] Thử gỡ: bỏ hằng số → `/en/…` thành 404 và trang tiếng Việt vẫn như cũ; bấm "Store the rewrite rules"; gỡ kích hoạt plugin → trang tiếng Việt vẫn như cũ.
 
 ## 5. Bật trên production
