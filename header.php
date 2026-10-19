@@ -19,6 +19,7 @@ defined( 'ABSPATH' ) || exit;
 <body <?php body_class(); ?>>
 <?php wp_body_open(); ?>
 <a class="skip-link screen-reader-text" href="#primary"><?php esc_html_e( 'Skip to content', 'nguyen-ha-editorial' ); ?></a>
+<?php do_action( 'nh_editorial_after_skip_link' ); ?>
 
 <header id="masthead" class="site-header">
 	<div class="wrap header-row">

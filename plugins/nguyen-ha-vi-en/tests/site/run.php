@@ -9,6 +9,8 @@
  *   compare   compare --dir with --other: the Vietnamese pages must be identical
  *   main      the gate is open and the pairs exist: routes, redirects, languages, lists, switcher, SEO, security, admin
  *   inert     the gate is closed again while the pairs and the stored rules remain: nothing may change on the site
+ *   homepage  the English home is a real page at /en/ that holds [nh_vien_posts]
+ *   legacy    the active theme never calls wp_body_open() (tests/site/legacy-theme): one switcher, in the post
  *
  * Exit code 0 when every check passed.
  *
@@ -285,6 +287,32 @@ if ( 'homepage' === $suite ) {
 			$count += count( array_keys( array_map( 'path_of', $m[1] ), '/en/' ) );
 		}
 		ok( 'the English home is in the sitemaps exactly once (the page, not a second entry for the list)', 1 === $count, $count . ' entries' );
+	}
+	echo "\n$checks checks, $failures failed\n";
+	exit( $failures ? 1 : 0 );
+}
+
+if ( 'legacy' === $suite ) {
+	echo "A classic theme that never calls wp_body_open(): the switcher goes into the content of a post, once\n";
+	$posts = array(
+		'/thue-xe-may-ha-noi/'           => '/en/motorbike-rental-in-hanoi/',
+		'/en/motorbike-rental-in-hanoi/' => '/thue-xe-may-ha-noi/',
+	);
+	foreach ( $posts as $url => $other ) {
+		$r     = page( $url );
+		$xpath = xp( $r['body'] );
+		ok( "$url answers 200", 200 === $r['status'], 'status ' . $r['status'] );
+		ok( "$url: the theme really never fires wp_body_open()", 0 === $xpath->query( "//body/*[contains(@class,'nh-vien-bar')]" )->length );
+		$navs = $xpath->query( "//nav[contains(@class,'nh-vien-switcher')]" );
+		ok( "$url has the switcher exactly once", 1 === $navs->length, $navs->length . ' found' );
+		ok( "$url: the switcher is at the top of the article", 1 === $xpath->query( "//main/article/nav[contains(@class,'nh-vien-switcher')]" )->length );
+		$hrefs = array_map( 'path_of', attrs( $xpath, "//nav[contains(@class,'nh-vien-switcher')]//a[@aria-current!='page' or not(@aria-current)]", 'href' ) );
+		ok( "$url: the switcher leads to the other language", array( $other ) === $hrefs, implode( ',', $hrefs ) );
+	}
+	// Without the call there is no place for an automatic switcher on any other page: it is left to the shortcode.
+	foreach ( array( '/', '/en/', '/category/kinh-nghiem/', '/en/category/travel-tips/' ) as $url ) {
+		$r = page( $url );
+		ok( "$url answers 200 and shows no automatic switcher", 200 === $r['status'] && 0 === xp( $r['body'] )->query( "//nav[contains(@class,'nh-vien-switcher')]" )->length, 'status ' . $r['status'] );
 	}
 	echo "\n$checks checks, $failures failed\n";
 	exit( $failures ? 1 : 0 );

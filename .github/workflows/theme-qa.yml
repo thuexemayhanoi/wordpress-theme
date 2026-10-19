@@ -630,8 +630,8 @@ jobs:
       fail-fast: false
       matrix:
         # The plugin must work with the Nguyen Ha Editorial theme and with any other theme, with Yoast SEO and without
-        # an SEO plugin. "default" is the newest default theme of the WordPress download, and also leaves the
-        # companion plugin out, which shows that the plugin does not depend on this repository's theme or plugin.
+        # an SEO plugin. "default" is Twenty Twenty-Five (a block theme, nothing like the editorial theme), and also
+        # leaves the companion plugin out, which shows that the plugin does not depend on this repository's theme or plugin.
         include:
           - theme: editorial
             seo: yoast
@@ -659,11 +659,22 @@ jobs:
       - name: Check out the repository
         uses: actions/checkout@v4
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
       - name: Install the PHP extensions WordPress needs
         run: |
           sudo apt-get update -y
           sudo apt-get install -y --no-install-recommends php-mysql php-gd php-xml php-mbstring php-curl php-intl php-zip
           php -m | grep -E '^(mysqli|gd|dom|mbstring|libxml|curl|intl)$'
+
+      - name: Install the Node tooling and Chromium (the browser tests of the switcher)
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
 
       - name: Download WP-CLI and WordPress 7.1.3
         run: |
@@ -688,12 +699,12 @@ jobs:
           php "$RUNNER_TEMP/wp-cli.phar" --allow-root --path="$WP_DIR" plugin install wordpress-seo --activate
           php "$RUNNER_TEMP/wp-cli.phar" --allow-root --path="$WP_DIR" plugin list --fields=name,status,version
 
-      - name: Use the newest default theme of the WordPress download
+      - name: Use a default theme of the WordPress download (a block theme)
         if: ${{ matrix.theme == 'default' }}
         run: |
           wp() { php "$RUNNER_TEMP/wp-cli.phar" --allow-root --path="$WP_DIR" "$@"; }
-          theme=$(wp theme list --field=name | grep '^twenty' | sort | tail -1)
-          echo "default theme: $theme"
+          theme=twentytwentyfive
+          wp theme is-installed "$theme" || { echo "$theme is not part of the WordPress download" >&2; exit 1; }
           wp theme activate "$theme"
           wp theme list --fields=name,status,version
 
@@ -734,6 +745,22 @@ jobs:
       - name: Site tests (routes, redirects, languages, lists, switcher, SEO, security, administration)
         run: php "$SITE_TESTS/run.php" --base="$SITE_URL" --fixture="$NH_VIEN_FIXTURE" --suite=main --seo=${{ matrix.seo }} --theme=${{ matrix.theme }}
 
+      - name: Language switcher in a browser (phone, tablet, desktop; keyboard; axe)
+        env:
+          NH_BASE_URL: ${{ env.SITE_URL }}
+          NH_E2E_THEME: ${{ matrix.theme == 'editorial' && 'editorial' || 'other' }}
+          NH_E2E_WORKERS: '2'
+        run: npx playwright test -c plugins/nguyen-ha-vi-en/tests/e2e/playwright.config.mjs
+
+      - name: A theme that never calls wp_body_open() still gets one switcher, in the post
+        if: ${{ matrix.theme == 'editorial' && matrix.seo == 'none' }}
+        run: |
+          wp() { php "$RUNNER_TEMP/wp-cli.phar" --allow-root --path="$WP_DIR" "$@"; }
+          ln -sfn "$GITHUB_WORKSPACE/$SITE_TESTS/legacy-theme" "$WP_DIR/wp-content/themes/nh-vien-legacy"
+          wp theme activate nh-vien-legacy
+          php "$SITE_TESTS/run.php" --base="$SITE_URL" --fixture="$NH_VIEN_FIXTURE" --suite=legacy
+          wp theme activate nguyen-ha-editorial
+
       - name: The English home as a real page
         run: |
           wp() { php "$RUNNER_TEMP/wp-cli.phar" --allow-root --path="$WP_DIR" "$@"; }
@@ -747,6 +774,15 @@ jobs:
           wp() { php "$RUNNER_TEMP/wp-cli.phar" --allow-root --path="$WP_DIR" "$@"; }
           wp config delete NH_VIEN_ENABLE_EN_ROUTES
           php "$SITE_TESTS/run.php" --base="$SITE_URL" --fixture="$NH_VIEN_FIXTURE" --suite=inert --seo=${{ matrix.seo }} --theme=${{ matrix.theme }}
+
+      - name: Upload the traces and screenshots of the browser tests that failed
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: vi-en-switcher-report-${{ matrix.theme }}-${{ matrix.seo }}
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 14
 
       - name: What the site printed when something failed
         if: ${{ failure() }}

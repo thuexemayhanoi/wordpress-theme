@@ -15,12 +15,19 @@ defined( 'ABSPATH' ) || exit;
  * Accessible language switcher.
  */
 final class NH_VIEN_Switcher {
+	/** Theme support flag: the theme prints the switcher itself, right after its skip link (see after_skip_link()). */
+	const THEME_SUPPORT = 'nguyen-ha-vi-en-switcher';
+
+	/** The action the Nguyen Ha editorial theme fires right after its "Skip to content" link. */
+	const THEME_ACTION = 'nh_editorial_after_skip_link';
+
 	/** Register the switcher hooks when the English side is switched on. */
 	public static function boot() {
 		if ( ! NH_VIEN_Routes::enabled() ) {
 			return;
 		}
 		add_action( 'wp_body_open', array( __CLASS__, 'bar' ), 5 );
+		add_action( self::THEME_ACTION, array( __CLASS__, 'after_skip_link' ) );
 		add_filter( 'the_content', array( __CLASS__, 'prepend' ), 8 );
 		add_shortcode( 'nh_vien_switcher', array( __CLASS__, 'shortcode' ) );
 		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'styles' ) );
@@ -34,10 +41,29 @@ final class NH_VIEN_Switcher {
 		wp_enqueue_style( 'nh-vien-switcher', plugins_url( 'assets/switcher.css', NH_VIEN_PLUGIN_FILE ), array(), NH_VIEN_VERSION );
 	}
 
-	/** Print the switcher right after the opening of the body, where themes call wp_body_open(). */
+	/**
+	 * Print the switcher right after the opening of the body, where themes call wp_body_open().
+	 *
+	 * A theme that declares support for the switcher prints it after its own skip link instead (see after_skip_link()),
+	 * so that "Skip to content" stays the first thing a keyboard or screen reader user reaches.
+	 */
 	public static function bar() {
+		if ( ! current_theme_supports( self::THEME_SUPPORT ) ) {
+			self::print_bar();
+		}
+	}
+
+	/** Print the switcher where a supporting theme asks for it: after its skip link. */
+	public static function after_skip_link() {
+		if ( current_theme_supports( self::THEME_SUPPORT ) ) {
+			self::print_bar();
+		}
+	}
+
+	/** Print the bar that holds the switcher. */
+	private static function print_bar() {
 		/**
-		 * Filters whether the switcher is printed automatically after the opening of the body.
+		 * Filters whether the switcher is printed automatically at the top of the page.
 		 *
 		 * @param bool $print True by default. Return false to place the switcher with the shortcode instead.
 		 */
@@ -53,11 +79,15 @@ final class NH_VIEN_Switcher {
 	/**
 	 * For themes that never call wp_body_open(): place the switcher before the content of a single post.
 	 *
+	 * The content of a block theme is built before the page starts (before wp_head), and wp_body_open() fires afterwards;
+	 * a classic theme that calls wp_body_open() has done so before the loop. Only a page that has started and has not
+	 * fired wp_body_open() by the time its content is built belongs to a theme that never will.
+	 *
 	 * @param string $content WordPress post body.
 	 * @return string Original or augmented content.
 	 */
 	public static function prepend( $content ) {
-		if ( did_action( 'wp_body_open' ) || ! is_singular( 'post' ) || ! is_main_query() || ! in_the_loop() || is_feed() || has_shortcode( $content, 'nh_vien_switcher' ) ) {
+		if ( did_action( 'wp_body_open' ) || ! did_action( 'wp_head' ) || ! is_singular( 'post' ) || ! is_main_query() || ! in_the_loop() || is_feed() || has_shortcode( $content, 'nh_vien_switcher' ) ) {
 			return $content;
 		}
 		return self::html() . $content;
@@ -123,8 +153,12 @@ final class NH_VIEN_Switcher {
 		foreach ( array( 'vi', 'en' ) as $code ) {
 			$language = NH_VIEN_Languages::get( $code );
 			$current  = $code === $alternates['current'] ? ' aria-current="page"' : '';
-			$items   .= '<a class="nh-vien-switcher__link" href="' . esc_url( $alternates[ $code ] ) . '" lang="' . esc_attr( $code ) . '" hreflang="' . esc_attr( $code ) . '" aria-label="' . esc_attr( $language['label'] ) . '"' . $current . '>' . esc_html( strtoupper( $code ) ) . '</a>';
+			// The accessible name starts with the visible text ("VI"), so that people who speak the label can reach the link.
+			$name   = strtoupper( $code ) . ': ' . $language['label'];
+			$items .= '<a class="nh-vien-switcher__link" href="' . esc_url( $alternates[ $code ] ) . '" lang="' . esc_attr( $code ) . '" hreflang="' . esc_attr( $code ) . '" aria-label="' . esc_attr( $name ) . '"' . $current . '>' . esc_html( strtoupper( $code ) ) . '</a>';
 		}
-		return '<nav class="nh-vien-switcher" aria-label="Language">' . $items . '</nav>';
+		// The name of the navigation is in the language of the page the visitor is reading.
+		$label = 'en' === $alternates['current'] ? 'Language' : 'Ngôn ngữ';
+		return '<nav class="nh-vien-switcher" aria-label="' . esc_attr( $label ) . '">' . $items . '</nav>';
 	}
 }
