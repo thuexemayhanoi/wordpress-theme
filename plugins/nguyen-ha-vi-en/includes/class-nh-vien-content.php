@@ -18,6 +18,29 @@ final class NH_VIEN_Content {
 		}
 		add_filter( 'wp_nav_menu_args', array( __CLASS__, 'nav_menu_args' ) );
 		add_shortcode( 'nh_vien_posts', array( __CLASS__, 'posts_shortcode' ) );
+		add_filter( 'template_include', array( __CLASS__, 'english_home_template' ), 30 );
+		add_filter( 'pre_wp_nav_menu', array( __CLASS__, 'prevent_vietnamese_menu' ), 10, 2 );
+	}
+
+
+	/**
+	 * Reuse Nguyen Ha Editorial's existing magazine homepage for the published /en/ page.
+	 * The Vietnamese homepage keeps its original template and settings. Other themes keep their template.
+	 *
+	 * @param string $template WordPress-selected template.
+	 * @return string The editorial front-page template only on the English homepage.
+	 */
+	public static function english_home_template( $template ) {
+		if ( ! NH_VIEN_Routes::live() || ! NH_VIEN_Context::is_english() || ! is_page() ||
+			'wordpress-theme' !== get_stylesheet() ) {
+			return $template;
+		}
+		$home = NH_VIEN_Routes::home_page();
+		if ( ! $home instanceof WP_Post || (int) get_queried_object_id() !== (int) $home->ID ) {
+			return $template;
+		}
+		$front = get_theme_file_path( 'front-page.php' );
+		return is_readable( $front ) ? $front : $template;
 	}
 
 	/**
@@ -40,6 +63,39 @@ final class NH_VIEN_Content {
 			$args['menu'] = $english;
 		}
 		return $args;
+	}
+
+
+	/**
+	 * Do not fall back to the assigned Vietnamese menu on an English Editorial page.
+	 * English menus are named with the original menu slug plus -en. Until such a menu exists,
+	 * the primary header uses English category hubs and the footer remains empty.
+	 *
+	 * @param string|null $output Short-circuit return value for wp_nav_menu().
+	 * @param stdClass    $args   Menu arguments.
+	 * @return string|null
+	 */
+	public static function prevent_vietnamese_menu( $output, $args ) {
+		if ( null !== $output || ! NH_VIEN_Routes::live() || ! NH_VIEN_Context::is_english() ||
+			'wordpress-theme' !== get_stylesheet() || ! is_object( $args ) || empty( $args->theme_location ) ) {
+			return $output;
+		}
+		$location = (string) $args->theme_location;
+		if ( ! in_array( $location, array( 'primary', 'footer' ), true ) ) {
+			return $output;
+		}
+		$locations = get_nav_menu_locations();
+		$base      = ! empty( $locations[ $location ] ) ? wp_get_nav_menu_object( $locations[ $location ] ) : false;
+		$english   = $base ? wp_get_nav_menu_object( $base->slug . '-en' ) : false;
+		if ( $english ) {
+			return $output;
+		}
+		if ( 'primary' === $location && function_exists( 'nh_editorial_fallback_menu' ) ) {
+			ob_start();
+			nh_editorial_fallback_menu();
+			return (string) ob_get_clean();
+		}
+		return '';
 	}
 
 	/**

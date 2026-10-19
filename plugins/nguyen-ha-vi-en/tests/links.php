@@ -87,7 +87,7 @@ $GLOBALS['mock_posts'][55] = new WP_Post( 'page' );
 $GLOBALS['mock_posts'][66] = new WP_Post( 'post', 'trash' );
 $GLOBALS['mock_posts'][77] = new WP_Post( 'revision', 'inherit' );
 
-must( '0.5.0' === NH_VIEN_VERSION, 'Wrong version' );
+must( '0.6.0' === NH_VIEN_VERSION, 'Wrong version' );
 must( array() === NH_VIEN_Links::all(), 'Map should start empty' );
 must( array() === $GLOBALS['mock_writes'], 'Bootstrap must not write' );
 must( null === NH_VIEN_Links::for_post( 11 ), 'No implicit pairing' );

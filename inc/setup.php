@@ -120,6 +120,19 @@ function nh_editorial_widgets() {
 				'after_title'   => '</h2>',
 			)
 		);
+		// English widgets are stored separately and never replace Vietnamese footer widgets.
+		register_sidebar(
+			array(
+				/* translators: %d: English footer column number. */
+				'name'          => sprintf( __( 'English Footer Column %d', 'nguyen-ha-editorial' ), $i ),
+				'id'            => 'footer-en-' . $i,
+				'description'   => __( 'Widgets displayed only on English pages when VI/EN is enabled.', 'nguyen-ha-editorial' ),
+				'before_widget' => '<section id="%1$s" class="widget footer-widget %2$s">',
+				'after_widget'  => '</section>',
+				'before_title'  => '<h2 class="widget-title footer-title">',
+				'after_title'   => '</h2>',
+			)
+		);
 	}
 }
 add_action( 'widgets_init', 'nh_editorial_widgets' );
