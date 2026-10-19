@@ -11,7 +11,11 @@ defined( 'ABSPATH' ) || exit;
  * Standalone plugin service container.
  */
 final class NH_VIEN_Plugin {
-	/** @var NH_VIEN_Plugin|null Singleton instance. */
+	/**
+	 * Cached plugin instance.
+	 *
+	 * @var NH_VIEN_Plugin|null Singleton instance.
+	 */
 	private static $instance = null;
 
 	/**

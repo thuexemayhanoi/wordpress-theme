@@ -66,12 +66,12 @@ final class NH_VIEN_Switcher {
 			return '';
 		}
 		$en_url = NH_VIEN_Routes::english_url( $pair['en'] );
-		$vi = get_post( (int) $pair['vi'] );
+		$vi     = get_post( (int) $pair['vi'] );
 		$vi_url = $vi instanceof WP_Post && 'publish' === $vi->post_status ? get_permalink( $vi->ID ) : '';
 		if ( ! $vi_url || ! $en_url ) {
 			return '';
 		}
-		$current = (int) $post_id === (int) $pair['en'] ? 'en' : 'vi';
+		$current    = (int) $post_id === (int) $pair['en'] ? 'en' : 'vi';
 		$vi_current = 'vi' === $current ? ' aria-current="page"' : '';
 		$en_current = 'en' === $current ? ' aria-current="page"' : '';
 		return '<nav class="nh-vien-switcher" aria-label="Language">'

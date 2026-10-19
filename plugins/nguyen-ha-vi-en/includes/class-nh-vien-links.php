@@ -12,7 +12,7 @@ defined( 'ABSPATH' ) || exit;
  * Validate and manage one-to-one translation relationships.
  */
 final class NH_VIEN_Links {
-	const OPTION = 'nh_vien_translation_pairs_v1';
+	const OPTION       = 'nh_vien_translation_pairs_v1';
 	const NONCE_ACTION = 'nh_vien_manage_links';
 
 	/**
@@ -27,7 +27,7 @@ final class NH_VIEN_Links {
 			return new WP_Error( 'nh_vien_invalid_store', 'Translation map is not an array.' );
 		}
 		$pairs = array();
-		$seen = array();
+		$seen  = array();
 		foreach ( $stored as $vi => $en ) {
 			if ( ! self::positive_id( $vi ) || ! self::positive_id( $en ) ) {
 				return new WP_Error( 'nh_vien_invalid_store', 'Invalid ID in translation map.' );
@@ -38,7 +38,7 @@ final class NH_VIEN_Links {
 				return new WP_Error( 'nh_vien_invalid_store', 'Duplicate or self-linked translation.' );
 			}
 			$pairs[ $vi ] = $en;
-			$seen[ $en ] = true;
+			$seen[ $en ]  = true;
 		}
 		// Reject a single post used as both a Vietnamese and English entry.
 		foreach ( $pairs as $vi => $en ) {
@@ -131,7 +131,7 @@ final class NH_VIEN_Links {
 		if ( ! self::positive_id( $vi ) ) {
 			return new WP_Error( 'nh_vien_invalid_ids', 'Invalid Vietnamese post ID.' );
 		}
-		$vi = (int) $vi;
+		$vi    = (int) $vi;
 		$pairs = self::all();
 		if ( is_wp_error( $pairs ) ) {
 			return $pairs;
