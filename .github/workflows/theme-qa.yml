@@ -805,7 +805,7 @@ jobs:
         if: ${{ failure() }}
         uses: actions/upload-artifact@v4
         with:
-          name: vi-en-switcher-report-${{ matrix.theme }}-${{ matrix.seo }}
+          name: vi-en-switcher-report-${{ matrix.theme }}-${{ matrix.seo }}-wp${{ matrix.wp || 'latest' }}
           path: test-results/
           if-no-files-found: ignore
           retention-days: 14
