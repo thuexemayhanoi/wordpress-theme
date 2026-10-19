@@ -8,7 +8,7 @@ if ( 'cli' !== PHP_SAPI ) {
 
 define( 'ABSPATH', __DIR__ . '/../../../../' );
 define( 'OBJECT', 'OBJECT' );
-define( 'NH_VIEN_VERSION', '0.5.0' );
+define( 'NH_VIEN_VERSION', '0.5.1' );
 define( 'NH_VIEN_PLUGIN_FILE', dirname( __DIR__ ) . '/nguyen-ha-vi-en.php' );
 define( 'NH_VIEN_ENABLE_EN_ROUTES', true );
 
@@ -140,7 +140,7 @@ class WP_REST_Request {
 	public function get_param( $key ) { return isset( $this->params[ $key ] ) ? $this->params[ $key ] : null; }
 }
 
-foreach ( array( 'languages', 'links', 'routes', 'context', 'urls', 'query' ) as $part ) {
+foreach ( array( 'languages', 'links', 'gate', 'routes', 'context', 'urls', 'query' ) as $part ) {
 	require dirname( __DIR__ ) . '/includes/class-nh-vien-' . $part . '.php';
 }
 

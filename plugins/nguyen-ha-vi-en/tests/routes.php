@@ -8,7 +8,7 @@ if ( 'cli' !== PHP_SAPI ) {
 
 define( 'ABSPATH', __DIR__ . '/../../../../' );
 define( 'OBJECT', 'OBJECT' );
-define( 'NH_VIEN_VERSION', '0.5.0' );
+define( 'NH_VIEN_VERSION', '0.5.1' );
 define( 'NH_VIEN_PLUGIN_FILE', dirname( __DIR__ ) . '/nguyen-ha-vi-en.php' );
 
 $GLOBALS['env']       = 'staging';
@@ -18,6 +18,8 @@ $GLOBALS['hooks']     = array();
 $GLOBALS['rewrite']   = array();
 $GLOBALS['pages']     = array();
 $GLOBALS['published'] = array();
+$GLOBALS['page_lookups']  = 0;
+$GLOBALS['child_queries'] = 0;
 
 class WP_Post {
 	public $ID;
@@ -41,8 +43,20 @@ function update_option( $key, $value ) { $GLOBALS['options'][ $key ] = $value; +
 function add_action( $tag ) { $GLOBALS['hooks'][] = $tag; }
 function add_filter( $tag ) { $GLOBALS['hooks'][] = $tag; }
 function add_rewrite_rule( $regex, $query, $position ) { $GLOBALS['rewrite'][] = array( $regex, $query, $position ); }
-function get_page_by_path( $path ) { return isset( $GLOBALS['pages'][ $path ] ) ? $GLOBALS['pages'][ $path ] : null; }
+function get_page_by_path( $path ) { ++$GLOBALS['page_lookups']; return isset( $GLOBALS['pages'][ $path ] ) ? $GLOBALS['pages'][ $path ] : null; }
 function get_posts( $args ) {
+	if ( isset( $args['post_parent'] ) ) {
+		// The published pages directly below the page /en/.
+		++$GLOBALS['child_queries'];
+		$found = array();
+		$en    = isset( $GLOBALS['pages']['en'] ) ? $GLOBALS['pages']['en']->ID : -1;
+		foreach ( $GLOBALS['pages'] as $path => $page ) {
+			if ( 0 === strpos( $path, 'en/' ) && false === strpos( substr( $path, 3 ), '/' ) && $args['post_parent'] === $en && 'publish' === $page->post_status ) {
+				$found[] = $page;
+			}
+		}
+		return $found;
+	}
 	if ( isset( $args['name'] ) ) {
 		foreach ( $GLOBALS['published'] as $post ) {
 			if ( $post->post_name === $args['name'] && $post->post_type === $args['post_type'] && $post->post_status === $args['post_status'] ) {
@@ -65,6 +79,7 @@ function must( $condition, $message ) { if ( ! $condition ) { throw new RuntimeE
 
 require dirname( __DIR__ ) . '/includes/class-nh-vien-languages.php';
 require dirname( __DIR__ ) . '/includes/class-nh-vien-links.php';
+require dirname( __DIR__ ) . '/includes/class-nh-vien-gate.php';
 require dirname( __DIR__ ) . '/includes/class-nh-vien-routes.php';
 require dirname( __DIR__ ) . '/includes/class-nh-vien-context.php';
 
@@ -270,4 +285,49 @@ NH_VIEN_Routes::deactivate();
 must( 0 === $GLOBALS['writes'], 'Deactivation with a corrupt option must leave it alone' );
 $GLOBALS['options'] = array();
 
-echo "PASS: gate, rules, slugs, live state, pairs, request resolution, English addresses, deactivation.\n";
+// ---- Many English posts must not cost a lookup each: one lookup of the page /en/ and one of its children answer for all of them.
+$GLOBALS['options'][ NH_VIEN_Links::OPTION ] = array();
+$GLOBALS['published']                        = array();
+$GLOBALS['pages']                            = array(
+	'en'              => new WP_Post( 5, 'en', 'draft', 'page' ),
+	'en/taken'        => new WP_Post( 6, 'taken', 'publish', 'page' ),
+	'en/not-yet'      => new WP_Post( 7, 'not-yet', 'draft', 'page' ),
+	'en/deep'         => new WP_Post( 8, 'deep', 'publish', 'page' ),
+	'en/deep/deeper'  => new WP_Post( 9, 'deeper', 'publish', 'page' ),
+);
+for ( $i = 1; $i <= 120; $i++ ) {
+	$GLOBALS['options'][ NH_VIEN_Links::OPTION ][ 1000 + $i ] = 2000 + $i;
+	$GLOBALS['published'][]                                    = new WP_Post( 1000 + $i, 'vi-' . $i );
+	$GLOBALS['published'][]                                    = new WP_Post( 2000 + $i, 'en-' . $i );
+}
+$GLOBALS['options'][ NH_VIEN_Links::OPTION ][1999] = 2999;
+$GLOBALS['published'][]                            = new WP_Post( 1999, 'vi-taken' );
+$GLOBALS['published'][]                            = new WP_Post( 2999, 'taken' );
+$GLOBALS['options'][ NH_VIEN_Links::OPTION ][1998] = 2998;
+$GLOBALS['published'][]                            = new WP_Post( 1998, 'vi-not-yet' );
+$GLOBALS['published'][]                            = new WP_Post( 2998, 'not-yet' );
+$GLOBALS['options'][ NH_VIEN_Links::INDEPENDENT_OPTION ] = array( 2997 );
+$GLOBALS['published'][]                                  = new WP_Post( 2997, 'deeper' );
+fresh();
+$GLOBALS['page_lookups']  = 0;
+$GLOBALS['child_queries'] = 0;
+$public                   = NH_VIEN_Links::public_en_ids();
+must( 120 + 1 + 1 === count( $public ), 'Public set wrong with many posts: ' . count( $public ) );
+must( ! in_array( 2999, $public, true ), 'A page below /en/ must still take the address of the English post' );
+must( in_array( 2998, $public, true ), 'A draft page below /en/ must not take an address' );
+must( in_array( 2997, $public, true ), 'Only a page directly below /en/ takes an address (en/deeper is not en/deep/deeper)' );
+must( 1 === $GLOBALS['page_lookups'], 'Looking at 122 English posts must cost one page lookup, not ' . $GLOBALS['page_lookups'] );
+must( 1 === $GLOBALS['child_queries'], 'Looking at 122 English posts must cost one query for the pages below /en/, not ' . $GLOBALS['child_queries'] );
+NH_VIEN_Links::public_en_posts();
+NH_VIEN_Links::public_en_ids();
+must( 1 === $GLOBALS['page_lookups'] && 1 === $GLOBALS['child_queries'], 'The answer must be remembered for the rest of the request' );
+// Without the page /en/ nothing can be taken: no lookup of the children at all.
+$GLOBALS['pages'] = array();
+fresh();
+$GLOBALS['page_lookups']  = 0;
+$GLOBALS['child_queries'] = 0;
+must( 123 === count( NH_VIEN_Links::public_en_ids() ), 'Without the page /en/ every routable English post is public' );
+must( 1 === $GLOBALS['page_lookups'] && 0 === $GLOBALS['child_queries'], 'Without the page /en/ only the page itself is looked up' );
+$GLOBALS['options'] = array();
+
+echo "PASS: gate, rules, slugs, live state, pairs, request resolution, English addresses, deactivation, one lookup for the pages below /en/.\n";

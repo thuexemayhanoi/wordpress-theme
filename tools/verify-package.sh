@@ -93,7 +93,7 @@ if [ -n "$VI_EN_ZIP" ]; then
 	unpack "$VI_EN_ZIP" "$WORK/vi-en"
 	ROOT="$WORK/vi-en/nguyen-ha-vi-en"
 	[ -d "$ROOT" ] || fail "VI-EN zip must contain the folder nguyen-ha-vi-en"
-	for required in nguyen-ha-vi-en.php index.php readme.txt assets/switcher.css includes/class-nh-vien-plugin.php includes/class-nh-vien-routes.php includes/class-nh-vien-seo.php includes/class-nh-vien-switcher.php; do
+	for required in nguyen-ha-vi-en.php index.php readme.txt assets/switcher.css includes/class-nh-vien-plugin.php includes/class-nh-vien-gate.php includes/class-nh-vien-routes.php includes/class-nh-vien-seo.php includes/class-nh-vien-switcher.php; do
 		[ -s "$ROOT/$required" ] || fail "VI-EN zip lacks $required"
 	done
 	common_checks "$ROOT" "VI-EN plugin"

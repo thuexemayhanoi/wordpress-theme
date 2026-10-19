@@ -7,7 +7,7 @@ if ( 'cli' !== PHP_SAPI ) {
 }
 
 define( 'ABSPATH', __DIR__ . '/../../../../' );
-define( 'NH_VIEN_VERSION', '0.5.0' );
+define( 'NH_VIEN_VERSION', '0.5.1' );
 define( 'NH_VIEN_PLUGIN_FILE', dirname( __DIR__ ) . '/nguyen-ha-vi-en.php' );
 
 $GLOBALS['env']      = 'staging';
@@ -33,7 +33,7 @@ function callbacks_exist( $where ) {
 	}
 }
 
-foreach ( array( 'languages', 'links', 'admin', 'routes', 'context', 'urls', 'query', 'cache', 'content', 'seo', 'switcher', 'plugin' ) as $part ) {
+foreach ( array( 'languages', 'links', 'admin', 'gate', 'routes', 'context', 'urls', 'query', 'cache', 'content', 'seo', 'switcher', 'plugin' ) as $part ) {
 	require dirname( __DIR__ ) . '/includes/class-nh-vien-' . $part . '.php';
 }
 
@@ -75,6 +75,25 @@ $hooks = boot_hooks( 'staging', false );
 must( array( 'nh_vien_pairs_changed', 'parse_request' ) === $hooks, 'A stale stored rule must be answered with a 404 even when the gate is closed' );
 $GLOBALS['options'] = array();
 
+// The switch of the dashboard (no constant in wp-config.php) opens the gate; a production site also needs its confirmation.
+must( in_array( 'admin_post_nh_vien_toggle', $admin_only, true ), 'The administration must offer the switch' );
+$GLOBALS['options']['home']                 = 'https://example.test';
+$GLOBALS['options'][ NH_VIEN_Gate::OPTION ] = array(
+	'on'        => true,
+	'site'      => substr( md5( 'https://example.test' ), 0, 16 ),
+	'confirmed' => false,
+	'user'      => 1,
+	'time'      => 1800000000,
+);
+$dashboard_front = boot_hooks( 'staging', false );
+must( in_array( 'init', $dashboard_front, true ) && in_array( 'pre_get_posts', $dashboard_front, true ) && in_array( 'wp_body_open', $dashboard_front, true ), 'The switch of the dashboard must open the gate on staging' );
+must( array( 'nh_vien_pairs_changed' ) === boot_hooks( 'production', false ), 'A production site that was not confirmed must stay closed' );
+$GLOBALS['options'][ NH_VIEN_Gate::OPTION ]['confirmed'] = true;
+must( $dashboard_front === boot_hooks( 'production', false ), 'A confirmed production site must run the English side' );
+$GLOBALS['options'][ NH_VIEN_Gate::OPTION ]['site'] = substr( md5( 'https://other.example.test' ), 0, 16 );
+must( array( 'nh_vien_pairs_changed' ) === boot_hooks( 'staging', false ), 'A decision taken at another address must not open the gate' );
+$GLOBALS['options'] = array();
+
 define( 'NH_VIEN_ENABLE_EN_ROUTES', true );
 
 // The constant alone is not enough on production.
@@ -97,7 +116,7 @@ must( $expected_front === $booted_front, 'Front end request hooks differ' );
 foreach ( array( 'init', 'parse_request', 'pre_get_posts', 'post_link', 'rest_url', 'rest_post_search_query', 'wp_body_open', 'nh_editorial_after_skip_link', 'wpseo_canonical', 'wp_head', 'the_title', 'shortcode:nh_vien_switcher', 'shortcode:nh_vien_posts' ) as $front_hook ) {
 	must( in_array( $front_hook, $booted_front, true ), "Front-end hook $front_hook missing" );
 }
-foreach ( array( 'admin_menu', 'admin_post_nh_vien_link', 'admin_post_nh_vien_flush' ) as $admin_hook ) {
+foreach ( array( 'admin_menu', 'admin_post_nh_vien_link', 'admin_post_nh_vien_flush', 'admin_post_nh_vien_toggle' ) as $admin_hook ) {
 	must( ! in_array( $admin_hook, $booted_front, true ), "Admin hook $admin_hook registered on the front end" );
 }
 
@@ -109,4 +128,4 @@ must( $expected_front === boot_hooks( 'development', false ), 'Development front
 define( 'NH_VIEN_ALLOW_PRODUCTION', true );
 must( $expected_front === boot_hooks( 'production', false ), 'Production with both constants must run the English side' );
 
-echo "PASS: bootstrap hooks per environment and context, closed gate, stale rules, rewrite registration in the admin and on the front end.\n";
+echo "PASS: bootstrap hooks per environment and context, closed gate, switch of the dashboard, stale rules, rewrite registration in the admin and on the front end.\n";

@@ -9,12 +9,13 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Tools panel: pairs, status of the English routes, and the two maintenance buttons.
+ * Tools panel: pairs, status of the English routes, the switch, and the two maintenance buttons.
  */
 final class NH_VIEN_Admin {
-	const PAGE        = 'nh-vien-links';
-	const FLUSH_NONCE = 'nh_vien_flush_rules';
-	const HOME_NONCE  = 'nh_vien_create_home_page';
+	const PAGE         = 'nh-vien-links';
+	const FLUSH_NONCE  = 'nh_vien_flush_rules';
+	const HOME_NONCE   = 'nh_vien_create_home_page';
+	const TOGGLE_NONCE = 'nh_vien_toggle_routes';
 
 	/** Register the administrator-only hooks. */
 	public static function boot() {
@@ -29,6 +30,7 @@ final class NH_VIEN_Admin {
 		add_action( 'admin_post_nh_vien_link_page', array( __CLASS__, 'link_page' ) );
 		add_action( 'admin_post_nh_vien_unlink_page', array( __CLASS__, 'unlink_page' ) );
 		add_action( 'admin_post_nh_vien_flush', array( __CLASS__, 'flush' ) );
+		add_action( 'admin_post_nh_vien_toggle', array( __CLASS__, 'toggle' ) );
 		add_action( 'admin_post_nh_vien_home_page', array( __CLASS__, 'home_page' ) );
 	}
 
@@ -116,10 +118,32 @@ final class NH_VIEN_Admin {
 		if ( NH_VIEN_Routes::enabled() && NH_VIEN_Routes::post_at_en() ) {
 			self::redirect( 'address_taken' );
 		}
+		if ( NH_VIEN_Routes::enabled() && ! get_option( 'permalink_structure' ) ) {
+			self::redirect( 'nh_vien_pretty_links_required' );
+		}
 		flush_rewrite_rules( false );
 		NH_VIEN_Routes::reset();
 		do_action( 'nh_vien_pairs_changed', 0, 0 );
 		self::redirect( 'flushed' );
+	}
+
+	/**
+	 * Switch English routing on or off. Only an administrator can, with the nonce of this form; the decision, the
+	 * confirmation of a production site and the rewrite rules are the business of NH_VIEN_Gate.
+	 */
+	public static function toggle() {
+		self::authorize( self::TOGGLE_NONCE );
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified by authorize().
+		$mode = isset( $_POST['nh_vien_mode'] ) && is_string( $_POST['nh_vien_mode'] ) ? sanitize_text_field( wp_unslash( $_POST['nh_vien_mode'] ) ) : '';
+		if ( 'enable' === $mode ) {
+			// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified by authorize().
+			$confirmed = isset( $_POST['nh_vien_confirm'] ) && is_string( $_POST['nh_vien_confirm'] ) && 'yes' === sanitize_text_field( wp_unslash( $_POST['nh_vien_confirm'] ) );
+			self::redirect( NH_VIEN_Gate::switch_on( $confirmed, get_current_user_id() ) );
+		}
+		if ( 'disable' === $mode ) {
+			self::redirect( NH_VIEN_Gate::switch_off( get_current_user_id() ) );
+		}
+		self::redirect( 'nh_vien_invalid_mode' );
 	}
 
 	/** Create the English home page as a draft; it is never published automatically. */
@@ -184,24 +208,33 @@ final class NH_VIEN_Admin {
 	 *
 	 * @return array<string,array{0:string,1:string}> Token => notice class and text.
 	 */
-	private static function messages() {
+	public static function messages() {
 		$error = array( 'notice-error', __( 'Nothing was changed. Check the post IDs, your permissions, existing links and the nonce.', 'nguyen-ha-vi-en' ) );
 		return array(
-			'saved'                     => array( 'notice-success', __( 'Translation link operation completed.', 'nguyen-ha-vi-en' ) ),
-			'flushed'                   => array( 'notice-success', __( 'The rewrite rules were stored again.', 'nguyen-ha-vi-en' ) ),
-			'address_taken'             => array( 'notice-error', __( 'Nothing was changed: a published post already has the address /en/. Give that post another slug first, or the English home would take its address away.', 'nguyen-ha-vi-en' ) ),
-			'home_exists'               => array( 'notice-warning', __( 'A page with the address /en/ already exists; it was left as it is.', 'nguyen-ha-vi-en' ) ),
-			'home_failed'               => array( 'notice-error', __( 'The English home page could not be created.', 'nguyen-ha-vi-en' ) ),
-			'nh_vien_forbidden'         => $error,
-			'nh_vien_bad_nonce'         => $error,
-			'nh_vien_invalid_ids'       => $error,
-			'nh_vien_invalid_posts'     => $error,
-			'nh_vien_invalid_category'  => $error,
-			'nh_vien_category_conflict' => $error,
-			'nh_vien_invalid_store'     => $error,
-			'nh_vien_conflict'          => $error,
-			'nh_vien_not_found'         => $error,
-			'nh_vien_save_failed'       => $error,
+			'saved'                         => array( 'notice-success', __( 'Translation link operation completed.', 'nguyen-ha-vi-en' ) ),
+			'flushed'                       => array( 'notice-success', __( 'The rewrite rules were stored again.', 'nguyen-ha-vi-en' ) ),
+			'routes_enabled'                => array( 'notice-success', __( 'English routing is on and its rewrite rules are stored. Nothing English is public until you publish English pages or posts: check /en/, the English menus and the sitemap now.', 'nguyen-ha-vi-en' ) ),
+			'routes_disabled'               => array( 'notice-success', __( 'English routing is off and the rewrite rules of this plugin were removed. English pages and posts stay in WordPress; every /en/ address answers 404. Vietnamese pages are as they were.', 'nguyen-ha-vi-en' ) ),
+			'nh_vien_rules_left'            => array( 'notice-warning', __( 'English routing is off, but some stored rewrite rules could not be removed. The /en/ addresses answer 404 anyway. Press "Store the rewrite rules" or save Settings > Permalinks.', 'nguyen-ha-vi-en' ) ),
+			'nh_vien_config_controls'       => array( 'notice-error', __( 'Nothing was changed: wp-config.php defines NH_VIEN_ENABLE_EN_ROUTES, so it decides. Remove that line to switch English routing here.', 'nguyen-ha-vi-en' ) ),
+			'nh_vien_production_denied'     => array( 'notice-error', __( 'Nothing was changed: wp-config.php sets NH_VIEN_ALLOW_PRODUCTION to a value other than true, so this production site cannot switch English routing on.', 'nguyen-ha-vi-en' ) ),
+			'nh_vien_confirm_required'      => array( 'notice-error', __( 'Nothing was changed: on a production site, tick the confirmation that you have a backup and have passed the staging checks.', 'nguyen-ha-vi-en' ) ),
+			'nh_vien_pretty_links_required' => array( 'notice-error', __( 'Nothing was changed: English addresses need pretty permalinks. Choose a permalink structure in Settings > Permalinks first.', 'nguyen-ha-vi-en' ) ),
+			'nh_vien_rewrite_failed'        => array( 'notice-error', __( 'Nothing was changed: WordPress did not store the English rewrite rules, so the previous setting was restored.', 'nguyen-ha-vi-en' ) ),
+			'nh_vien_invalid_mode'          => array( 'notice-error', __( 'Nothing was changed: the request was not understood.', 'nguyen-ha-vi-en' ) ),
+			'address_taken'                 => array( 'notice-error', __( 'Nothing was changed: a published post already has the address /en/. Give that post another slug first, or the English home would take its address away.', 'nguyen-ha-vi-en' ) ),
+			'home_exists'                   => array( 'notice-warning', __( 'A page with the address /en/ already exists; it was left as it is.', 'nguyen-ha-vi-en' ) ),
+			'home_failed'                   => array( 'notice-error', __( 'The English home page could not be created.', 'nguyen-ha-vi-en' ) ),
+			'nh_vien_forbidden'             => $error,
+			'nh_vien_bad_nonce'             => $error,
+			'nh_vien_invalid_ids'           => $error,
+			'nh_vien_invalid_posts'         => $error,
+			'nh_vien_invalid_category'      => $error,
+			'nh_vien_category_conflict'     => $error,
+			'nh_vien_invalid_store'         => $error,
+			'nh_vien_conflict'              => $error,
+			'nh_vien_not_found'             => $error,
+			'nh_vien_save_failed'           => $error,
 		);
 	}
 
@@ -244,7 +277,7 @@ final class NH_VIEN_Admin {
 		echo '</div>';
 	}
 
-	/** Render the status of the English routes and the two maintenance buttons. */
+	/** Render the status of the English routes, the switch, and the two maintenance buttons. */
 	private static function render_status() {
 		$enabled = NH_VIEN_Routes::enabled();
 		$stored  = NH_VIEN_Routes::rules_stored();
@@ -254,9 +287,11 @@ final class NH_VIEN_Admin {
 		$home    = $page
 			? __( 'A published page at /en/', 'nguyen-ha-vi-en' )
 			: __( 'The list of English posts (create a page with the address /en/ to write your own home page)', 'nguyen-ha-vi-en' );
+		$type    = function_exists( 'wp_get_environment_type' ) ? wp_get_environment_type() : '?';
 		$rows    = array(
-			array( __( 'Switched on by configuration', 'nguyen-ha-vi-en' ), $enabled ? $yes : $no . ' (' . __( 'needs NH_VIEN_ENABLE_EN_ROUTES and a non-production environment', 'nguyen-ha-vi-en' ) . ')' ),
-			array( __( 'Environment type', 'nguyen-ha-vi-en' ), function_exists( 'wp_get_environment_type' ) ? wp_get_environment_type() : '?' ),
+			array( __( 'English routing is switched on', 'nguyen-ha-vi-en' ), $enabled ? $yes : $no ),
+			array( __( 'Decided by', 'nguyen-ha-vi-en' ), self::decided_by() ),
+			array( __( 'Environment type', 'nguyen-ha-vi-en' ), NH_VIEN_Gate::production() ? $type . ' (' . __( 'a production site: switching on asks for your confirmation', 'nguyen-ha-vi-en' ) . ')' : $type ),
 			array( __( 'Rewrite rules stored', 'nguyen-ha-vi-en' ), $stored ? $yes : $no ),
 			array( __( 'English pages are live', 'nguyen-ha-vi-en' ), $enabled && $stored ? $yes : $no ),
 			array( __( 'English home', 'nguyen-ha-vi-en' ), $home ),
@@ -269,7 +304,8 @@ final class NH_VIEN_Admin {
 			echo '<tr><th scope="row">' . esc_html( $row[0] ) . '</th><td>' . esc_html( $row[1] ) . '</td></tr>';
 		}
 		echo '</tbody></table>';
-		echo '<p>' . esc_html__( 'Nothing changes on the site until the gate is open and the rules are stored. Storing the rules is the only time the plugin writes the rewrite rules; it never does it by itself.', 'nguyen-ha-vi-en' ) . '</p>';
+		self::render_switch( $enabled );
+		echo '<p>' . esc_html__( 'Nothing changes on the site until English routing is switched on and its rules are stored. The rules are stored when you switch it on, or when you press the button below; the plugin never stores them by itself.', 'nguyen-ha-vi-en' ) . '</p>';
 		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display:inline-block;margin-right:1rem">';
 		wp_nonce_field( self::FLUSH_NONCE );
 		echo '<input type="hidden" name="action" value="nh_vien_flush">';
@@ -282,6 +318,64 @@ final class NH_VIEN_Admin {
 			submit_button( __( 'Create a draft English home page', 'nguyen-ha-vi-en' ), 'secondary', 'submit', false );
 			echo '</form>';
 		}
+	}
+
+	/**
+	 * Who decides whether English routing is on, in a sentence.
+	 *
+	 * @return string
+	 */
+	private static function decided_by() {
+		if ( NH_VIEN_Gate::managed_by_config() ) {
+			return true === NH_VIEN_ENABLE_EN_ROUTES
+				? __( 'wp-config.php (NH_VIEN_ENABLE_EN_ROUTES is true)', 'nguyen-ha-vi-en' )
+				: __( 'wp-config.php (NH_VIEN_ENABLE_EN_ROUTES is not true)', 'nguyen-ha-vi-en' );
+		}
+		if ( NH_VIEN_Gate::production_denied_by_config() ) {
+			return __( 'wp-config.php (NH_VIEN_ALLOW_PRODUCTION is not true: this production site cannot switch it on)', 'nguyen-ha-vi-en' );
+		}
+		$state = NH_VIEN_Gate::state();
+		if ( $state['stale'] ) {
+			return __( 'The switch below: it was switched on at another address of the site, so it counts as off until it is switched on here', 'nguyen-ha-vi-en' );
+		}
+		if ( $state['on'] && NH_VIEN_Gate::production() && ! $state['confirmed'] && ! defined( 'NH_VIEN_ALLOW_PRODUCTION' ) ) {
+			return __( 'The switch below: this production site was not confirmed, so it counts as off', 'nguyen-ha-vi-en' );
+		}
+		if ( ! $state['time'] ) {
+			return __( 'The switch below (not switched on yet)', 'nguyen-ha-vi-en' );
+		}
+		$user = $state['user'] ? get_userdata( $state['user'] ) : false;
+		$name = $user ? $user->display_name : __( 'an administrator', 'nguyen-ha-vi-en' );
+		$when = wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $state['time'] );
+		/* translators: 1: on or off, 2: administrator name, 3: date and time. */
+		return sprintf( __( 'The switch below (switched %1$s by %2$s, %3$s)', 'nguyen-ha-vi-en' ), $state['on'] ? __( 'on', 'nguyen-ha-vi-en' ) : __( 'off', 'nguyen-ha-vi-en' ), $name, (string) $when );
+	}
+
+	/**
+	 * Render the switch: one button that turns English routing on or off, unless wp-config.php decides.
+	 *
+	 * @param bool $enabled Whether English routing is on.
+	 */
+	private static function render_switch( $enabled ) {
+		echo '<h2>' . esc_html__( 'Switch English routing', 'nguyen-ha-vi-en' ) . '</h2>';
+		if ( NH_VIEN_Gate::managed_by_config() ) {
+			echo '<p>' . esc_html__( 'wp-config.php defines NH_VIEN_ENABLE_EN_ROUTES, so it decides and there is no switch here. Remove that line to use the switch.', 'nguyen-ha-vi-en' ) . '</p>';
+			return;
+		}
+		if ( NH_VIEN_Gate::production_denied_by_config() ) {
+			echo '<p>' . esc_html__( 'wp-config.php sets NH_VIEN_ALLOW_PRODUCTION to a value other than true, so this production site cannot switch English routing on. Remove that line to use the switch.', 'nguyen-ha-vi-en' ) . '</p>';
+			return;
+		}
+		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+		wp_nonce_field( self::TOGGLE_NONCE );
+		echo '<input type="hidden" name="action" value="nh_vien_toggle">';
+		echo '<input type="hidden" name="nh_vien_mode" value="' . esc_attr( $enabled ? 'disable' : 'enable' ) . '">';
+		if ( ! $enabled && NH_VIEN_Gate::confirmation_needed() ) {
+			echo '<p><label><input type="checkbox" name="nh_vien_confirm" value="yes" required> ' . esc_html__( 'I have a recent backup of the database and the files, I have checked the English section on a staging copy, and I want English routing switched on for this production site.', 'nguyen-ha-vi-en' ) . '</label></p>';
+		}
+		submit_button( $enabled ? __( 'Switch English routing off', 'nguyen-ha-vi-en' ) : __( 'Switch English routing on', 'nguyen-ha-vi-en' ), $enabled ? 'secondary' : 'primary', 'submit', false );
+		echo '</form>';
+		echo '<p>' . esc_html__( 'Switching on stores the English rewrite rules; switching off removes only those rules. Vietnamese posts, pages, categories and addresses are never touched, and nothing English becomes public until you publish English pages or posts.', 'nguyen-ha-vi-en' ) . '</p>';
 	}
 
 	/**

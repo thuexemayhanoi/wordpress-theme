@@ -2,9 +2,10 @@
 /**
  * English routes: the /en/ prefix, the rewrite rules behind it, and how a request for one of them is resolved.
  *
- * Nothing here runs unless the site opts in with NH_VIEN_ENABLE_EN_ROUTES (see enabled()), no rewrite rule is stored
- * without an administrator pressing a button (and only this plugin's own rules are taken out again, when it is
- * deactivated), and no existing post, page or URL is changed.
+ * Nothing here runs unless the site opts in (see enabled() and NH_VIEN_Gate: the constant NH_VIEN_ENABLE_EN_ROUTES, or the
+ * switch of an administrator in Tools > VI/EN Links), no rewrite rule is stored without an administrator pressing a
+ * button (and only this plugin's own rules are taken out again, when it is switched off or deactivated), and no
+ * existing post, page or URL is changed.
  *
  * @package Nguyen_Ha_VI_EN
  */
@@ -38,20 +39,22 @@ final class NH_VIEN_Routes {
 	private static $home_page = false;
 
 	/**
-	 * Gate: the English routes are switched on by configuration. The constant NH_VIEN_ENABLE_EN_ROUTES must be true,
-	 * and the environment must be local, development or staging. A production site needs a second, explicit
-	 * constant (NH_VIEN_ALLOW_PRODUCTION) that only its owner sets, after the staging checks.
+	 * Memo of the slugs of the published pages directly below /en/ for this request; null while not looked up.
+	 *
+	 * @var array<string,true>|null
+	 */
+	private static $below_en = null;
+
+	/**
+	 * Gate: whether the English routes are switched on. Either wp-config.php decides (the constant
+	 * NH_VIEN_ENABLE_EN_ROUTES; on a production site together with NH_VIEN_ALLOW_PRODUCTION), or, without the constant,
+	 * an administrator does in Tools > VI/EN Links (on a production site with an explicit confirmation). See
+	 * NH_VIEN_Gate for the rules.
 	 *
 	 * @return bool
 	 */
 	public static function enabled() {
-		if ( ! defined( 'NH_VIEN_ENABLE_EN_ROUTES' ) || true !== NH_VIEN_ENABLE_EN_ROUTES || ! function_exists( 'wp_get_environment_type' ) ) {
-			return false;
-		}
-		if ( in_array( wp_get_environment_type(), array( 'local', 'development', 'staging' ), true ) ) {
-			return true;
-		}
-		return defined( 'NH_VIEN_ALLOW_PRODUCTION' ) && true === NH_VIEN_ALLOW_PRODUCTION;
+		return NH_VIEN_Gate::open();
 	}
 
 	/**
@@ -98,6 +101,7 @@ final class NH_VIEN_Routes {
 	public static function reset() {
 		self::$live      = null;
 		self::$home_page = false;
+		self::$below_en  = null;
 	}
 
 	/**
@@ -119,19 +123,33 @@ final class NH_VIEN_Routes {
 	}
 
 	/**
-	 * On deactivation, take this plugin's own rules out of the stored rewrite rules. Without the plugin nothing would
-	 * answer them: every /en/ address would show the Vietnamese home page. Only keys of this plugin are removed, the
-	 * other stored rules stay exactly as they are, and nothing is written when none of ours is stored.
+	 * Take this plugin's own rules out of the stored rewrite rules. Only keys of this plugin are removed, the other stored
+	 * rules stay exactly as they are, and nothing is written when none of ours is stored.
+	 *
+	 * @return bool Whether none of the plugin's rules is stored afterwards.
 	 */
-	public static function deactivate() {
+	public static function remove_stored_rules() {
 		$stored = get_option( 'rewrite_rules' );
 		if ( ! is_array( $stored ) ) {
-			return;
+			return true;
 		}
 		$left = array_diff_key( $stored, self::rules() );
 		if ( count( $left ) !== count( $stored ) ) {
 			update_option( 'rewrite_rules', $left );
+			$stored = get_option( 'rewrite_rules' );
+			return is_array( $stored ) && count( array_intersect_key( $stored, self::rules() ) ) === 0;
 		}
+		return true;
+	}
+
+	/**
+	 * On deactivation, take this plugin's own rules out of the stored rewrite rules and forget the switch of the
+	 * dashboard, so that activating the plugin again starts closed. Without the plugin nothing would answer the rules:
+	 * every /en/ address would show the Vietnamese home page.
+	 */
+	public static function deactivate() {
+		self::remove_stored_rules();
+		NH_VIEN_Gate::forget();
 	}
 
 	/**
@@ -316,6 +334,41 @@ final class NH_VIEN_Routes {
 	public static function page_at( $path ) {
 		$page = get_page_by_path( $path, OBJECT, 'page' );
 		return $page instanceof WP_Post && 'publish' === $page->post_status ? $page : null;
+	}
+
+	/**
+	 * The slugs of the published pages directly below the page /en/: the addresses a page already holds below /en/. The
+	 * answer of one lookup for the whole request, so that checking many English posts costs two queries, not one each.
+	 *
+	 * @return array<string,true> Slug => true.
+	 */
+	public static function pages_below_en() {
+		if ( null === self::$below_en ) {
+			self::$below_en = array();
+			$parent         = get_page_by_path( 'en', OBJECT, 'page' );
+			if ( $parent instanceof WP_Post ) {
+				$children = get_posts(
+					array(
+						'post_type'              => 'page',
+						'post_status'            => 'publish',
+						'post_parent'            => (int) $parent->ID,
+						'posts_per_page'         => -1,
+						'orderby'                => 'none',
+						'no_found_rows'          => true,
+						'suppress_filters'       => true,
+						'update_post_meta_cache' => false,
+						'update_post_term_cache' => false,
+						self::SCOPE_VAR          => 'off',
+					)
+				);
+				foreach ( $children as $child ) {
+					if ( $child instanceof WP_Post ) {
+						self::$below_en[ $child->post_name ] = true;
+					}
+				}
+			}
+		}
+		return self::$below_en;
 	}
 
 	/**

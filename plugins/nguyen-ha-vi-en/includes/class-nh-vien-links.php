@@ -623,22 +623,17 @@ final class NH_VIEN_Links {
 		foreach ( $published as $post ) {
 			$by_id[ (int) $post->ID ] = $post;
 		}
-		// Only a page below /en/ can take an address away from an English post.
-		$pages_below_en = null !== get_page_by_path( 'en', OBJECT, 'page' );
+		// A page below /en/ keeps its address. One lookup answers for all of them: asking per English post would cost a
+		// query for each of hundreds of posts on every request.
+		$taken = NH_VIEN_Routes::pages_below_en();
 		foreach ( $standalone as $en ) {
-			if ( ! isset( $by_id[ $en ] ) || ! NH_VIEN_Routes::slug_is_routable( $by_id[ $en ]->post_name ) ) {
-				continue;
-			}
-			if ( $pages_below_en && null !== NH_VIEN_Routes::page_at( 'en/' . $by_id[ $en ]->post_name ) ) {
+			if ( ! isset( $by_id[ $en ] ) || ! NH_VIEN_Routes::slug_is_routable( $by_id[ $en ]->post_name ) || isset( $taken[ $by_id[ $en ]->post_name ] ) ) {
 				continue;
 			}
 			self::$memo['public'][ $en ] = $by_id[ $en ];
 		}
 		foreach ( $pairs as $vi => $en ) {
-			if ( ! isset( $by_id[ $vi ], $by_id[ $en ] ) || ! NH_VIEN_Routes::slug_is_routable( $by_id[ $en ]->post_name ) ) {
-				continue;
-			}
-			if ( $pages_below_en && null !== NH_VIEN_Routes::page_at( 'en/' . $by_id[ $en ]->post_name ) ) {
+			if ( ! isset( $by_id[ $vi ], $by_id[ $en ] ) || ! NH_VIEN_Routes::slug_is_routable( $by_id[ $en ]->post_name ) || isset( $taken[ $by_id[ $en ]->post_name ] ) ) {
 				continue;
 			}
 			self::$memo['public'][ $en ] = $by_id[ $en ];

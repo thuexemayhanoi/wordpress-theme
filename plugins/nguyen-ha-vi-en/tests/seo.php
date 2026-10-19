@@ -8,7 +8,7 @@ if ( 'cli' !== PHP_SAPI ) {
 
 define( 'ABSPATH', __DIR__ . '/../../../../' );
 define( 'OBJECT', 'OBJECT' );
-define( 'NH_VIEN_VERSION', '0.5.0' );
+define( 'NH_VIEN_VERSION', '0.5.1' );
 define( 'NH_VIEN_PLUGIN_FILE', dirname( __DIR__ ) . '/nguyen-ha-vi-en.php' );
 define( 'NH_VIEN_ENABLE_EN_ROUTES', true );
 
@@ -95,7 +95,7 @@ function get_term_children( $id ) {
 function get_term( $id ) { return isset( $GLOBALS['terms'][ $id ] ) ? $GLOBALS['terms'][ $id ] : null; }
 function must( $condition, $message ) { if ( ! $condition ) { throw new RuntimeException( $message ); } }
 
-foreach ( array( 'languages', 'links', 'routes', 'context', 'urls', 'seo' ) as $part ) {
+foreach ( array( 'languages', 'links', 'gate', 'routes', 'context', 'urls', 'seo' ) as $part ) {
 	require dirname( __DIR__ ) . '/includes/class-nh-vien-' . $part . '.php';
 }
 
