@@ -18,9 +18,26 @@ final class NH_VIEN_Content {
 		}
 		add_filter( 'wp_nav_menu_args', array( __CLASS__, 'nav_menu_args' ) );
 		add_filter( 'template_include', array( __CLASS__, 'english_home_template' ), 30 );
+		add_filter( 'the_title', array( __CLASS__, 'escape_english_title' ), 99 );
 		add_shortcode( 'nh_vien_posts', array( __CLASS__, 'posts_shortcode' ) );
 	}
 
+
+
+	/**
+	 * WordPress' the_title() does not escape post titles for HTML. The editorial
+	 * cards use that function directly; English headings must never emit user-provided
+	 * HTML. Preserve Vietnamese presentation by applying only to live EN routes.
+	 *
+	 * @param string $title Original post or page title.
+	 * @return string Escaped English title or untouched Vietnamese title.
+	 */
+	public static function escape_english_title( $title ) {
+		if ( ! is_string( $title ) || is_admin() || ! NH_VIEN_Routes::live() || ! NH_VIEN_Context::is_english() ) {
+			return $title;
+		}
+		return esc_html( $title );
+	}
 
 	/**
 	 * Reuse the active Editorial theme's layout for the English home page while keeping the
