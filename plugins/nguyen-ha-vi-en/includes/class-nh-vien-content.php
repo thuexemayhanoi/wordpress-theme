@@ -81,7 +81,13 @@ final class NH_VIEN_Content {
 				'url'   => NH_VIEN_Routes::url(),
 			),
 		);
-		foreach ( array( 'about' => 'About', 'prices' => 'Prices', 'contact' => 'Contact' ) as $slug => $label ) {
+		foreach (
+			array(
+				'about'   => 'About',
+				'prices'  => 'Prices',
+				'contact' => 'Contact',
+			) as $slug => $label
+		) {
 			$page = NH_VIEN_Routes::page_at( 'en/' . $slug );
 			if ( $page instanceof WP_Post ) {
 				$items[] = array(
