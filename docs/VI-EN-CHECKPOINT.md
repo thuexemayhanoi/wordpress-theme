@@ -42,7 +42,7 @@ work. The user-facing description (how it works, switching it on, production con
   (canonical, sitemaps, theme lists); the native address 301-redirects there; hidden posts are 404 everywhere;
   `term_link` gives English archives inside English pages; the home address is rewritten to `/en/` only between the end
   of `wp_head` and `wp_footer` (so SEO plugins keep one site identity); the address of the REST search route carries
-  `nh_vien_lang` inside the body.
+  `nh_vien_lang` inside the body; `url_to_postid` maps `/en/{slug}/` to `?p=ID` so that oEmbed and embeds find English posts.
 - **Lists** (`class-nh-vien-query.php`): `pre_get_posts` scopes front-end lists (not admin, AJAX, cron, REST, XML-RPC,
   WP-CLI, singular queries, other post types, `nh_vien_scope=off`); previous/next, term lists, empty-archive 404s and
   the REST search suggestions follow the same rule.
@@ -55,7 +55,8 @@ work. The user-facing description (how it works, switching it on, production con
   plugin; Yoast through documented filters (canonical, og:url, dynamic permalinks, title of the virtual English
   home, breadcrumbs, sitemap exclusions and extra entries); core sitemap arguments without an SEO plugin.
 - **Admin** (`class-nh-vien-admin.php`): status table, store-rules button, draft English home page button, pair form
-  and table; every action needs `manage_options` and a nonce; every value is escaped.
+  and table; every action needs `manage_options` and a nonce; every value is escaped. Storing the rules is refused
+  while the gate is open and a published *post* has the slug `en` (it would be shadowed by the English home).
 - **Package**: `tools/package.sh` builds `dist/nguyen-ha-vi-en-<version>.zip` (the plugin's `.gitattributes` keeps
   `tests/` out); `tools/verify-package.sh` checks it, including independence from the theme and the companion plugin.
 
