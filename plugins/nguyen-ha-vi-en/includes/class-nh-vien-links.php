@@ -14,6 +14,7 @@ defined( 'ABSPATH' ) || exit;
 final class NH_VIEN_Links {
 	const OPTION       = 'nh_vien_translation_pairs_v1';
 	const INDEPENDENT_OPTION = 'nh_vien_independent_en_posts_v1';
+	const EN_TERMS_OPTION   = 'nh_vien_english_categories_v1';
 	const NONCE_ACTION = 'nh_vien_manage_links';
 
 	/**
@@ -280,6 +281,104 @@ final class NH_VIEN_Links {
 		return true;
 	}
 
+
+	/**
+	 * IDs of newly created categories reserved for the English section.
+	 *
+	 * @return int[] Explicitly English category IDs, even when empty.
+	 */
+	public static function declared_en_terms() {
+		if ( ! isset( self::$memo['declared_terms'] ) ) {
+			$stored = get_option( self::EN_TERMS_OPTION, array() );
+			$ids    = is_array( $stored ) ? array_map( 'intval', $stored ) : array();
+			self::$memo['declared_terms'] = array_values( array_unique( array_filter( $ids, static function ( $id ) {
+				return $id > 0;
+			} ) ) );
+		}
+		return self::$memo['declared_terms'];
+	}
+
+	/**
+	 * Reserve an empty category for English. A child category can only have an English parent.
+	 * Never relabel a populated Vietnamese category or change any term's name, parent or slug.
+	 *
+	 * @param mixed $term_id Category term ID.
+	 * @param mixed $nonce Security nonce.
+	 * @return true|WP_Error
+	 */
+	public static function mark_english_category( $term_id, $nonce ) {
+		$security = self::authorize( $nonce );
+		if ( is_wp_error( $security ) ) {
+			return $security;
+		}
+		if ( ! self::positive_id( $term_id ) ) {
+			return new WP_Error( 'nh_vien_invalid_ids', 'Enter a valid category ID.' );
+		}
+		$term = get_term( (int) $term_id, 'category' );
+		if ( ! $term instanceof WP_Term ) {
+			return new WP_Error( 'nh_vien_invalid_category', 'Category does not exist.' );
+		}
+		$ids = self::declared_en_terms();
+		if ( in_array( (int) $term->term_id, $ids, true ) ) {
+			return true;
+		}
+		if ( (int) $term->count > 0 || ( $term->parent && ! in_array( (int) $term->parent, $ids, true ) ) ) {
+			return new WP_Error( 'nh_vien_category_conflict', 'Choose an empty category whose parent is also English.' );
+		}
+		$children = get_term_children( $term->term_id, 'category' );
+		if ( is_wp_error( $children ) ) {
+			return new WP_Error( 'nh_vien_invalid_category', 'Cannot inspect category children.' );
+		}
+		foreach ( $children as $child_id ) {
+			$child = get_term( (int) $child_id, 'category' );
+			if ( $child instanceof WP_Term && (int) $child->count > 0 ) {
+				return new WP_Error( 'nh_vien_category_conflict', 'A child category already has articles.' );
+			}
+		}
+		$ids[] = (int) $term->term_id;
+		if ( ! update_option( self::EN_TERMS_OPTION, $ids, false ) ) {
+			return new WP_Error( 'nh_vien_save_failed', 'Could not register English category.' );
+		}
+		self::flush_cache();
+		do_action( 'nh_vien_pairs_changed', 0, 0 );
+		return true;
+	}
+
+	/**
+	 * Remove an English category designation. Never mutate or delete the WordPress category.
+	 *
+	 * @param mixed $term_id Category term ID.
+	 * @param mixed $nonce Security nonce.
+	 * @return true|WP_Error
+	 */
+	public static function unmark_english_category( $term_id, $nonce ) {
+		$security = self::authorize( $nonce );
+		if ( is_wp_error( $security ) ) {
+			return $security;
+		}
+		if ( ! self::positive_id( $term_id ) ) {
+			return new WP_Error( 'nh_vien_invalid_ids', 'Invalid category ID.' );
+		}
+		$term_id = (int) $term_id;
+		$ids     = self::declared_en_terms();
+		if ( ! in_array( $term_id, $ids, true ) ) {
+			return new WP_Error( 'nh_vien_not_found', 'Category is not registered as English.' );
+		}
+		foreach ( $ids as $other_id ) {
+			$other = get_term( $other_id, 'category' );
+			if ( $other instanceof WP_Term && (int) $other->parent === $term_id ) {
+				return new WP_Error( 'nh_vien_category_conflict', 'Unregister English child categories first.' );
+			}
+		}
+		$ids = array_values( array_diff( $ids, array( $term_id ) ) );
+		if ( ! update_option( self::EN_TERMS_OPTION, $ids, false ) ) {
+			return new WP_Error( 'nh_vien_save_failed', 'Could not update English categories.' );
+		}
+		self::flush_cache();
+		do_action( 'nh_vien_pairs_changed', 0, 0 );
+		return true;
+	}
+
 	/**
 	 * Every post paired as the English side, whatever state the pair is in.
 	 *
@@ -411,10 +510,10 @@ final class NH_VIEN_Links {
 		if ( isset( self::$memo['terms'] ) ) {
 			return self::$memo['terms'];
 		}
-		self::$memo['terms'] = array();
+		self::$memo['terms'] = array_fill_keys( self::declared_en_terms(), true );
 		$ids                 = self::public_en_ids();
 		if ( ! $ids ) {
-			return array();
+			return self::$memo['terms'];
 		}
 		$term_ids = wp_get_object_terms( $ids, array( 'category', 'post_tag' ), array( 'fields' => 'ids' ) );
 		if ( is_wp_error( $term_ids ) ) {
@@ -439,10 +538,10 @@ final class NH_VIEN_Links {
 		if ( isset( self::$memo['en_only'] ) ) {
 			return self::$memo['en_only'];
 		}
-		self::$memo['en_only'] = array();
+		self::$memo['en_only'] = array_fill_keys( self::declared_en_terms(), true );
 		$english               = self::en_ids();
 		if ( ! $english ) {
-			return array();
+			return self::$memo['en_only'];
 		}
 		$published = get_posts(
 			array(
@@ -461,11 +560,11 @@ final class NH_VIEN_Links {
 			)
 		);
 		if ( ! $published ) {
-			return array();
+			return self::$memo['en_only'];
 		}
 		$rows = wp_get_object_terms( $published, array( 'category', 'post_tag' ), array( 'fields' => 'all_with_object_id' ) );
 		if ( is_wp_error( $rows ) ) {
-			return array();
+			return self::$memo['en_only'];
 		}
 		$english_posts = array();
 		$terms         = array();
