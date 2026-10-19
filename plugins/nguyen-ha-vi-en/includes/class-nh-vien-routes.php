@@ -114,8 +114,8 @@ final class NH_VIEN_Routes {
 		if ( ! is_array( $stored ) ) {
 			return false;
 		}
-		foreach ( array_keys( self::rules() ) as $regex ) {
-			if ( ! isset( $stored[ $regex ] ) ) {
+		foreach ( self::rules() as $regex => $query ) {
+			if ( ! isset( $stored[ $regex ] ) || $stored[ $regex ] !== $query ) {
 				return false;
 			}
 		}
@@ -123,8 +123,9 @@ final class NH_VIEN_Routes {
 	}
 
 	/**
-	 * Take this plugin's own rules out of the stored rewrite rules. Only keys of this plugin are removed, the other stored
-	 * rules stay exactly as they are, and nothing is written when none of ours is stored.
+	 * Take this plugin's own rules out of the stored rewrite rules. Only a rule that is exactly one of ours (the same
+	 * expression and the same query) is removed, every other stored rule stays as it is, in its order, and nothing is
+	 * written when none of ours is stored.
 	 *
 	 * @return bool Whether none of the plugin's rules is stored afterwards.
 	 */
@@ -133,13 +134,41 @@ final class NH_VIEN_Routes {
 		if ( ! is_array( $stored ) ) {
 			return true;
 		}
-		$left = array_diff_key( $stored, self::rules() );
+		$ours = self::rules();
+		$left = array();
+		foreach ( $stored as $regex => $query ) {
+			if ( ! isset( $ours[ $regex ] ) || $ours[ $regex ] !== $query ) {
+				$left[ $regex ] = $query;
+			}
+		}
 		if ( count( $left ) !== count( $stored ) ) {
 			update_option( 'rewrite_rules', $left );
 			$stored = get_option( 'rewrite_rules' );
-			return is_array( $stored ) && count( array_intersect_key( $stored, self::rules() ) ) === 0;
+		}
+		foreach ( $ours as $regex => $query ) {
+			if ( is_array( $stored ) && isset( $stored[ $regex ] ) && $stored[ $regex ] === $query ) {
+				return false;
+			}
 		}
 		return true;
+	}
+
+	/**
+	 * Put this plugin's own rules on top of the stored rewrite rules without regenerating the others: every other rule
+	 * stays exactly as WordPress stored it, in its order, so a rule that another plugin registers only on some requests
+	 * cannot be lost. Returns false when there is nothing to add them to (WordPress has stored no rules, for instance with
+	 * plain permalinks): the caller then lets WordPress regenerate them, with the rules of the plugin registered.
+	 *
+	 * @return bool Whether the rules of the plugin are stored afterwards.
+	 */
+	public static function store_rules() {
+		$stored = get_option( 'rewrite_rules' );
+		if ( ! is_array( $stored ) || ! $stored ) {
+			return false;
+		}
+		$ours = self::rules();
+		update_option( 'rewrite_rules', $ours + array_diff_key( $stored, $ours ) );
+		return self::rules_stored();
 	}
 
 	/**
@@ -183,13 +212,23 @@ final class NH_VIEN_Routes {
 	}
 
 	/**
-	 * Whether the post rule of an earlier run is still in the stored rewrite rules.
+	 * Whether a rule of this plugin is still in the stored rewrite rules although the gate is closed: one rule is enough,
+	 * and it counts only when it is exactly ours (a rule of another plugin that happens to use the same expression for
+	 * another query is not).
 	 *
 	 * @return bool
 	 */
 	private static function stale_rule_stored() {
 		$stored = get_option( 'rewrite_rules' );
-		return is_array( $stored ) && isset( $stored[ self::REWRITE ] );
+		if ( ! is_array( $stored ) ) {
+			return false;
+		}
+		foreach ( self::rules() as $regex => $query ) {
+			if ( isset( $stored[ $regex ] ) && $stored[ $regex ] === $query ) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/** Register the rules, ahead of the rules WordPress generates. */
@@ -222,7 +261,10 @@ final class NH_VIEN_Routes {
 			unset( $wp->query_vars[ self::LANG_VAR ], $wp->query_vars[ self::QUERY_VAR ] );
 			return;
 		}
-		if ( ! self::enabled() ) {
+		// A rule of ours matched. Answer only when the English side is live (gate open and every rule stored, the state in which
+		// lists are scoped to English): a closed gate, or a rule set that someone cut down, must never show a Vietnamese list or
+		// the Vietnamese home page under /en/.
+		if ( ! self::live() ) {
 			$wp->query_vars = array( 'error' => '404' );
 			return;
 		}
@@ -323,6 +365,37 @@ final class NH_VIEN_Routes {
 			)
 		);
 		return ! empty( $found );
+	}
+
+	/**
+	 * Whether a category has the slug en while the permalink structure puts the category in the address of a post: the
+	 * posts of that category already live below /en/ and the English addresses would hide them.
+	 *
+	 * @return bool
+	 */
+	public static function category_at_en() {
+		return false !== strpos( (string) get_option( 'permalink_structure' ), '%category%' ) && get_term_by( 'slug', 'en', 'category' ) instanceof WP_Term;
+	}
+
+	/**
+	 * Whether something that is not English already has the address /en/ (a published post, or a category that is part of the
+	 * address of its posts). Switching on or storing the rules is refused then.
+	 *
+	 * @return bool
+	 */
+	public static function address_taken() {
+		return self::post_at_en() || self::category_at_en();
+	}
+
+	/**
+	 * Whether the permalinks can carry the English addresses: a pretty structure, one that does not start with /index.php/
+	 * (the addresses of the plugin carry no index.php).
+	 *
+	 * @return bool
+	 */
+	public static function pretty_permalinks() {
+		$structure = (string) get_option( 'permalink_structure' );
+		return '' !== $structure && 0 !== strpos( $structure, '/index.php' );
 	}
 
 	/**

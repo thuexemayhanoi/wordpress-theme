@@ -1066,7 +1066,7 @@ $created = $rest( 'POST', '/wp-json/wp/v2/posts', array( 'title' => 'En', 'slug'
 $taken   = json_decode( $created['body'], true );
 if ( 201 === $created['status'] && ! empty( $taken['id'] ) && 'en' === $taken['slug'] ) {
 	$tools_taken = $admin( '/wp-admin/tools.php?page=nh-vien-links' );
-	ok( 'the Tools screen says that a post has the address /en/', (bool) preg_match( '#Address /en/ used by a post</th><td>Yes#', $tools_taken['body'] ) );
+	ok( 'the Tools screen says that a post has the address /en/', (bool) preg_match( '#Address /en/ used by a post or category</th><td>Yes#', $tools_taken['body'] ) );
 	$flush_taken = $form_for( $tools_taken['body'], 'nh_vien_flush' );
 	$r           = $flush_taken ? $admin( '/wp-admin/admin-post.php', $flush_taken ) : array( 'status' => 0, 'location' => '' );
 	ok( 'the rules are not stored while a post has the address /en/', 302 === $r['status'] && false !== strpos( $r['location'], 'nh_vien_status=address_taken' ), $r['status'] . ' ' . $r['location'] );

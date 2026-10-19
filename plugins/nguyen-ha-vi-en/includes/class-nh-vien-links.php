@@ -121,7 +121,8 @@ final class NH_VIEN_Links {
 		if ( is_wp_error( $pairs ) ) {
 			return $pairs;
 		}
-		if ( in_array( $vi, self::independent_ids(), true ) ) {
+		$independent = self::independent_ids();
+		if ( in_array( $vi, $independent, true ) ) {
 			return new WP_Error( 'nh_vien_conflict', 'The Vietnamese post has already been designated as English.' );
 		}
 		if ( isset( $pairs[ $vi ] ) ) {
@@ -129,6 +130,16 @@ final class NH_VIEN_Links {
 		}
 		if ( isset( $pairs[ $en ] ) || in_array( $vi, $pairs, true ) || in_array( $en, $pairs, true ) ) {
 			return new WP_Error( 'nh_vien_conflict', 'One of the posts is already linked.' );
+		}
+		if ( in_array( $en, $independent, true ) ) {
+			return new WP_Error( 'nh_vien_conflict', 'The English post has already been registered as an independent English article.' );
+		}
+		// A pair turns the English post into an English one: its address moves to /en/ and it leaves the Vietnamese lists.
+		// That must never happen to a Vietnamese post that is already live, so only a draft or pending post can be the English side
+		// (publish it after pairing it), the same rule as for an independent English article.
+		$english = get_post( $en );
+		if ( ! $english instanceof WP_Post || ! in_array( $english->post_status, array( 'draft', 'pending' ), true ) ) {
+			return new WP_Error( 'nh_vien_invalid_posts', 'Pair an English article while it is still a draft or pending, then publish it.' );
 		}
 		$pairs[ $vi ] = $en;
 		$saved        = update_option( self::OPTION, $pairs, false );
@@ -163,7 +174,7 @@ final class NH_VIEN_Links {
 		if ( ! isset( $pairs[ $vi ] ) ) {
 			return new WP_Error( 'nh_vien_not_found', 'Translation link was not found.' );
 		}
-		if ( ! current_user_can( 'edit_post', $vi ) || ! current_user_can( 'edit_post', $pairs[ $vi ] ) ) {
+		if ( ! self::may_remove_link_of( $vi ) || ! self::may_remove_link_of( $pairs[ $vi ] ) ) {
 			return new WP_Error( 'nh_vien_forbidden', 'You must be allowed to edit both posts.' );
 		}
 		$en = $pairs[ $vi ];
@@ -210,15 +221,16 @@ final class NH_VIEN_Links {
 	 */
 	public static function independent_ids() {
 		if ( ! isset( self::$memo['independent'] ) ) {
-			$stored = get_option( self::INDEPENDENT_OPTION, array() );
-			$ids    = is_array( $stored ) ? array_map( 'intval', $stored ) : array();
-			$valid  = array();
-			foreach ( $ids as $id ) {
-				if ( $id > 0 ) {
-					$valid[ $id ] = $id;
+			self::$memo['independent'] = array();
+			$stored                    = get_option( self::INDEPENDENT_OPTION, array() );
+			$pairs                     = self::pairs();
+			// Only real IDs count: a damaged value must never turn into post 1. A post that belongs to a pair is not independent.
+			foreach ( is_array( $stored ) ? $stored : array() as $value ) {
+				if ( self::positive_id( $value ) && ! isset( $pairs[ (int) $value ] ) && ! in_array( (int) $value, $pairs, true ) ) {
+					self::$memo['independent'][ (int) $value ] = (int) $value;
 				}
 			}
-			self::$memo['independent'] = array_values( array_diff( array_values( $valid ), array_keys( self::pairs() ) ) );
+			self::$memo['independent'] = array_values( self::$memo['independent'] );
 		}
 		return self::$memo['independent'];
 	}
@@ -240,7 +252,7 @@ final class NH_VIEN_Links {
 			return new WP_Error( 'nh_vien_invalid_posts', 'Enter an existing WordPress article ID.' );
 		}
 		$post_id = (int) $post_id;
-		if ( ! current_user_can( 'edit_post', $post_id ) || isset( self::pairs()[ $post_id ] ) ) {
+		if ( ! current_user_can( 'edit_post', $post_id ) || isset( self::pairs()[ $post_id ] ) || isset( self::reverse()[ $post_id ] ) ) {
 			return new WP_Error( 'nh_vien_conflict', 'The article cannot be designated English.' );
 		}
 		$ids = self::independent_ids();
@@ -274,7 +286,7 @@ final class NH_VIEN_Links {
 		if ( is_wp_error( $security ) ) {
 			return $security;
 		}
-		if ( ! self::positive_id( $post_id ) || ! current_user_can( 'edit_post', (int) $post_id ) ) {
+		if ( ! self::positive_id( $post_id ) || ! self::may_remove_link_of( (int) $post_id ) ) {
 			return new WP_Error( 'nh_vien_forbidden', 'You must be allowed to edit this article.' );
 		}
 		$post_id = (int) $post_id;
@@ -300,11 +312,11 @@ final class NH_VIEN_Links {
 	public static function declared_en_terms() {
 		if ( ! isset( self::$memo['declared_terms'] ) ) {
 			$stored = get_option( self::EN_TERMS_OPTION, array() );
-			$ids    = is_array( $stored ) ? array_map( 'intval', $stored ) : array();
 			$valid  = array();
-			foreach ( $ids as $id ) {
-				if ( $id > 0 ) {
-					$valid[ $id ] = $id;
+			// Only real IDs count: a damaged value must never turn into the term 1 (the default category).
+			foreach ( is_array( $stored ) ? $stored : array() as $value ) {
+				if ( self::positive_id( $value ) ) {
+					$valid[ (int) $value ] = (int) $value;
 				}
 			}
 			self::$memo['declared_terms'] = array_values( $valid );
@@ -509,7 +521,7 @@ final class NH_VIEN_Links {
 		if ( ! isset( $pairs[ $vi ] ) ) {
 			return new WP_Error( 'nh_vien_not_found', 'Page link does not exist.' );
 		}
-		if ( ! current_user_can( 'edit_post', $vi ) || ! current_user_can( 'edit_post', $pairs[ $vi ] ) ) {
+		if ( ! self::may_remove_link_of( $vi ) || ! self::may_remove_link_of( $pairs[ $vi ] ) ) {
 			return new WP_Error( 'nh_vien_forbidden', 'You must be able to edit both pages.' );
 		}
 		$en = $pairs[ $vi ];
@@ -520,6 +532,17 @@ final class NH_VIEN_Links {
 		self::flush_cache();
 		do_action( 'nh_vien_pairs_changed', $vi, $en );
 		return true;
+	}
+
+	/**
+	 * Whether the current user may take a link that involves a post away: they can edit the post, or the post no longer
+	 * exists (WordPress grants nobody the right to edit a post that was deleted for good, and a link to it must still be removable).
+	 *
+	 * @param int $post_id Post or page ID.
+	 * @return bool
+	 */
+	private static function may_remove_link_of( $post_id ) {
+		return ! get_post( (int) $post_id ) instanceof WP_Post || current_user_can( 'edit_post', (int) $post_id );
 	}
 
 	/**

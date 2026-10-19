@@ -69,7 +69,16 @@ function get_page_uri( $id ) {
 	return isset( $GLOBALS['page_uris'][ $id ] ) ? $GLOBALS['page_uris'][ $id ] : '';
 }
 function get_post( $id ) { return isset( $GLOBALS['mock_posts'][ $id ] ) ? $GLOBALS['mock_posts'][ $id ] : null; }
-function current_user_can( $cap, $id = null ) { return 'manage_options' === $cap ? $GLOBALS['allow_manage'] : $GLOBALS['allow_edit']; }
+// As in WordPress: nobody may edit a post that no longer exists (the capability maps to do_not_allow).
+function current_user_can( $cap, $id = null ) {
+	if ( 'manage_options' === $cap ) {
+		return $GLOBALS['allow_manage'];
+	}
+	if ( null !== $id && ! isset( $GLOBALS['mock_posts'][ $id ] ) ) {
+		return false;
+	}
+	return $GLOBALS['allow_edit'];
+}
 function wp_verify_nonce( $nonce, $action ) { return $GLOBALS['nonce_ok'] && 'ok' === $nonce && 'nh_vien_manage_links' === $action; }
 function add_action( $name, $callback, $priority = 10 ) { $GLOBALS['hooks'][] = $name; }
 function register_deactivation_hook() {}
@@ -80,12 +89,15 @@ function error_is( $result, $code ) { return is_wp_error( $result ) && $code ===
 
 require dirname( __DIR__ ) . '/nguyen-ha-vi-en.php';
 
-foreach ( array( 11, 22, 33, 44, 55, 66, 77 ) as $id ) {
+foreach ( array( 11, 22, 33, 44, 45, 55, 66, 77 ) as $id ) {
 	$GLOBALS['mock_posts'][ $id ] = new WP_Post();
 }
 $GLOBALS['mock_posts'][55] = new WP_Post( 'page' );
 $GLOBALS['mock_posts'][66] = new WP_Post( 'post', 'trash' );
 $GLOBALS['mock_posts'][77] = new WP_Post( 'revision', 'inherit' );
+// 11, 33 and 44 are published Vietnamese posts; the English side of a pair must still be a draft or pending (22, 45).
+$GLOBALS['mock_posts'][22] = new WP_Post( 'post', 'draft' );
+$GLOBALS['mock_posts'][45] = new WP_Post( 'post', 'pending' );
 
 must( '0.5.1' === NH_VIEN_VERSION, 'Wrong version' );
 must( array() === NH_VIEN_Links::all(), 'Map should start empty' );
@@ -122,7 +134,9 @@ must( error_is( NH_VIEN_Links::link( 11, 33, 'ok' ), 'nh_vien_conflict' ), 'VI c
 must( error_is( NH_VIEN_Links::link( 33, 22, 'ok' ), 'nh_vien_conflict' ), 'EN conflict allowed' );
 must( error_is( NH_VIEN_Links::link( 22, 33, 'ok' ), 'nh_vien_conflict' ), 'EN reused as VI' );
 must( error_is( NH_VIEN_Links::link( 33, 11, 'ok' ), 'nh_vien_conflict' ), 'VI reused as EN' );
-must( true === NH_VIEN_Links::link( 33, 44, 'ok' ), 'Independent pair rejected' );
+must( error_is( NH_VIEN_Links::link( 33, 44, 'ok' ), 'nh_vien_invalid_posts' ), 'A published post became the English side of a pair' );
+must( count( $GLOBALS['mock_writes'] ) === 1, 'A refused pair must not write' );
+must( true === NH_VIEN_Links::link( 33, 45, 'ok' ), 'Independent pair rejected (a pending English post)' );
 must( count( NH_VIEN_Links::all() ) === 2, 'Second pair not stored' );
 must( error_is( NH_VIEN_Links::unlink( 11, 'bad' ), 'nh_vien_bad_nonce' ), 'Unlink nonce ignored' );
 $GLOBALS['allow_edit'] = false;
@@ -131,7 +145,7 @@ $GLOBALS['allow_edit'] = true;
 must( true === NH_VIEN_Links::unlink( 11, 'ok' ), 'Unlink failed' );
 must( array( 'nh_vien_pairs_changed', 11, 22 ) === end( $GLOBALS['fired'] ), 'Unlink must announce itself with the pair it removed' );
 must( null === NH_VIEN_Links::for_post( 22 ), 'Old counterpart still resolves' );
-must( array( 33 => 44 ) === NH_VIEN_Links::all(), 'Unlink removed wrong pair' );
+must( array( 33 => 45 ) === NH_VIEN_Links::all(), 'Unlink removed wrong pair' );
 must( error_is( NH_VIEN_Links::unlink( 11, 'ok' ), 'nh_vien_not_found' ), 'Missing pair ignored' );
 $GLOBALS['mock_options'][NH_VIEN_Links::OPTION] = array( 11 => 44, 33 => 44 );
 must( is_wp_error( NH_VIEN_Links::all() ), 'Duplicate target allowed' );
@@ -144,6 +158,17 @@ $GLOBALS['mock_options'][NH_VIEN_Links::OPTION] = array( 11 => 22, 33 => 11 );
 must( is_wp_error( NH_VIEN_Links::all() ), 'Reversed language-column overlap allowed' );
 $GLOBALS['mock_options'][NH_VIEN_Links::OPTION] = 'bad';
 must( is_wp_error( NH_VIEN_Links::all() ), 'Non-array store allowed' );
+
+/** Once the English post of a pair is published, saving the same pair again is still a harmless repeat. */
+$GLOBALS['mock_options'][ NH_VIEN_Links::OPTION ] = array( 11 => 22 );
+NH_VIEN_Links::flush_cache();
+$GLOBALS['mock_posts'][22]->post_status = 'publish';
+$writes = count( $GLOBALS['mock_writes'] );
+must( true === NH_VIEN_Links::link( 11, 22, 'ok' ), 'A repeat of a live pair must stay harmless' );
+must( $writes === count( $GLOBALS['mock_writes'] ), 'A repeat of a live pair must not write' );
+$GLOBALS['mock_posts'][22]->post_status = 'draft';
+$GLOBALS['mock_options'][ NH_VIEN_Links::OPTION ] = array();
+NH_VIEN_Links::flush_cache();
 
 /** Standalone EN articles: no automatic translation and no change to Vietnamese article data. */
 $GLOBALS['mock_posts'][88] = new WP_Post( 'post', 'draft' );
@@ -164,6 +189,49 @@ must( error_is( NH_VIEN_Links::link( 88, 33, 'ok' ), 'nh_vien_conflict' ), 'Stan
 must( true === NH_VIEN_Links::unmark_english( 88, 'ok' ), 'Could not unregister independent English article' );
 must( 'vi' === NH_VIEN_Links::language_of( 88 ), 'Unregistered article did not return to default language' );
 must( true === NH_VIEN_Links::unlink( 11, 'ok' ), 'Could not unlink test pair' );
+
+/** A post is either the English side of a pair or an independent English article, never both. */
+must( true === NH_VIEN_Links::mark_english( 88, 'ok' ), 'Registering a draft English article failed' );
+must( error_is( NH_VIEN_Links::link( 11, 88, 'ok' ), 'nh_vien_conflict' ), 'An independent English article became the English side of a pair' );
+must( true === NH_VIEN_Links::link( 11, 22, 'ok' ), 'Pairing a draft English post failed' );
+must( error_is( NH_VIEN_Links::mark_english( 22, 'ok' ), 'nh_vien_conflict' ), 'The English side of a pair was registered as independent' );
+$GLOBALS['mock_options'][ NH_VIEN_Links::INDEPENDENT_OPTION ] = array( 88, 22, 11 );
+NH_VIEN_Links::flush_cache();
+must( array( 88 ) === NH_VIEN_Links::independent_ids(), 'A post of a pair must not count as independent whatever the stored list says: ' . json_encode( NH_VIEN_Links::independent_ids() ) );
+must( true === NH_VIEN_Links::unlink( 11, 'ok' ) && true === NH_VIEN_Links::unmark_english( 88, 'ok' ), 'Cleaning up the exclusivity test failed' );
+
+/** A damaged option never turns into post 1 or term 1, and a link to a deleted post can still be removed. */
+$GLOBALS['mock_options'][ NH_VIEN_Links::INDEPENDENT_OPTION ] = array( true, 'x', '1abc', 1.9, array( 'a' ), '5', 7, -3, 0, null, ' 8', '9 ', '007', 7 );
+NH_VIEN_Links::flush_cache();
+must( array( 5, 7 ) === NH_VIEN_Links::independent_ids(), 'Damaged values must be ignored, not coerced: ' . json_encode( NH_VIEN_Links::independent_ids() ) );
+$GLOBALS['mock_options'][ NH_VIEN_Links::EN_TERMS_OPTION ] = array( true, 'x', '1abc', 1.9, array( 'a' ), '6', 9, -3, 0 );
+NH_VIEN_Links::flush_cache();
+must( array( 6, 9 ) === NH_VIEN_Links::declared_en_terms(), 'Damaged term values must be ignored, not coerced: ' . json_encode( NH_VIEN_Links::declared_en_terms() ) );
+$GLOBALS['mock_options'][ NH_VIEN_Links::INDEPENDENT_OPTION ] = 'broken';
+$GLOBALS['mock_options'][ NH_VIEN_Links::EN_TERMS_OPTION ]    = 'broken';
+NH_VIEN_Links::flush_cache();
+must( array() === NH_VIEN_Links::independent_ids() && array() === NH_VIEN_Links::declared_en_terms(), 'A stored value that is not a list must read as empty' );
+unset( $GLOBALS['mock_options'][ NH_VIEN_Links::INDEPENDENT_OPTION ], $GLOBALS['mock_options'][ NH_VIEN_Links::EN_TERMS_OPTION ] );
+NH_VIEN_Links::flush_cache();
+// Deleted for good: nobody can edit the post any more, yet the link to it must go.
+$GLOBALS['mock_options'][ NH_VIEN_Links::OPTION ] = array( 11 => 22 );
+NH_VIEN_Links::flush_cache();
+unset( $GLOBALS['mock_posts'][22] );
+must( true === NH_VIEN_Links::unlink( 11, 'ok' ), 'A pair whose English post was deleted could not be unlinked' );
+$GLOBALS['mock_posts'][22] = new WP_Post( 'post', 'draft' );
+$GLOBALS['mock_options'][ NH_VIEN_Links::INDEPENDENT_OPTION ] = array( 88 );
+NH_VIEN_Links::flush_cache();
+unset( $GLOBALS['mock_posts'][88] );
+must( true === NH_VIEN_Links::unmark_english( 88, 'ok' ), 'An English article that was deleted could not be unregistered' );
+$GLOBALS['mock_posts'][88] = new WP_Post( 'post', 'draft' );
+// A post that still exists needs the right to edit it, as before.
+$GLOBALS['mock_options'][ NH_VIEN_Links::OPTION ] = array( 11 => 22 );
+NH_VIEN_Links::flush_cache();
+$GLOBALS['allow_edit'] = false;
+must( error_is( NH_VIEN_Links::unlink( 11, 'ok' ), 'nh_vien_forbidden' ), 'Unlinking existing posts without the right to edit them was allowed' );
+$GLOBALS['allow_edit'] = true;
+$GLOBALS['mock_options'][ NH_VIEN_Links::OPTION ] = array();
+NH_VIEN_Links::flush_cache();
 
 /** English category trees must start empty and must not adopt a Vietnamese parent. */
 $GLOBALS['mock_terms'] = array(
@@ -205,6 +273,9 @@ must( array( 'vi' => 501, 'en' => 502 ) === NH_VIEN_Links::for_page( 502 ), 'Pag
 must( error_is( NH_VIEN_Links::link_page( 501, 503, 'ok' ), 'nh_vien_conflict' ), 'Duplicate Vietnamese page pair accepted' );
 must( true === NH_VIEN_Links::unlink_page( 501, 'ok' ), 'Could not unlink page pair' );
 must( null === NH_VIEN_Links::for_page( 502 ), 'Old English page still paired after unlink' );
+must( true === NH_VIEN_Links::link_page( 501, 502, 'ok' ), 'Could not pair the pages again' );
+unset( $GLOBALS['mock_posts'][502] );
+must( true === NH_VIEN_Links::unlink_page( 501, 'ok' ), 'A page pair whose English page was deleted could not be unlinked' );
 
 must( array( 'plugins_loaded' ) === $GLOBALS['hooks'], 'Non-admin bootstrap added unexpected hooks' );
 echo "PASS: reciprocal links, one-to-one conflicts, CSRF/capability, corrupt-store and write boundaries.\n";

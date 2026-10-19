@@ -71,9 +71,18 @@ $admin_only = hooks_of( 'NH_VIEN_Cache', 'NH_VIEN_Admin' );
 must( $admin_only === boot_hooks( 'staging', true ), 'Admin must only get its own hooks without the explicit constant' );
 
 // Rules stored by an earlier run must never answer with the Vietnamese home page: the closed gate still guards the request.
-$GLOBALS['options']['rewrite_rules'] = array( NH_VIEN_Routes::REWRITE => 'index.php?nh_vien_en_slug=$matches[1]' );
-$hooks = boot_hooks( 'staging', false );
-must( array( 'nh_vien_pairs_changed', 'parse_request' ) === $hooks, 'A stale stored rule must be answered with a 404 even when the gate is closed' );
+$own = NH_VIEN_Routes::rules();
+foreach ( array( NH_VIEN_Routes::HOME, NH_VIEN_Routes::REWRITE ) as $one ) {
+	// One rule left over is enough, even when all the others are gone.
+	$GLOBALS['options']['rewrite_rules'] = array( '^wp-json/?$' => 'index.php?rest_route=/', $one => $own[ $one ] );
+	$hooks                               = boot_hooks( 'staging', false );
+	must( array( 'nh_vien_pairs_changed', 'parse_request' ) === $hooks, 'A stale stored rule must be answered with a 404 even when the gate is closed: ' . $one );
+}
+// The same expression with another query belongs to another plugin: it is none of our business.
+$GLOBALS['options']['rewrite_rules'] = array( NH_VIEN_Routes::HOME => 'index.php?other=1' );
+must( array( 'nh_vien_pairs_changed' ) === boot_hooks( 'staging', false ), 'A rule of another plugin must not be guarded' );
+$GLOBALS['options']['rewrite_rules'] = 'corrupt';
+must( array( 'nh_vien_pairs_changed' ) === boot_hooks( 'staging', false ), 'A corrupt option must not be guarded' );
 $GLOBALS['options'] = array();
 
 // The switch of the dashboard (no constant in wp-config.php) opens the gate; a production site also needs its confirmation.

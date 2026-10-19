@@ -124,20 +124,30 @@ final class NH_VIEN_Admin {
 	}
 
 	/**
-	 * Store the rewrite rules again: the English rules are added when the gate is open and removed when it is closed.
-	 * This is the only place where the plugin writes the rewrite rules.
+	 * Store the rewrite rules of the plugin again when the gate is open, and take them out when it is closed. Only the rules of
+	 * the plugin are put in or taken out; every other stored rule stays as it is (WordPress regenerates them only when it has
+	 * none stored). Switching English routing on does the same by itself.
 	 */
 	public static function flush() {
 		self::authorize( self::FLUSH_NONCE );
-		// Closing the English side must always work; opening it must not take /en/ away from a post.
-		if ( NH_VIEN_Routes::enabled() && NH_VIEN_Routes::post_at_en() ) {
-			self::redirect( 'address_taken' );
+		if ( NH_VIEN_Routes::enabled() ) {
+			// Opening the English side must not take /en/ away from a post or a category, nor work without pretty permalinks.
+			if ( NH_VIEN_Routes::address_taken() ) {
+				self::redirect( 'address_taken' );
+			}
+			if ( ! NH_VIEN_Routes::pretty_permalinks() ) {
+				self::redirect( 'nh_vien_pretty_links_required' );
+			}
+			NH_VIEN_Gate::store_rules();
+			NH_VIEN_Routes::reset();
+			if ( ! NH_VIEN_Routes::rules_stored() ) {
+				self::redirect( 'nh_vien_rules_not_stored' );
+			}
+		} else {
+			// Closing the English side must always work.
+			NH_VIEN_Routes::remove_stored_rules();
+			NH_VIEN_Routes::reset();
 		}
-		if ( NH_VIEN_Routes::enabled() && ! get_option( 'permalink_structure' ) ) {
-			self::redirect( 'nh_vien_pretty_links_required' );
-		}
-		flush_rewrite_rules( false );
-		NH_VIEN_Routes::reset();
 		do_action( 'nh_vien_pairs_changed', 0, 0 );
 		self::redirect( 'flushed' );
 	}
@@ -234,10 +244,12 @@ final class NH_VIEN_Admin {
 			'nh_vien_config_controls'       => array( 'notice-error', __( 'Nothing was changed: wp-config.php defines NH_VIEN_ENABLE_EN_ROUTES, so it decides. Remove that line to switch English routing here.', 'nguyen-ha-vi-en' ) ),
 			'nh_vien_production_denied'     => array( 'notice-error', __( 'Nothing was changed: wp-config.php sets NH_VIEN_ALLOW_PRODUCTION to a value other than true, so this production site cannot switch English routing on.', 'nguyen-ha-vi-en' ) ),
 			'nh_vien_confirm_required'      => array( 'notice-error', __( 'Nothing was changed: on a production site, tick the confirmation that you have a backup and have passed the staging checks.', 'nguyen-ha-vi-en' ) ),
-			'nh_vien_pretty_links_required' => array( 'notice-error', __( 'Nothing was changed: English addresses need pretty permalinks. Choose a permalink structure in Settings > Permalinks first.', 'nguyen-ha-vi-en' ) ),
+			'nh_vien_pretty_links_required' => array( 'notice-error', __( 'Nothing was changed: English addresses need pretty permalinks that do not start with /index.php/. Choose such a permalink structure in Settings > Permalinks first.', 'nguyen-ha-vi-en' ) ),
+			'nh_vien_rules_not_stored'      => array( 'notice-error', __( 'WordPress did not store the English rewrite rules (another plugin may filter them). The English pages stay off. Save Settings > Permalinks and try again.', 'nguyen-ha-vi-en' ) ),
+			'nh_vien_gate_save_failed'      => array( 'notice-error', __( 'The setting could not be saved, so English routing is still on and its rewrite rules were left alone.', 'nguyen-ha-vi-en' ) ),
 			'nh_vien_rewrite_failed'        => array( 'notice-error', __( 'Nothing was changed: WordPress did not store the English rewrite rules, so the previous setting was restored.', 'nguyen-ha-vi-en' ) ),
 			'nh_vien_invalid_mode'          => array( 'notice-error', __( 'Nothing was changed: the request was not understood.', 'nguyen-ha-vi-en' ) ),
-			'address_taken'                 => array( 'notice-error', __( 'Nothing was changed: a published post already has the address /en/. Give that post another slug first, or the English home would take its address away.', 'nguyen-ha-vi-en' ) ),
+			'address_taken'                 => array( 'notice-error', __( 'Nothing was changed: a published post already has the address /en/, or a category called en is part of the address of its posts. Give that post another slug (or that category another slug) first, or the English addresses would take their addresses away.', 'nguyen-ha-vi-en' ) ),
 			'home_exists'                   => array( 'notice-warning', __( 'A page with the address /en/ already exists; it was left as it is.', 'nguyen-ha-vi-en' ) ),
 			'home_failed'                   => array( 'notice-error', __( 'The English home page could not be created.', 'nguyen-ha-vi-en' ) ),
 			'nh_vien_forbidden'             => $error,
@@ -310,9 +322,9 @@ final class NH_VIEN_Admin {
 			array( __( 'Rewrite rules stored', 'nguyen-ha-vi-en' ), $stored ? $yes : $no ),
 			array( __( 'English pages are live', 'nguyen-ha-vi-en' ), $enabled && $stored ? $yes : $no ),
 			array( __( 'English home', 'nguyen-ha-vi-en' ), $home ),
-			array( __( 'Address /en/ used by a post', 'nguyen-ha-vi-en' ), NH_VIEN_Routes::post_at_en() ? __( 'Yes: the rules cannot be stored until that post has another slug', 'nguyen-ha-vi-en' ) : $no ),
+			array( __( 'Address /en/ used by a post or category', 'nguyen-ha-vi-en' ), NH_VIEN_Routes::address_taken() ? __( 'Yes: the rules cannot be stored until that post or category has another slug', 'nguyen-ha-vi-en' ) : $no ),
 			array( __( 'Yoast SEO active', 'nguyen-ha-vi-en' ), defined( 'WPSEO_VERSION' ) ? $yes : $no ),
-			array( __( 'Pretty permalinks', 'nguyen-ha-vi-en' ), get_option( 'permalink_structure' ) ? $yes : $no ),
+			array( __( 'Pretty permalinks', 'nguyen-ha-vi-en' ), NH_VIEN_Routes::pretty_permalinks() ? $yes : $no ),
 		);
 		echo '<h2>' . esc_html__( 'Status', 'nguyen-ha-vi-en' ) . '</h2><table class="widefat striped" style="max-width:52rem"><tbody>';
 		foreach ( $rows as $row ) {

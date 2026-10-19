@@ -190,7 +190,30 @@ if ( 'content' !== $nh_seed_step ) {
 	);
 	$nh_seed_pairs = array_merge( $nh_seed_pairs, $fx['bulk'] );
 	foreach ( $nh_seed_pairs as $pair ) {
+		// The English post of a pair has to be a draft (or pending) when it is paired, so that a Vietnamese post that is already
+		// live can never become English by a wrong ID; the administrator publishes it afterwards, with the date it had.
+		$english = get_post( $pair[1] );
+		$live    = $english && 'publish' === $english->post_status;
+		if ( $live ) {
+			wp_update_post(
+				array(
+					'ID'          => $pair[1],
+					'post_status' => 'draft',
+				)
+			);
+		}
 		$result = NH_VIEN_Links::link( $pair[0], $pair[1], $nh_seed_nonce );
+		if ( $live ) {
+			wp_update_post(
+				array(
+					'ID'            => $pair[1],
+					'post_status'   => 'publish',
+					'post_date'     => $english->post_date,
+					'post_date_gmt' => $english->post_date_gmt,
+					'edit_date'     => true,
+				)
+			);
+		}
 		if ( true !== $result ) {
 			WP_CLI::error( 'pair ' . $pair[0] . '/' . $pair[1] . ': ' . ( is_wp_error( $result ) ? $result->get_error_code() : 'failed' ) );
 		}

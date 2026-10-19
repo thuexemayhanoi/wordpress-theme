@@ -127,11 +127,11 @@ final class NH_VIEN_Gate {
 		if ( self::confirmation_needed() && true !== $confirmed ) {
 			return 'nh_vien_confirm_required';
 		}
-		if ( ! get_option( 'permalink_structure' ) ) {
+		if ( ! NH_VIEN_Routes::pretty_permalinks() ) {
 			return 'nh_vien_pretty_links_required';
 		}
-		// The English home would take the address /en/ away from a published post.
-		if ( NH_VIEN_Routes::post_at_en() ) {
+		// The English home would take the address /en/ away from a published post, or from the posts of a category called en.
+		if ( NH_VIEN_Routes::address_taken() ) {
 			return 'address_taken';
 		}
 		$previous = get_option( self::OPTION, null );
@@ -147,9 +147,7 @@ final class NH_VIEN_Gate {
 			true
 		);
 		NH_VIEN_Routes::reset();
-		// This request began with the gate closed, so the rules are registered now, before WordPress stores them.
-		NH_VIEN_Routes::register();
-		flush_rewrite_rules( false );
+		self::store_rules();
 		NH_VIEN_Routes::reset();
 		if ( ! self::open() || ! NH_VIEN_Routes::rules_stored() ) {
 			self::restore( $previous );
@@ -180,6 +178,12 @@ final class NH_VIEN_Gate {
 			true
 		);
 		NH_VIEN_Routes::reset();
+		// update_option() also answers false when nothing had to change, so ask what is stored. A decision that is still on
+		// must keep its rules: removing them would leave the gate open without them.
+		$state = self::state();
+		if ( $state['on'] ) {
+			return 'nh_vien_gate_save_failed';
+		}
 		$removed = NH_VIEN_Routes::remove_stored_rules();
 		NH_VIEN_Routes::reset();
 		do_action( 'nh_vien_pairs_changed', 0, 0 );
@@ -235,11 +239,22 @@ final class NH_VIEN_Gate {
 		}
 		NH_VIEN_Routes::reset();
 		if ( self::open() ) {
-			NH_VIEN_Routes::register();
-			flush_rewrite_rules( false );
+			self::store_rules();
 		} else {
 			NH_VIEN_Routes::remove_stored_rules();
 		}
 		NH_VIEN_Routes::reset();
+	}
+
+	/**
+	 * Store the rules of the plugin in a request that began with the gate closed (so they are not registered yet): put them
+	 * on top of the stored rules, leaving every other rule as it is, and only when WordPress has no stored rules to extend,
+	 * let it regenerate them with ours registered.
+	 */
+	public static function store_rules() {
+		NH_VIEN_Routes::register();
+		if ( ! NH_VIEN_Routes::store_rules() ) {
+			flush_rewrite_rules( false );
+		}
 	}
 }

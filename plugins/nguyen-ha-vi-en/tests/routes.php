@@ -145,6 +145,17 @@ must( ! NH_VIEN_Routes::live(), 'Live without stored rules' );
 $GLOBALS['options']['rewrite_rules'] = array_slice( $rules, 0, 7, true );
 fresh();
 must( ! NH_VIEN_Routes::rules_stored(), 'A missing rule counts as stored' );
+// A rule set that someone cut down answers 404 under /en/, never a Vietnamese list or the Vietnamese home page.
+foreach ( array( NH_VIEN_Routes::HOME, NH_VIEN_Routes::REWRITE ) as $one ) {
+	fresh();
+	$wp = request( $one, array( 'nh_vien_lang' => 'en', 'nh_vien_en_slug' => 'english-article' ) );
+	NH_VIEN_Routes::parse_request( $wp );
+	must( array( 'error' => '404' ) === $wp->query_vars && ! NH_VIEN_Context::is_english(), 'A cut-down rule set must answer 404, not a Vietnamese page: ' . $one );
+}
+// The same expression with another query is not ours.
+$GLOBALS['options']['rewrite_rules'] = array_merge( array_slice( $rules, 0, 7, true ), array( NH_VIEN_Routes::REWRITE => 'index.php?other=1' ) );
+fresh();
+must( ! NH_VIEN_Routes::rules_stored(), 'A lookalike rule must not count as the stored rule' );
 $GLOBALS['options']['rewrite_rules'] = $rules;
 fresh();
 must( NH_VIEN_Routes::rules_stored() && NH_VIEN_Routes::live(), 'Stored rules not live' );
@@ -284,6 +295,30 @@ $GLOBALS['options']['rewrite_rules'] = '';
 NH_VIEN_Routes::deactivate();
 must( 0 === $GLOBALS['writes'], 'Deactivation with a corrupt option must leave it alone' );
 $GLOBALS['options'] = array();
+
+// ---- Removing is exact (same expression and same query), changes only what it must and says whether it worked.
+$lookalike                           = array( NH_VIEN_Routes::HOME => 'index.php?other=1' );
+$GLOBALS['options']['rewrite_rules'] = array_merge( $lookalike, array( 'x/?$' => 'index.php?x=1' ), array_diff_key( $ours, $lookalike ) );
+$GLOBALS['writes']                   = 0;
+must( true === NH_VIEN_Routes::remove_stored_rules(), 'Removing the rules of the plugin must report success' );
+must( array_merge( $lookalike, array( 'x/?$' => 'index.php?x=1' ) ) === $GLOBALS['options']['rewrite_rules'] && 1 === $GLOBALS['writes'], 'A lookalike rule must stay and the others keep their order' );
+must( true === NH_VIEN_Routes::remove_stored_rules() && 1 === $GLOBALS['writes'], 'Nothing of ours is left: nothing to write' );
+$GLOBALS['options']['rewrite_rules'] = $ours;
+must( true === NH_VIEN_Routes::remove_stored_rules() && array() === $GLOBALS['options']['rewrite_rules'], 'Removing every rule must leave an empty set' );
+
+// ---- Storing: ours on top, the others untouched and in order; nothing to extend means false (the caller lets WordPress regenerate).
+$GLOBALS['options']['rewrite_rules'] = $others;
+$GLOBALS['writes']                   = 0;
+must( true === NH_VIEN_Routes::store_rules() && 1 === $GLOBALS['writes'], 'Storing the rules must work and write once' );
+must( array_keys( $ours ) === array_slice( array_keys( $GLOBALS['options']['rewrite_rules'] ), 0, 8 ) && $others === array_slice( $GLOBALS['options']['rewrite_rules'], 8, null, true ), 'Our rules go on top, every other rule stays in its order' );
+$GLOBALS['options']['rewrite_rules'] = array_merge( array( NH_VIEN_Routes::REWRITE => 'index.php?other=1' ), $others );
+must( true === NH_VIEN_Routes::store_rules() && 'index.php?nh_vien_lang=en' === substr( $GLOBALS['options']['rewrite_rules'][ NH_VIEN_Routes::REWRITE ], 0, 25 ), 'A lookalike under one of our expressions must give way to ours' );
+foreach ( array( array(), '', false, 'corrupt' ) as $nothing ) {
+	$GLOBALS['options']['rewrite_rules'] = $nothing;
+	$GLOBALS['writes']                   = 0;
+	must( false === NH_VIEN_Routes::store_rules() && 0 === $GLOBALS['writes'], 'Without stored rules there is nothing to extend: ' . json_encode( $nothing ) );
+}
+unset( $GLOBALS['options']['rewrite_rules'] );
 
 // ---- Many English posts must not cost a lookup each: one lookup of the page /en/ and one of its children answer for all of them.
 $GLOBALS['options'][ NH_VIEN_Links::OPTION ] = array();
