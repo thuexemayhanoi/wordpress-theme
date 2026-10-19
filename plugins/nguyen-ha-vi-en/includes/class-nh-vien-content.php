@@ -17,7 +17,28 @@ final class NH_VIEN_Content {
 			return;
 		}
 		add_filter( 'wp_nav_menu_args', array( __CLASS__, 'nav_menu_args' ) );
+		add_filter( 'template_include', array( __CLASS__, 'english_home_template' ), 30 );
 		add_shortcode( 'nh_vien_posts', array( __CLASS__, 'posts_shortcode' ) );
+	}
+
+
+	/**
+	 * Reuse the active Editorial theme's layout for the English home page while keeping the
+	 * ordinary WordPress page.php fallback for other themes and all Vietnamese routes.
+	 *
+	 * @param string $template WordPress' selected PHP template.
+	 * @return string Selected template path.
+	 */
+	public static function english_home_template( $template ) {
+		if ( ! NH_VIEN_Routes::live() || ! NH_VIEN_Context::is_english() || ! is_page() ) {
+			return $template;
+		}
+		$home = NH_VIEN_Routes::home_page();
+		if ( ! $home instanceof WP_Post || (int) get_queried_object_id() !== (int) $home->ID ) {
+			return $template;
+		}
+		$editorial = locate_template( 'page-templates/template-english-home.php', false, false );
+		return $editorial ? $editorial : $template;
 	}
 
 	/**
