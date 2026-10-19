@@ -68,6 +68,22 @@ final class NH_VIEN_Rest {
 		);
 		register_rest_route(
 			self::NS,
+			'/settings',
+			array(
+				'methods'             => 'POST',
+				'callback'            => array( __CLASS__, 'settings' ),
+				'permission_callback' => $admin,
+				'args'                => array(
+					'site_name_en' => array(
+						'required'          => true,
+						'type'              => 'string',
+						'sanitize_callback' => 'sanitize_text_field',
+					),
+				),
+			)
+		);
+		register_rest_route(
+			self::NS,
 			'/categories',
 			array(
 				'methods'             => 'POST',
@@ -206,6 +222,23 @@ final class NH_VIEN_Rest {
 	 */
 	public static function undo() {
 		$result = NH_VIEN_Settings::undo();
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+		return array(
+			'result' => $result,
+			'status' => NH_VIEN_Settings::status(),
+		);
+	}
+
+	/**
+	 * POST /settings {site_name_en}: the name of the site inside English pages; an empty name removes it.
+	 *
+	 * @param WP_REST_Request $request The request.
+	 * @return array<string,mixed>|WP_Error
+	 */
+	public static function settings( $request ) {
+		$result = NH_VIEN_Settings::set_site_name( $request->get_param( 'site_name_en' ) );
 		if ( is_wp_error( $result ) ) {
 			return $result;
 		}

@@ -8,7 +8,7 @@ if ( 'cli' !== PHP_SAPI ) {
 
 define( 'ABSPATH', __DIR__ . '/../../../../' );
 define( 'OBJECT', 'OBJECT' );
-define( 'NH_VIEN_VERSION', '0.5.1' );
+define( 'NH_VIEN_VERSION', '0.5.2' );
 define( 'NH_VIEN_PLUGIN_FILE', dirname( __DIR__ ) . '/nguyen-ha-vi-en.php' );
 define( 'NH_VIEN_ENABLE_EN_ROUTES', true );
 
@@ -24,6 +24,7 @@ class WP_Post {
 	public $post_name;
 	public $post_status;
 	public $post_type;
+	public $post_excerpt = '';
 	public function __construct( $id, $slug, $status = 'publish', $type = 'post' ) {
 		$this->ID          = $id;
 		$this->post_name   = $slug;
@@ -93,9 +94,23 @@ function get_term_children( $id ) {
 	return $out;
 }
 function get_term( $id ) { return isset( $GLOBALS['terms'][ $id ] ) ? $GLOBALS['terms'][ $id ] : null; }
+function is_singular() { return $GLOBALS['singular']; }
+function get_queried_object() { return $GLOBALS['queried']; }
+function wp_strip_all_tags( $text ) { return strip_tags( $text ); }
+function strip_shortcodes( $text ) { return $text; }
+function sanitize_text_field( $text ) { return trim( strip_tags( $text ) ); }
+function current_user_can( $cap ) { return $GLOBALS['can_manage']; }
+function update_option( $key, $value, $autoload = null ) { $GLOBALS['options'][ $key ] = $value; $GLOBALS['writes'][] = array( $key, $value, $autoload ); return true; }
+function delete_option( $key ) { unset( $GLOBALS['options'][ $key ] ); return true; }
+function do_action( $tag ) { $GLOBALS['fired'][] = func_get_args(); }
 function must( $condition, $message ) { if ( ! $condition ) { throw new RuntimeException( $message ); } }
+$GLOBALS['singular']   = false;
+$GLOBALS['queried']    = null;
+$GLOBALS['can_manage'] = true;
+$GLOBALS['writes']     = array();
+$GLOBALS['fired']      = array();
 
-foreach ( array( 'languages', 'links', 'routes', 'context', 'urls', 'seo' ) as $part ) {
+foreach ( array( 'languages', 'links', 'routes', 'context', 'urls', 'settings', 'seo' ) as $part ) {
 	require dirname( __DIR__ ) . '/includes/class-nh-vien-' . $part . '.php';
 }
 
@@ -178,4 +193,56 @@ $plain                               = $entry( $term( 3 ) );
 must( $plain === NH_VIEN_Seo::sitemap_entry( $plain, 'term', $term( 3 ) ), 'A site whose rules are not stored must not be touched' );
 must( '' === NH_VIEN_Seo::sitemap_categories( '' ), 'A site whose rules are not stored must get no English entry' );
 
-echo "PASS: sitemap entries of English-only terms, shared terms, hidden terms and the closed gate.\n";
+// ---- The English site name: English pages only, and only when a name is set.
+$GLOBALS['options']['rewrite_rules'] = NH_VIEN_Routes::rules();
+fresh();
+must( false === NH_VIEN_Seo::site_name( false ), 'Without an English name the stored name is read' );
+$GLOBALS['options'][ NH_VIEN_Settings::SITE_NAME_OPTION ] = 'Nguyen Ha Motorbike Rental';
+must( false === NH_VIEN_Seo::site_name( false ), 'A Vietnamese page keeps the Vietnamese name' );
+NH_VIEN_Context::set( 'en' );
+must( 'Nguyen Ha Motorbike Rental' === NH_VIEN_Seo::site_name( false ), 'An English page is given the English name' );
+$GLOBALS['options']['rewrite_rules'] = array();
+NH_VIEN_Routes::reset();
+must( false === NH_VIEN_Seo::site_name( false ), 'A site whose rules are not stored keeps the stored name' );
+$GLOBALS['options']['rewrite_rules'] = NH_VIEN_Routes::rules();
+NH_VIEN_Routes::reset();
+
+// ---- The description of an English page without one in Yoast SEO: its excerpt, one line, cut at a word.
+$page               = new WP_Post( 1759, 'about', 'publish', 'page' );
+$page->post_excerpt = "  Family-run <b>motorbike</b> rental in Long Bien,\n Hanoi: Honda scooters, manual bikes and 50cc models with a 24-hour rental day.  ";
+$GLOBALS['queried']  = $page;
+$GLOBALS['singular'] = true;
+must( 'Family-run motorbike rental in Long Bien, Hanoi: Honda scooters, manual bikes and 50cc models with a 24-hour rental day.' === NH_VIEN_Seo::description( '' ), 'An English page without a Yoast description gets its excerpt without tags and line breaks: ' . NH_VIEN_Seo::description( '' ) );
+must( 'Typed in Yoast' === NH_VIEN_Seo::description( 'Typed in Yoast' ), 'A description typed in Yoast SEO is kept' );
+$page->post_excerpt = str_repeat( 'Ride through the Old Quarter at your own pace. ', 6 );
+$summary            = NH_VIEN_Seo::description( '' );
+must( mb_strlen( $summary ) <= NH_VIEN_Seo::SUMMARY_LENGTH + 1 && 'pace. Ride through…' === mb_substr( $summary, -19 ) && 0 === strpos( $summary, 'Ride through' ), 'A long excerpt is cut at a word and ends with an ellipsis: ' . $summary );
+$page->post_excerpt = '';
+must( '' === NH_VIEN_Seo::description( '' ), 'No excerpt, no description' );
+$page->post_excerpt  = 'An excerpt.';
+$GLOBALS['singular'] = false;
+must( '' === NH_VIEN_Seo::description( '' ), 'A list gets no description from a post' );
+$GLOBALS['singular'] = true;
+NH_VIEN_Context::reset();
+must( '' === NH_VIEN_Seo::description( '' ), 'A Vietnamese page is left to Yoast SEO' );
+
+// ---- The setting behind the name: administrators only, cleaned, autoloaded, bounded, removable.
+NH_VIEN_Context::set( 'en' );
+$GLOBALS['can_manage'] = false;
+must( is_wp_error( NH_VIEN_Settings::set_site_name( 'X' ) ), 'A non-administrator cannot save the name' );
+$GLOBALS['can_manage'] = true;
+$GLOBALS['writes']     = array();
+unset( $GLOBALS['options'][ NH_VIEN_Settings::SITE_NAME_OPTION ] );
+$result = NH_VIEN_Settings::set_site_name( "  <b>Nguyen Ha</b> Motorbike Rental \n" );
+must( array( 'site_name_en' => 'Nguyen Ha Motorbike Rental' ) === $result, 'The name is saved without tags and spaces: ' . json_encode( $result ) );
+must( array( array( NH_VIEN_Settings::SITE_NAME_OPTION, 'Nguyen Ha Motorbike Rental', true ) ) === $GLOBALS['writes'], 'The name is autoloaded (it is read on every English page)' );
+must( 'Nguyen Ha Motorbike Rental' === NH_VIEN_Settings::site_name_en() && 'Nguyen Ha Motorbike Rental' === NH_VIEN_Seo::site_name( false ), 'The saved name is the one English pages use' );
+$GLOBALS['writes'] = array();
+NH_VIEN_Settings::set_site_name( 'Nguyen Ha Motorbike Rental' );
+must( array() === $GLOBALS['writes'], 'Saving the same name again writes nothing' );
+must( in_array( array( 'nh_vien_pairs_changed', 0, 0 ), $GLOBALS['fired'], true ), 'The caches are told about the name' );
+must( NH_VIEN_Settings::SITE_NAME_MAX === mb_strlen( NH_VIEN_Settings::set_site_name( str_repeat( 'a', 200 ) )['site_name_en'] ), 'The name is bounded' );
+NH_VIEN_Settings::set_site_name( '' );
+must( '' === NH_VIEN_Settings::site_name_en() && ! array_key_exists( NH_VIEN_Settings::SITE_NAME_OPTION, $GLOBALS['options'] ) && false === NH_VIEN_Seo::site_name( false ), 'An empty name removes the setting' );
+
+echo "PASS: sitemap entries of English-only terms, shared terms, hidden terms and the closed gate; English site name; descriptions from the excerpt.\n";

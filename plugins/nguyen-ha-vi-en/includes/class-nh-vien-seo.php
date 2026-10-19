@@ -16,6 +16,8 @@ defined( 'ABSPATH' ) || exit;
  * Hreflang, canonical addresses and Yoast SEO integration.
  */
 final class NH_VIEN_Seo {
+	const SUMMARY_LENGTH = 155;
+
 	/**
 	 * The English archives of the terms that Yoast SEO put into the sitemap being built, by taxonomy: the terms that both
 	 * languages use get their English archive as an extra entry after the Vietnamese ones.
@@ -31,11 +33,16 @@ final class NH_VIEN_Seo {
 		}
 		add_action( 'wp_head', array( __CLASS__, 'print_hreflang' ), 2 );
 		add_action( 'wp_head', array( __CLASS__, 'print_canonical' ), 2 );
+		// The English name of the site inside English pages (theme, Yoast SEO and WordPress all read the blogname option).
+		add_filter( 'pre_option_blogname', array( __CLASS__, 'site_name' ) );
 		// Yoast SEO. The filters are harmless when it is not active.
 		add_filter( 'wpseo_dynamic_permalinks_enabled', array( __CLASS__, 'dynamic_permalinks' ) );
 		add_filter( 'wpseo_canonical', array( __CLASS__, 'canonical' ), 10, 2 );
 		add_filter( 'wpseo_opengraph_url', array( __CLASS__, 'canonical' ), 10, 2 );
 		add_filter( 'wpseo_title', array( __CLASS__, 'title' ) );
+		add_filter( 'wpseo_metadesc', array( __CLASS__, 'description' ) );
+		add_filter( 'wpseo_opengraph_desc', array( __CLASS__, 'description' ) );
+		add_filter( 'wpseo_twitter_description', array( __CLASS__, 'description' ) );
 		add_filter( 'wpseo_breadcrumb_links', array( __CLASS__, 'breadcrumbs' ) );
 		add_filter( 'wpseo_exclude_from_sitemap_by_post_ids', array( __CLASS__, 'exclude_posts' ) );
 		add_filter( 'wpseo_sitemap_entry', array( __CLASS__, 'sitemap_entry' ), 10, 3 );
@@ -211,6 +218,59 @@ final class NH_VIEN_Seo {
 			return __( 'Latest articles', 'nguyen-ha-vi-en' ) . ' - ' . get_bloginfo( 'name' );
 		}
 		return $title;
+	}
+
+	/**
+	 * Inside English pages the site is called by the English name set in Tools > VI/EN Links, when there is one: the
+	 * <title> suffix and og:site_name of Yoast SEO, the WebSite of the structured data, and the name the theme prints.
+	 * Anywhere else (Vietnamese pages, the administration, the REST API) the stored name is read as always.
+	 *
+	 * @param mixed $value What get_option( 'blogname' ) is about to do (false: read the stored value).
+	 * @return mixed
+	 */
+	public static function site_name( $value ) {
+		if ( ! NH_VIEN_Routes::live() || ! NH_VIEN_Context::is_english() ) {
+			return $value;
+		}
+		$english = NH_VIEN_Settings::site_name_en();
+		return '' === $english ? $value : $english;
+	}
+
+	/**
+	 * The description of an English page or post for which Yoast SEO has none: its excerpt, as the meta description,
+	 * the Open Graph description and the Twitter description. Yoast SEO never writes a description by itself, and every
+	 * English page and post carries its summary in the excerpt.
+	 *
+	 * @param mixed $description The description Yoast SEO built, '' when the editor typed none.
+	 * @return mixed
+	 */
+	public static function description( $description ) {
+		if ( ( is_string( $description ) && '' !== trim( $description ) ) || ! NH_VIEN_Routes::live() || ! NH_VIEN_Context::is_english() || ! is_singular() ) {
+			return $description;
+		}
+		$post = get_queried_object();
+		if ( ! $post instanceof WP_Post ) {
+			return $description;
+		}
+		$summary = self::summary( $post );
+		return '' === $summary ? $description : $summary;
+	}
+
+	/**
+	 * The excerpt of a post as one line of at most SUMMARY_LENGTH characters, cut at a word.
+	 *
+	 * @param WP_Post $post The post.
+	 * @return string
+	 */
+	public static function summary( WP_Post $post ) {
+		$text = trim( (string) preg_replace( '/\s+/u', ' ', wp_strip_all_tags( strip_shortcodes( (string) $post->post_excerpt ) ) ) );
+		if ( mb_strlen( $text ) <= self::SUMMARY_LENGTH ) {
+			return $text;
+		}
+		if ( preg_match( '/^(.{1,' . self::SUMMARY_LENGTH . '})\s/su', $text, $match ) ) {
+			return rtrim( $match[1], " \t,;:" ) . '…';
+		}
+		return rtrim( mb_substr( $text, 0, self::SUMMARY_LENGTH ), " \t,;:" ) . '…';
 	}
 
 	/**

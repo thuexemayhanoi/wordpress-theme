@@ -8,7 +8,7 @@ if ( 'cli' !== PHP_SAPI ) {
 
 define( 'ABSPATH', __DIR__ . '/../../../../' );
 define( 'OBJECT', 'OBJECT' );
-define( 'NH_VIEN_VERSION', '0.5.1' );
+define( 'NH_VIEN_VERSION', '0.5.2' );
 define( 'NH_VIEN_PLUGIN_FILE', dirname( __DIR__ ) . '/nguyen-ha-vi-en.php' );
 
 $GLOBALS['env']        = 'production';
@@ -108,6 +108,7 @@ function get_current_user_id() { return 7; }
 function get_post_types() { return array(); }
 function get_taxonomies() { return array(); }
 function __( $text, $domain = null ) { return $text; }
+function sanitize_text_field( $text ) { return trim( strip_tags( $text ) ); }
 function wp_remote_get( $url, $args = array() ) {
 	$GLOBALS['requests'][] = array( $url, $args );
 	return array_shift( $GLOBALS['responses'] );
@@ -177,7 +178,7 @@ must( in_array( array( 'nh_vien_pairs_changed', 0, 0 ), $GLOBALS['fired'], true 
 $change = NH_VIEN_Settings::last_change();
 must( 'enable' === $change['action'] && null === $change['previous']['setting'] && false === $change['previous']['rules_stored'] && 7 === $change['user'] && $change['at'] > 0, 'The previous state must be remembered' );
 $status = NH_VIEN_Settings::status();
-must( true === $status['enabled'] && true === $status['live'] && 5 === $status['home_page'] && 'production' === $status['environment'] && '0.5.1' === $status['version'] && is_array( $status['preflight'] ), 'The status must describe the switched-on site' );
+must( true === $status['enabled'] && true === $status['live'] && 5 === $status['home_page'] && 'production' === $status['environment'] && '0.5.2' === $status['version'] && is_array( $status['preflight'] ), 'The status must describe the switched-on site' );
 
 // Switching on again changes nothing and does not fail.
 $GLOBALS['responses'][] = answer( 200 );
@@ -261,5 +262,18 @@ must( error_is( $result, 'nh_vien_rewrite_failed' ) && '0' === get_option( NH_VI
 must( array() === $GLOBALS['requests'], 'No smoke test runs when the rules were not stored' );
 $GLOBALS['flush_fails'] = false;
 
+// ---- The English site name: cleaned, autoloaded, in the status, removable, administrators only.
+fresh();
+$result = NH_VIEN_Settings::set_site_name( ' <i>Nguyen Ha</i> Motorbike Rental ' );
+must( array( 'site_name_en' => 'Nguyen Ha Motorbike Rental' ) === $result && array( array( NH_VIEN_Settings::SITE_NAME_OPTION, 'Nguyen Ha Motorbike Rental', true ) ) === $GLOBALS['writes'], 'The English site name must be saved clean and autoloaded' );
+must( 'Nguyen Ha Motorbike Rental' === NH_VIEN_Settings::status()['site_name_en'], 'The status must report the English site name' );
+must( in_array( array( 'nh_vien_pairs_changed', 0, 0 ), $GLOBALS['fired'], true ), 'The caches must be told about the name' );
+fresh();
+NH_VIEN_Settings::set_site_name( '' );
+must( ! array_key_exists( NH_VIEN_Settings::SITE_NAME_OPTION, $GLOBALS['options'] ) && '' === NH_VIEN_Settings::status()['site_name_en'], 'An empty name must remove the setting' );
+$GLOBALS['can_manage'] = false;
+must( error_is( NH_VIEN_Settings::set_site_name( 'X' ), 'nh_vien_forbidden' ), 'The name needs an administrator' );
+$GLOBALS['can_manage'] = true;
+
 // ---- The emergency constant cannot be tested here (constants are final); see rest.php.
-echo "PASS: capability, confirmation, preflight refusal, switch on with smoke test, idempotence, switch off, undo, smoke failures and rollback, inconclusive answers, rewrite failure.\n";
+echo "PASS: capability, confirmation, preflight refusal, switch on with smoke test, idempotence, switch off, undo, smoke failures and rollback, inconclusive answers, rewrite failure, English site name.\n";

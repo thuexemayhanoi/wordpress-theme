@@ -2,6 +2,12 @@
 
 Định dạng theo [Keep a Changelog](https://keepachangelog.com/vi/1.1.0/); phiên bản theo [SemVer](https://semver.org/lang/vi/). Mỗi mục dưới đây có commit và kiểm thử tương ứng trong lịch sử của nhánh `feature/premium-seo-theme`.
 
+## [Chưa phát hành] — plugin `nguyen-ha-vi-en` 0.5.2: tên site tiếng Anh và mô tả meta cho trang tiếng Anh (20/10/2026)
+
+- Ô *English site name* ở *Công cụ → VI/EN Links* (và `POST /wp-json/nh-vien/v1/settings`): bên trong các trang `/en/`, hậu tố `<title>`, `og:site_name`, `WebSite` trong dữ liệu có cấu trúc và tên site theme in ra dùng tên tiếng Anh; trang tiếng Việt, admin và REST giữ nguyên tên đã lưu. Để trống thì giữ tên tiếng Việt ở mọi nơi.
+- Trang/bài tiếng Anh chưa có mô tả trong Yoast SEO lấy excerpt làm meta description, mô tả Open Graph và Twitter (một dòng, tối đa 155 ký tự, cắt theo từ).
+- Kiểm thử offline mở rộng `tests/seo.php`, `tests/settings.php`, `tests/rest.php`. Theme không đổi.
+
 ## [Chưa phát hành] — plugin `nguyen-ha-vi-en` 0.5.1: công tắc trong WordPress Admin (20/10/2026)
 
 - Công tắc bật/tắt phần tiếng Anh chuyển vào *Công cụ → VI/EN Links* (quản trị viên, nonce), lưu bằng Options API (`nh_vien_routes_enabled_v1`, autoload): không cần `NH_VIEN_ENABLE_EN_ROUTES`/`NH_VIEN_ALLOW_PRODUCTION` trong `wp-config.php` nữa. Cài đặt đã lưu thắng hằng số; hằng số của 0.4–0.5 vẫn hoạt động khi chưa lưu; `NH_VIEN_ENABLE_EN_ROUTES === false` là công tắc khẩn cấp.
