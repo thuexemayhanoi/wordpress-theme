@@ -814,7 +814,9 @@ jobs:
         if: ${{ failure() }}
         run: |
           curl -fsS "$SITE_URL/en/motorbike-rental-in-hanoi/" | sed -n '1,/<\/head>/p' | grep -iE '<title|canonical|hreflang|<meta (name|property)=.(description|robots|og:)|ld\+json|<html' | cut -c1-300 || true
-          cat "$WP_DIR/wp-content/debug.log" "$WP_DIR/wp-content/php-error.log" "$RUNNER_TEMP/serve.log" 2>/dev/null | grep -vE 'Accepted|Closing|Failed to poll|\[200\]' | tail -60 || true
+          # Errors and the lines that name the plugin; the deprecations of an old WordPress on a new PHP are left out.
+          cat "$WP_DIR/wp-content/debug.log" "$WP_DIR/wp-content/php-error.log" 2>/dev/null | grep -E 'Fatal|Parse error|Uncaught|nguyen-ha-vi-en|NH_VIEN' | tail -40 || true
+          grep -vE 'Accepted|Closing|Failed to poll|\[200\]|\[30[12]\]|\[404\]' "$RUNNER_TEMP/serve.log" 2>/dev/null | tail -20 || true
 
   release:
     name: QA report and release artifact
