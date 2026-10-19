@@ -622,6 +622,13 @@ if ( 'yoast' === $seo ) {
 	$yoast_crumb = array_map( 'path_of', attrs( $all_head, "//main//nav[contains(@class,'breadcrumb')]//a | //nav[contains(@aria-label,'readcrumb')]//a", 'href' ) );
 	ok( 'the visible breadcrumb of an English post follows the structured data', ! $yoast_crumb || ( '/en/' === $yoast_crumb[0] && ! array_filter( $yoast_crumb, function ( $p ) { return 0 !== strpos( $p, '/en/' ); } ) ), implode( ',', $yoast_crumb ) );
 
+	// The English pages are real, indexable pages for Yoast SEO too: nothing in them may be noindex.
+	foreach ( array( '/en/', '/en/page/2/', '/en/category/travel-tips/', '/en/motorbike-rental-in-hanoi/' ) as $url ) {
+		$robots = attrs( xp( page( $url )['body'] ), "//head/meta[@name='robots']", 'content' );
+		ok( "$url is indexable (one robots meta from Yoast SEO, no noindex)", 1 === count( $robots ) && false === strpos( $robots[0], 'noindex' ), implode( ' | ', $robots ) );
+	}
+	$home_title = text_of( xp( page( '/en/' )['body'] ), '//head/title' );
+	ok( 'the English home has the title of the list, with the name of the site', false !== strpos( $home_title, 'Latest articles' ) && false !== strpos( $home_title, 'Nguyen Ha Test Blog' ), $home_title );
 	$index = page( '/sitemap_index.xml' );
 	ok( '/sitemap_index.xml is served by Yoast SEO', 200 === $index['status'] && false !== strpos( $index['body'], '<sitemapindex' ), 'status ' . $index['status'] );
 	preg_match_all( '#<loc>([^<]+)</loc>#', $index['body'], $m );
