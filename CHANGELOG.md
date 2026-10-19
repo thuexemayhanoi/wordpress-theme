@@ -8,6 +8,11 @@
 - Nút nổi "Hỏi nhanh" của Local Site Assistant Lite được thu gọn còn 44 × 44 px và đưa sát mép trái trên màn hình điện thoại để giảm che nội dung. Plugin/chatbot giữ nguyên.
 - Không chỉnh sửa menu WordPress hoặc dữ liệu SEO từ theme. Liên kết "Trang chủ" của menu #26 đang được WordPress quản lý và phải cập nhật tại nguồn.
 
+## [Chưa phát hành] — plugin `nguyen-ha-vi-en` 0.4.0 và hai dòng trong theme (nhánh `feature/vi-en-complete-20261019`)
+
+- Plugin mới `plugins/nguyen-ha-vi-en` (ZIP riêng): phần tiếng Anh dưới `/en/` cho blog, bài ghép cặp bằng tay, mỗi danh sách một ngôn ngữ, bộ chuyển ngôn ngữ, hreflang, canonical và sơ đồ trang tương thích Yoast SEO. **Tắt cho đến khi chủ sở hữu bật công tắc**; không sửa bài tiếng Việt. Xem [docs/VI-EN-PLUGIN.md](docs/VI-EN-PLUGIN.md).
+- Theme: `header.php` gọi thêm `do_action( 'nh_editorial_after_skip_link' )` ngay sau liên kết "Skip to content", và `inc/setup.php` khai báo `add_theme_support( 'nguyen-ha-vi-en-switcher' )`, để bộ chuyển ngôn ngữ của plugin nằm **sau** liên kết bỏ qua. Không có plugin thì không in gì và không đổi HTML nào.
+
 ## [Chưa phát hành] — theme 2.0.0 và plugin 1.0.0 (nhánh `feature/premium-seo-theme`)
 
 Đây là bản viết lại hoàn toàn so với theme 1.0.0 trên `main`. Tên thư mục, tên theme và text domain giữ nguyên (`nguyen-ha-editorial`). Chưa kích hoạt trên website thật.

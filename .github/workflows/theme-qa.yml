@@ -112,6 +112,16 @@ jobs:
             done
             exit $status'
 
+      # The offline tests need nothing but PHP, so the oldest and the newest supported versions both run them.
+      - name: Run the VI-EN plugin offline tests with the official PHP ${{ matrix.php }} image
+        run: |
+          docker run --rm -v "$PWD":/work -w /work php:${{ matrix.php }}-cli sh -c '
+            status=0
+            for test in plugins/nguyen-ha-vi-en/tests/*.php; do
+              php "$test" || status=1
+            done
+            exit $status'
+
   phpunit:
     name: PHPUnit (WordPress ${{ matrix.wp }})
     runs-on: ubuntu-latest
@@ -612,12 +622,208 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
 
+  vi-en-site:
+    name: VI-EN plugin on a real site (${{ matrix.theme }} theme, ${{ matrix.seo }}, WordPress ${{ matrix.wp || '7.1.3' }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        # The plugin must work with the Nguyen Ha Editorial theme and with any other theme, with Yoast SEO and without
+        # an SEO plugin. "default" is Twenty Twenty-Five (a block theme, nothing like the editorial theme), and also
+        # leaves the companion plugin out, which shows that the plugin does not depend on this repository's theme or plugin.
+        include:
+          - theme: editorial
+            seo: yoast
+          - theme: editorial
+            seo: none
+          - theme: default
+            seo: none
+          # The oldest WordPress the plugin declares (Requires at least: 6.3).
+          - theme: editorial
+            seo: none
+            wp: '6.3.5'
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: wp_vien
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=12
+    env:
+      SITE_URL: http://127.0.0.1:8080
+      SITE_TESTS: plugins/nguyen-ha-vi-en/tests/site
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install the PHP extensions WordPress needs
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y --no-install-recommends php-mysql php-gd php-xml php-mbstring php-curl php-intl php-zip
+          php -m | grep -E '^(mysqli|gd|dom|mbstring|libxml|curl|intl)$'
+
+      - name: Install the Node tooling and Chromium (the browser tests of the switcher)
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Download WP-CLI and WordPress ${{ matrix.wp || '7.1.3' }}
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/wp-cli.phar" "$WP_CLI_PHAR_URL"
+          php "$RUNNER_TEMP/wp-cli.phar" --allow-root core download --path="$RUNNER_TEMP/wp" --version=${{ matrix.wp || '7.1.3' }}
+          echo "WP_DIR=$RUNNER_TEMP/wp" >> "$GITHUB_ENV"
+          echo "NH_VIEN_FIXTURE=$RUNNER_TEMP/nh-vien-fixture.json" >> "$GITHUB_ENV"
+
+      - name: Provision the site (Vietnamese site language, permalinks of the live site)
+        env:
+          WP_CLI: php ${{ runner.temp }}/wp-cli.phar
+          DB_USER: root
+          DB_PASS: root
+          PERMALINKS: /%postname%/
+          WP_LOCALE: vi
+          WITH_PLUGIN: ${{ matrix.theme == 'editorial' && '1' || '0' }}
+        run: bash tests/bin/setup-site.sh "$WP_DIR" "$SITE_URL" wp_vien
+
+      - name: Install and activate Yoast SEO
+        if: ${{ matrix.seo == 'yoast' }}
+        run: |
+          php "$RUNNER_TEMP/wp-cli.phar" --allow-root --path="$WP_DIR" plugin install wordpress-seo --activate
+          php "$RUNNER_TEMP/wp-cli.phar" --allow-root --path="$WP_DIR" plugin list --fields=name,status,version
+
+      - name: Use a default theme of the WordPress download (a block theme)
+        if: ${{ matrix.theme == 'default' }}
+        run: |
+          wp() { php "$RUNNER_TEMP/wp-cli.phar" --allow-root --path="$WP_DIR" "$@"; }
+          theme=twentytwentyfive
+          wp theme is-installed "$theme" || { echo "$theme is not part of the WordPress download" >&2; exit 1; }
+          wp theme activate "$theme"
+          wp theme list --fields=name,status,version
+
+      - name: Install the VI-EN plugin from its zip (the gate stays closed)
+        run: |
+          wp() { php "$RUNNER_TEMP/wp-cli.phar" --allow-root --path="$WP_DIR" "$@"; }
+          # The package the release ships (tools/package.sh), not the source folder: it holds no test script and no fixture.
+          bash tools/package.sh
+          unzip -q dist/nguyen-ha-vi-en-*.zip -d "$WP_DIR/wp-content/plugins"
+          test -f "$WP_DIR/wp-content/plugins/nguyen-ha-vi-en/nguyen-ha-vi-en.php"
+          test ! -e "$WP_DIR/wp-content/plugins/nguyen-ha-vi-en/tests"
+          wp plugin activate nguyen-ha-vi-en
+          wp plugin list --fields=name,status,version
+
+      - name: Seed the bilingual fixture (the content first, no pairs yet)
+        run: |
+          NH_VIEN_SEED_STEP=content php "$RUNNER_TEMP/wp-cli.phar" --allow-root --path="$WP_DIR" eval-file "$SITE_TESTS/seed.php"
+          cat "$NH_VIEN_FIXTURE"; echo
+
+      - name: Serve the site
+        run: |
+          nohup bash tests/bin/serve.sh "$WP_DIR" 8080 > "$RUNNER_TEMP/serve.log" 2>&1 &
+          curl -fsS --retry 30 --retry-delay 1 --retry-connrefused -o /dev/null "$SITE_URL/"
+
+      - name: The Vietnamese pages with the gate closed
+        run: |
+          # One pass to settle caches and the SEO plugin's first-run work, then the pass that is kept.
+          php "$SITE_TESTS/run.php" --base="$SITE_URL" --suite=snapshot --dir="$RUNNER_TEMP/warm"
+          php "$SITE_TESTS/run.php" --base="$SITE_URL" --suite=snapshot --dir="$RUNNER_TEMP/snap-closed"
+
+      - name: Open the gate and store the rules (still no pairs), the Vietnamese pages must not change
+        run: |
+          wp() { php "$RUNNER_TEMP/wp-cli.phar" --allow-root --path="$WP_DIR" "$@"; }
+          wp config set NH_VIEN_ENABLE_EN_ROUTES true --raw
+          wp rewrite flush
+          php "$SITE_TESTS/run.php" --base="$SITE_URL" --suite=snapshot --dir="$RUNNER_TEMP/snap-open"
+          php "$SITE_TESTS/run.php" --suite=compare --dir="$RUNNER_TEMP/snap-closed" --other="$RUNNER_TEMP/snap-open"
+
+      - name: Pair the posts, the way an administrator does
+        run: NH_VIEN_SEED_STEP=pairs php "$RUNNER_TEMP/wp-cli.phar" --allow-root --path="$WP_DIR" eval-file "$SITE_TESTS/seed.php"
+
+      - name: Site tests (routes, redirects, languages, lists, switcher, SEO, security, administration)
+        run: php "$SITE_TESTS/run.php" --base="$SITE_URL" --fixture="$NH_VIEN_FIXTURE" --suite=main --seo=${{ matrix.seo }} --theme=${{ matrix.theme }}
+
+      - name: Language switcher in a browser (phone, tablet, desktop; keyboard; axe)
+        env:
+          NH_BASE_URL: ${{ env.SITE_URL }}
+          NH_E2E_THEME: ${{ matrix.theme == 'editorial' && 'editorial' || 'other' }}
+          # The whole page is checked on the current WordPress; on the oldest one only the switcher is.
+          NH_E2E_AXE_SCOPED: ${{ matrix.wp && '1' || '' }}
+          NH_E2E_WORKERS: '2'
+        run: npx playwright test -c plugins/nguyen-ha-vi-en/tests/e2e/playwright.config.mjs
+
+      - name: A theme that never calls wp_body_open() still gets one switcher, in the post
+        if: ${{ matrix.theme == 'editorial' && matrix.seo == 'none' }}
+        run: |
+          wp() { php "$RUNNER_TEMP/wp-cli.phar" --allow-root --path="$WP_DIR" "$@"; }
+          ln -sfn "$GITHUB_WORKSPACE/$SITE_TESTS/legacy-theme" "$WP_DIR/wp-content/themes/nh-vien-legacy"
+          wp theme activate nh-vien-legacy
+          php "$SITE_TESTS/run.php" --base="$SITE_URL" --fixture="$NH_VIEN_FIXTURE" --suite=legacy
+          wp theme activate nguyen-ha-editorial
+
+      - name: The English home as a real page
+        run: |
+          wp() { php "$RUNNER_TEMP/wp-cli.phar" --allow-root --path="$WP_DIR" "$@"; }
+          page=$(php -r 'echo json_decode( file_get_contents( getenv( "NH_VIEN_FIXTURE" ) ), true )["en_page"];')
+          wp post update "$page" --post_status=publish
+          wp rewrite flush
+          php "$SITE_TESTS/run.php" --base="$SITE_URL" --fixture="$NH_VIEN_FIXTURE" --suite=homepage --seo=${{ matrix.seo }} --theme=${{ matrix.theme }}
+
+      - name: Close the gate again, the pairs and the stored rules stay and nothing may change on the site
+        run: |
+          wp() { php "$RUNNER_TEMP/wp-cli.phar" --allow-root --path="$WP_DIR" "$@"; }
+          wp config delete NH_VIEN_ENABLE_EN_ROUTES
+          php "$SITE_TESTS/run.php" --base="$SITE_URL" --fixture="$NH_VIEN_FIXTURE" --suite=inert --seo=${{ matrix.seo }} --theme=${{ matrix.theme }}
+
+      - name: Deactivate the plugin, nothing of the English side may answer and the Vietnamese pages must be as before
+        run: |
+          wp() { php "$RUNNER_TEMP/wp-cli.phar" --allow-root --path="$WP_DIR" "$@"; }
+          en_rules() { wp eval 'echo count( array_filter( array_keys( (array) get_option( "rewrite_rules" ) ), function ( $k ) { return 0 === strpos( $k, "^en/" ); } ) );'; }
+          # The English home page of the previous step goes back to a draft: this step compares with the first snapshot.
+          page=$(php -r 'echo json_decode( file_get_contents( getenv( "NH_VIEN_FIXTURE" ) ), true )["en_page"];')
+          wp post update "$page" --post_status=draft
+          echo "English rules stored before the deactivation: $(en_rules)"
+          test "$(en_rules)" != "0"
+          wp plugin deactivate nguyen-ha-vi-en
+          echo "English rules stored after the deactivation: $(en_rules)"
+          test "$(en_rules)" = "0"
+          php "$SITE_TESTS/run.php" --base="$SITE_URL" --fixture="$NH_VIEN_FIXTURE" --suite=deactivated
+          php "$SITE_TESTS/run.php" --base="$SITE_URL" --suite=snapshot --dir="$RUNNER_TEMP/snap-deactivated"
+          php "$SITE_TESTS/run.php" --suite=compare --dir="$RUNNER_TEMP/snap-closed" --other="$RUNNER_TEMP/snap-deactivated"
+
+      - name: Upload the traces and screenshots of the browser tests that failed
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: vi-en-switcher-report-${{ matrix.theme }}-${{ matrix.seo }}-wp${{ matrix.wp || 'latest' }}
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: What the site printed when something failed
+        if: ${{ failure() }}
+        run: |
+          curl -fsS "$SITE_URL/en/motorbike-rental-in-hanoi/" | sed -n '1,/<\/head>/p' | grep -iE '<title|canonical|hreflang|<meta (name|property)=.(description|robots|og:)|ld\+json|<html' | cut -c1-300 || true
+          # Errors and the lines that name the plugin; the deprecations of an old WordPress on a new PHP are left out.
+          cat "$WP_DIR/wp-content/debug.log" "$WP_DIR/wp-content/php-error.log" 2>/dev/null | grep -E 'Fatal|Parse error|Uncaught|nguyen-ha-vi-en|NH_VIEN' | tail -40 || true
+          grep -vE 'Accepted|Closing|Failed to poll|\[200\]|\[30[12]\]|\[404\]' "$RUNNER_TEMP/serve.log" 2>/dev/null | tail -20 || true
+
   release:
     name: QA report and release artifact
     runs-on: ubuntu-latest
     timeout-minutes: 10
     # Every job a release depends on. A job that failed, was cancelled or did not run blocks the artifact.
-    needs: [static, php-syntax, phpunit, php74, min-wp, e2e, seo-plugins]
+    needs: [static, php-syntax, phpunit, php74, min-wp, e2e, seo-plugins, vi-en-site]
     if: ${{ always() }}
     steps:
       - name: Check out the repository
@@ -645,7 +851,7 @@ jobs:
         run: |
           printf '%s' "$NEEDS" > needs.json
           set +e
-          python3 tools/qa-report.py --needs needs.json --required static,php-syntax,phpunit,php74,min-wp,e2e,seo-plugins \
+          python3 tools/qa-report.py --needs needs.json --required static,php-syntax,phpunit,php74,min-wp,e2e,seo-plugins,vi-en-site \
             --junit-dir qa-junit --manifest dist/manifest.json --out qa
           status=$?
           set -e

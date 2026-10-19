@@ -49,6 +49,12 @@ function nh_editorial_setup() {
 		add_theme_support( 'yoast-seo-breadcrumbs' );
 	}
 
+	/*
+	 * Tells the Vietnamese-English plugin that this theme fires nh_editorial_after_skip_link (header.php), so that the
+	 * language switcher comes after the skip link and not before it. Nothing prints without the plugin.
+	 */
+	add_theme_support( 'nguyen-ha-vi-en-switcher' );
+
 	// Tells the companion plugin which editorial blocks this theme renders itself.
 	add_theme_support(
 		'nguyen-ha-companion',

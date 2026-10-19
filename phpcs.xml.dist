@@ -9,6 +9,8 @@
 	<exclude-pattern>/assets/*</exclude-pattern>
 	<exclude-pattern>/.git/*</exclude-pattern>
 	<exclude-pattern>/.claude/*</exclude-pattern>
+	<!-- Standalone CLI stubs are run by PHP, not scanned as runtime WordPress classes. -->
+	<exclude-pattern>/plugins/nguyen-ha-vi-en/tests/*</exclude-pattern>
 
 	<!-- How to scan. -->
 	<arg value="sp"/>
@@ -32,6 +34,7 @@
 			<property name="text_domain" type="array">
 				<element value="nguyen-ha-editorial"/>
 				<element value="nguyen-ha-seo-companion"/>
+				<element value="nguyen-ha-vi-en"/>
 			</property>
 		</properties>
 	</rule>
@@ -42,6 +45,7 @@
 			<property name="prefixes" type="array">
 				<element value="nh_editorial"/>
 				<element value="nh_seo"/>
+				<element value="nh_vien"/>
 				<element value="nguyen_ha"/>
 			</property>
 		</properties>

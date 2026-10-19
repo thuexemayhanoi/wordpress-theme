@@ -6,6 +6,7 @@ Theme WordPress cổ điển (classic) cho blog biên tập kiến thức du l�
 
 - Theme: `nguyen-ha-editorial` (phiên bản trong `style.css`) · yêu cầu WordPress ≥ 6.3, PHP ≥ 7.4.
 - Plugin: `plugins/nguyen-ha-seo-companion` (ZIP riêng) · cùng yêu cầu.
+- Plugin song ngữ (tùy chọn): `plugins/nguyen-ha-vi-en` (ZIP riêng, không phụ thuộc theme hay plugin đồng hành) · WordPress ≥ 6.3, PHP ≥ 7.4 · phần tiếng Anh dưới `/en/` **tắt cho đến khi chủ sở hữu bật công tắc** ([docs/VI-EN-PLUGIN.md](docs/VI-EN-PLUGIN.md)).
 - Giấy phép: GPL-2.0-or-later ([LICENSE](LICENSE)).
 
 ## Nguyên tắc: theme chỉ trình bày, SEO thuộc về plugin SEO
@@ -49,6 +50,7 @@ Các cam kết dưới đây đều có test tự động (xem [docs/TESTING.md]
 | Kiểm tra trước khi kích hoạt (cấu hình bắt buộc, đối chiếu SEO, giao diện, theo dõi) | [docs/STAGING-CHECKLIST.md](docs/STAGING-CHECKLIST.md) |
 | Quay về theme Glass hiện tại (từ wp-admin, từ CSDL, về plugin đồng hành) | [docs/ROLLBACK.md](docs/ROLLBACK.md) |
 | Plugin đồng hành: cài, cấu hình, chế độ schema, chỉ mục tìm kiếm, WP-CLI | [docs/COMPANION-PLUGIN.md](docs/COMPANION-PLUGIN.md) |
+| Plugin song ngữ VI–EN: cách hoạt động, công tắc, danh sách kiểm tra staging, điều kiện bật production, quay lại | [docs/VI-EN-PLUGIN.md](docs/VI-EN-PLUGIN.md) |
 
 **Quan trọng:**
 
@@ -65,14 +67,14 @@ npm run build                       # sinh assets/css|js từ assets/src (đã c
 npm run build:check                 # bản build khớp nguồn
 WP_CORE_DIR=/đường/dẫn/wordpress vendor/bin/phpunit --testsuite theme
 WP_CORE_DIR=/đường/dẫn/wordpress vendor/bin/phpunit --testsuite plugin
-bash tools/package.sh && bash tools/verify-package.sh dist     # ZIP theme + ZIP plugin + manifest + SHA256SUMS
+bash tools/package.sh && bash tools/verify-package.sh dist     # ZIP theme + ZIP hai plugin + manifest + SHA256SUMS
 ```
 
 Báo cáo sẵn sàng chỉ-đọc cho staging/production, kèm dấu vân tay nội dung để so sánh trước và sau khi kích hoạt: `wp eval-file tools/staging-preflight.php content` (xem [docs/STAGING-CHECKLIST.md](docs/STAGING-CHECKLIST.md)).
 
 Dựng site thử, nạp dữ liệu mẫu và chạy kiểm tra HTTP: `tests/bin/setup-site.sh`, `tests/bin/seed-fixtures.php`, `tests/bin/serve.sh`, `tests/bin/smoke.py` (xem [docs/TESTING.md](docs/TESTING.md)). Dữ liệu mẫu là dữ liệu giả trên tên miền `example.org`.
 
-GitHub Actions (`.github/workflows/theme-qa.yml`) chạy trên push vào `feature/**` và `main` và trên mọi pull request. Artifact phát hành (ZIP theme, ZIP plugin, manifest, báo cáo QA) chỉ được tạo khi mọi cổng bắt buộc đạt; workflow không tạo tag, không tạo GitHub Release, không đẩy nhánh và không liên hệ website production.
+GitHub Actions (`.github/workflows/theme-qa.yml`) chạy trên push vào `feature/**` và `main` và trên mọi pull request. Artifact phát hành (ZIP theme, ZIP hai plugin, manifest, báo cáo QA) chỉ được tạo khi mọi cổng bắt buộc đạt; workflow không tạo tag, không tạo GitHub Release, không đẩy nhánh và không liên hệ website production.
 
 ## Kiểm thử và giới hạn đã biết
 

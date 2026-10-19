@@ -89,6 +89,11 @@ wp option update timezone_string "Asia/Ho_Chi_Minh"
 wp option update blog_public 1
 wp option update default_comment_status open
 wp option update WPLANG "$WP_LOCALE" || true
+if [ "$WP_LOCALE" != "en_US" ]; then
+	# WordPress only accepts the option for a language whose pack is installed; the constant is always accepted, and it is
+	# enough for the language attribute and the locale (the theme ships its own translation).
+	wp config set WPLANG "$WP_LOCALE"
+fi
 wp rewrite structure "$PERMALINKS"
 
 echo "==> activate"

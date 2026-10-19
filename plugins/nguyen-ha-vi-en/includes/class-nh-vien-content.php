@@ -1,0 +1,88 @@
+<?php
+/**
+ * English content helpers: the menu of English pages and the [nh_vien_posts] shortcode for an English home page.
+ *
+ * @package Nguyen_Ha_VI_EN
+ */
+
+defined( 'ABSPATH' ) || exit;
+
+/**
+ * Menus and lists for the English side.
+ */
+final class NH_VIEN_Content {
+	/** Register the hooks when the English side is switched on. */
+	public static function boot() {
+		if ( ! NH_VIEN_Routes::enabled() ) {
+			return;
+		}
+		add_filter( 'wp_nav_menu_args', array( __CLASS__, 'nav_menu_args' ) );
+		add_shortcode( 'nh_vien_posts', array( __CLASS__, 'posts_shortcode' ) );
+	}
+
+	/**
+	 * Inside English pages a theme location shows the English menu of the menu assigned to it, when one exists: the
+	 * menu with the same slug and the suffix -en (menu "primary" has the English menu "primary-en"). Locations
+	 * without such a menu keep their menu.
+	 *
+	 * @param array $args The arguments of wp_nav_menu().
+	 * @return array
+	 */
+	public static function nav_menu_args( $args ) {
+		if ( ! is_array( $args ) || empty( $args['theme_location'] ) || ! NH_VIEN_Context::is_english() || ! NH_VIEN_Routes::live() ) {
+			return $args;
+		}
+		$locations = get_nav_menu_locations();
+		$location  = (string) $args['theme_location'];
+		$menu      = ! empty( $locations[ $location ] ) ? wp_get_nav_menu_object( $locations[ $location ] ) : false;
+		$english   = $menu ? wp_get_nav_menu_object( $menu->slug . '-en' ) : false;
+		if ( $english ) {
+			$args['menu'] = $english;
+		}
+		return $args;
+	}
+
+	/**
+	 * The latest English posts that may be shown, for an English home page built by hand.
+	 *
+	 * Attributes: count (1 to 50, default 12), category (a category slug).
+	 *
+	 * @param array|string $atts Shortcode attributes.
+	 * @return string Escaped markup, or an empty string when there is nothing to list.
+	 */
+	public static function posts_shortcode( $atts ) {
+		$atts = shortcode_atts(
+			array(
+				'count'    => 12,
+				'category' => '',
+			),
+			$atts,
+			'nh_vien_posts'
+		);
+		$ids  = NH_VIEN_Routes::live() ? NH_VIEN_Links::public_en_ids() : array();
+		if ( ! $ids ) {
+			return '';
+		}
+		$query = array(
+			'post_type'           => 'post',
+			'post_status'         => 'publish',
+			'post__in'            => $ids,
+			'posts_per_page'      => max( 1, min( 50, (int) $atts['count'] ) ),
+			'ignore_sticky_posts' => true,
+			'no_found_rows'       => true,
+			'nh_vien_scope'       => 'off',
+		);
+		if ( '' !== (string) $atts['category'] ) {
+			$query['category_name'] = sanitize_title( (string) $atts['category'] );
+		}
+		$posts = get_posts( $query );
+		if ( ! $posts ) {
+			return '';
+		}
+		$items = '';
+		foreach ( $posts as $post ) {
+			$items .= '<li class="nh-vien-posts__item"><a href="' . esc_url( (string) get_permalink( $post ) ) . '">' . esc_html( get_the_title( $post ) ) . '</a> <time datetime="' . esc_attr( get_the_date( 'c', $post ) ) . '">' . esc_html( get_the_date( '', $post ) ) . '</time></li>';
+		}
+		return '<ul class="nh-vien-posts" lang="en">' . $items . '</ul>';
+	}
+}
