@@ -81,7 +81,10 @@ final class NH_VIEN_Seo {
 				$vi_url       = (string) get_permalink( $pair['vi'] );
 				$en_url       = (string) get_permalink( $pair['en'] );
 				if ( 0 === strpos( (string) $english_page, 'en/' ) && $vi_url && $en_url ) {
-					return array( 'vi' => $vi_url, 'en' => $en_url );
+					return array(
+						'vi' => $vi_url,
+						'en' => $en_url,
+					);
 				}
 			}
 		}

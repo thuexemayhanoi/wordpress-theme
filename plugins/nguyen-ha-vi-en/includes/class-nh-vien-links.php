@@ -12,11 +12,11 @@ defined( 'ABSPATH' ) || exit;
  * Validate and manage one-to-one translation relationships.
  */
 final class NH_VIEN_Links {
-	const OPTION       = 'nh_vien_translation_pairs_v1';
+	const OPTION             = 'nh_vien_translation_pairs_v1';
 	const INDEPENDENT_OPTION = 'nh_vien_independent_en_posts_v1';
-	const EN_TERMS_OPTION   = 'nh_vien_english_categories_v1';
-	const PAGE_OPTION       = 'nh_vien_page_pairs_v1';
-	const NONCE_ACTION = 'nh_vien_manage_links';
+	const EN_TERMS_OPTION    = 'nh_vien_english_categories_v1';
+	const PAGE_OPTION        = 'nh_vien_page_pairs_v1';
+	const NONCE_ACTION       = 'nh_vien_manage_links';
 
 	/**
 	 * What this request has read: the validated pairs and the English posts that may be shown.
@@ -212,10 +212,13 @@ final class NH_VIEN_Links {
 		if ( ! isset( self::$memo['independent'] ) ) {
 			$stored = get_option( self::INDEPENDENT_OPTION, array() );
 			$ids    = is_array( $stored ) ? array_map( 'intval', $stored ) : array();
-			$ids    = array_values( array_unique( array_filter( $ids, static function ( $id ) {
-				return $id > 0;
-			} ) ) );
-			self::$memo['independent'] = array_values( array_diff( $ids, array_keys( self::pairs() ) ) );
+			$valid  = array();
+			foreach ( $ids as $id ) {
+				if ( $id > 0 ) {
+					$valid[ $id ] = $id;
+				}
+			}
+			self::$memo['independent'] = array_values( array_diff( array_values( $valid ), array_keys( self::pairs() ) ) );
 		}
 		return self::$memo['independent'];
 	}
@@ -298,9 +301,13 @@ final class NH_VIEN_Links {
 		if ( ! isset( self::$memo['declared_terms'] ) ) {
 			$stored = get_option( self::EN_TERMS_OPTION, array() );
 			$ids    = is_array( $stored ) ? array_map( 'intval', $stored ) : array();
-			self::$memo['declared_terms'] = array_values( array_unique( array_filter( $ids, static function ( $id ) {
-				return $id > 0;
-			} ) ) );
+			$valid  = array();
+			foreach ( $ids as $id ) {
+				if ( $id > 0 ) {
+					$valid[ $id ] = $id;
+				}
+			}
+			self::$memo['declared_terms'] = array_values( $valid );
 		}
 		return self::$memo['declared_terms'];
 	}
@@ -427,7 +434,10 @@ final class NH_VIEN_Links {
 		}
 		foreach ( $pairs as $vi => $en ) {
 			if ( (int) $page_id === $vi || (int) $page_id === $en ) {
-				return array( 'vi' => $vi, 'en' => $en );
+				return array(
+					'vi' => $vi,
+					'en' => $en,
+				);
 			}
 		}
 		return null;
@@ -511,7 +521,12 @@ final class NH_VIEN_Links {
 		return true;
 	}
 
-	/** Whether a page can participate in an explicit translation link. */
+	/**
+	 * Whether a page can participate in an explicit translation link.
+	 *
+	 * @param int $page_id Page identifier.
+	 * @return bool Whether this is a valid page.
+	 */
 	private static function eligible_page( $page_id ) {
 		$page = get_post( $page_id );
 		return $page instanceof WP_Post && 'page' === $page->post_type &&
