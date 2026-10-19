@@ -338,6 +338,7 @@ final class NH_VIEN_Admin {
 			array( __( 'Rewrite rules stored', 'nguyen-ha-vi-en' ), $status['rules_stored'] ? $yes : $no ),
 			array( __( 'English pages are live', 'nguyen-ha-vi-en' ), $status['live'] ? $yes : $no ),
 			array( __( 'English home', 'nguyen-ha-vi-en' ), $home ),
+			array( __( 'Address /en/ used by a post', 'nguyen-ha-vi-en' ), NH_VIEN_Routes::post_at_en() ? __( 'Yes: the routes cannot be switched on until that post has another slug', 'nguyen-ha-vi-en' ) : $no ),
 			array( __( 'Yoast SEO active', 'nguyen-ha-vi-en' ), $status['yoast'] ? $yes : $no ),
 			array( __( 'Pretty permalinks', 'nguyen-ha-vi-en' ), $status['pretty_permalinks'] ? $yes : $no ),
 			array( __( 'Last switch', 'nguyen-ha-vi-en' ), $last ),
