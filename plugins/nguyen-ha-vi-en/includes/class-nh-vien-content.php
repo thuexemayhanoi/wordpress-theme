@@ -104,6 +104,7 @@ final class NH_VIEN_Content {
 				'url'   => NH_VIEN_Routes::url(),
 			),
 		);
+		$below = NH_VIEN_Routes::pages_below_en();
 		foreach (
 			array(
 				'about'   => 'About',
@@ -111,11 +112,10 @@ final class NH_VIEN_Content {
 				'contact' => 'Contact',
 			) as $slug => $label
 		) {
-			$page = NH_VIEN_Routes::page_at( 'en/' . $slug );
-			if ( $page instanceof WP_Post ) {
+			if ( isset( $below[ $slug ] ) ) {
 				$items[] = array(
 					'label' => $label,
-					'url'   => (string) get_permalink( $page ),
+					'url'   => (string) get_permalink( $below[ $slug ] ),
 				);
 			}
 		}

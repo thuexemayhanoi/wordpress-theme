@@ -39,9 +39,9 @@ final class NH_VIEN_Routes {
 	private static $home_page = false;
 
 	/**
-	 * Memo of the slugs of the published pages directly below /en/ for this request; null while not looked up.
+	 * Memo of the published pages directly below /en/ for this request (slug => page ID); null while not looked up.
 	 *
-	 * @var array<string,true>|null
+	 * @var array<string,int>|null
 	 */
 	private static $below_en = null;
 
@@ -250,9 +250,9 @@ final class NH_VIEN_Routes {
 			$vars['page'] = $wp->query_vars['page'];
 		}
 		// A page that already lives below /en/ keeps its address.
-		$page = self::page_at( 'en/' . $slug );
-		if ( $page instanceof WP_Post ) {
-			$wp->query_vars = $vars + array( 'page_id' => (int) $page->ID );
+		$below = self::pages_below_en();
+		if ( isset( $below[ $slug ] ) ) {
+			$wp->query_vars = $vars + array( 'page_id' => $below[ $slug ] );
 			return;
 		}
 		$id = self::post_id_for_slug( $slug );
@@ -337,10 +337,11 @@ final class NH_VIEN_Routes {
 	}
 
 	/**
-	 * The slugs of the published pages directly below the page /en/: the addresses a page already holds below /en/. The
-	 * answer of one lookup for the whole request, so that checking many English posts costs two queries, not one each.
+	 * The published pages directly below the page /en/: the addresses a page already holds below /en/. The answer of one
+	 * lookup for the whole request, so that checking many English posts costs two queries, not one each. A page below
+	 * /en/ keeps its address, so this is also what request resolution and the fallback menu ask.
 	 *
-	 * @return array<string,true> Slug => true.
+	 * @return array<string,int> Slug => page ID.
 	 */
 	public static function pages_below_en() {
 		if ( null === self::$below_en ) {
@@ -363,7 +364,7 @@ final class NH_VIEN_Routes {
 				);
 				foreach ( $children as $child ) {
 					if ( $child instanceof WP_Post ) {
-						self::$below_en[ $child->post_name ] = true;
+						self::$below_en[ $child->post_name ] = (int) $child->ID;
 					}
 				}
 			}
