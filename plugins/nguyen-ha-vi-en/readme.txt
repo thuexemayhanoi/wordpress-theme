@@ -4,7 +4,7 @@ Tags: multilingual, vietnamese, english, hreflang, seo
 Requires at least: 6.3
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.5.1
+Stable tag: 0.5.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -77,6 +77,7 @@ Everything happens under **Tools > VI/EN Links**, by an administrator with a sec
 
 * Yoast SEO keeps `/sitemap_index.xml`, its post, category and tag sitemaps, titles and descriptions. English posts are listed at their English address and English posts that may not be shown yet are left out. The English home is added to the sitemap of posts. In the sitemaps of categories and tags (when Yoast builds them) every term Yoast lists gets its English archive: a term that only English posts use has its entry moved to the English address (so its sitemap is never empty because of the language, which would make Yoast answer 404 for it), and a term that both languages use keeps its entry and gets the English archive right after it. The plugin adds no sitemap and no sitemap index.
 * The canonical and `og:url` of an English page are the English address. A canonical an editor typed in Yoast SEO for a post is respected. The Yoast breadcrumb on English pages starts at the English home and links to English addresses, so the page and the BreadcrumbList stay the same.
+* Inside English pages the site is called by the English site name set in Tools > VI/EN Links (the `<title>` suffix, `og:site_name`, the WebSite of the structured data and the name the theme prints); Vietnamese pages, the administration and the REST API keep the stored name. An English page or post for which no description was typed in Yoast SEO gets its excerpt (one line, at most 155 characters, cut at a word) as its meta description, Open Graph description and Twitter description.
 * Yoast does not write hreflang for separate posts: this plugin prints it, for pairs and for the two home pages only.
 * The Yoast integration is exercised in the project's CI against Yoast SEO from wordpress.org; Rank Math, All in One SEO, SEOPress and The SEO Framework are detected (the plugin does not print a second canonical beside them) but not tested.
 
@@ -86,6 +87,7 @@ The same actions are available to administrators through the REST API (applicati
 
 * `GET /status`: the state of the English side (switch, its source, environment, stored rules, live, English home, pairs, English categories and posts, preflight, last switch).
 * `POST /routes` with `{"enabled": true, "confirm": true}` or `{"enabled": false}`: the switch, with the preflight, the smoke test and the rollback of the Tools screen; `POST /routes/undo` goes back to the state before the last switch.
+* `POST /settings` with `{"site_name_en": "Nguyen Ha Motorbike Rental"}`: the name of the site inside English pages (an empty name removes it).
 * `POST /categories` with `{"id": 46}` and `DELETE /categories/46`: register or unregister an English category (empty, parent registered first).
 * `POST /posts` with `{"id": N}` and `DELETE /posts/N`: register a draft or pending post as an independent English post before publishing it, or unregister it.
 * `POST /pairs` with `{"vi": N, "en": M}` and `DELETE /pairs/N`; `POST /pages` with `{"vi": N, "en": M}` and `DELETE /pages/N`: pairs of posts and of pages.
@@ -101,7 +103,7 @@ A refusal answers with the error code of the Tools screen and an HTTP status: 40
 * Query variable `nh_vien_scope=off` on a `WP_Query`/`get_posts()` call: a list that must see both languages (a sitemap, an administration tool).
 * Request parameter `nh_vien_lang=vi|en` on the REST search route: the language of the suggestions (the plugin adds it to the route's address inside the pages it prints).
 * Response header `X-NH-VIEN-Lang: en` on every answer of the English side (404 included): for caches, monitors and the smoke test.
-* Options: `nh_vien_routes_enabled_v1` ('1' or '0', the switch; absent on a site that still uses the constants), `nh_vien_last_change_v1` (what the last switch replaced).
+* Options: `nh_vien_routes_enabled_v1` ('1' or '0', the switch; absent on a site that still uses the constants), `nh_vien_last_change_v1` (what the last switch replaced), `nh_vien_site_name_en` (the English site name; absent when none is set).
 * Constants of older versions, honoured while no setting is saved: `NH_VIEN_ENABLE_EN_ROUTES` (true), `NH_VIEN_ALLOW_PRODUCTION` (true, on production). `NH_VIEN_ENABLE_EN_ROUTES` defined as false is the emergency switch and wins over the setting.
 
 == Tests ==
@@ -131,6 +133,10 @@ The CI also installs the plugin from its zip on real WordPress sites (WordPress 
 * The first matching rule wins: a real page at `/en/` or below it takes priority over the plugin's addresses, and a page at `/en/` has no page 2.
 
 == Changelog ==
+
+= 0.5.2 =
+* English site name: a field on Tools > VI/EN Links (and `POST /settings` of the REST API) names the site inside English pages, so that the `<title>` suffix, `og:site_name`, the WebSite of the structured data and the name the theme prints are English there; Vietnamese pages keep the stored name. Empty keeps the Vietnamese name everywhere.
+* An English page or post without a description typed in Yoast SEO gets its excerpt as its meta description, Open Graph description and Twitter description (one line, at most 155 characters, cut at a word).
 
 = 0.5.1 =
 * The switch of the English side moves into WordPress: Tools > VI/EN Links (administrators, nonce) switches the routes on and off, stores the setting with the Options API and needs no wp-config.php line. A saved setting wins over the constants of 0.4 and 0.5, which keep working until the buttons are used; `NH_VIEN_ENABLE_EN_ROUTES` defined as false is the emergency switch.

@@ -8,7 +8,7 @@ if ( 'cli' !== PHP_SAPI ) {
 
 define( 'ABSPATH', __DIR__ . '/../../../../' );
 define( 'OBJECT', 'OBJECT' );
-define( 'NH_VIEN_VERSION', '0.5.1' );
+define( 'NH_VIEN_VERSION', '0.5.2' );
 define( 'NH_VIEN_PLUGIN_FILE', dirname( __DIR__ ) . '/nguyen-ha-vi-en.php' );
 // The emergency constant: the English side stays off whatever the setting says.
 define( 'NH_VIEN_ENABLE_EN_ROUTES', false );
@@ -96,6 +96,7 @@ function user_trailingslashit( $url ) { return rtrim( $url, '/' ) . '/'; }
 function get_post_types() { return array(); }
 function get_taxonomies() { return array(); }
 function __( $text, $domain = null ) { return $text; }
+function sanitize_text_field( $text ) { return trim( strip_tags( $text ) ); }
 function must( $condition, $message ) { if ( ! $condition ) { throw new RuntimeException( $message ); } }
 function error_is( $result, $code ) { return is_wp_error( $result ) && $code === $result->get_error_code(); }
 function status_of( $result ) { return is_wp_error( $result ) ? $result->get_error_data()['status'] : 200; }
@@ -109,7 +110,7 @@ NH_VIEN_Rest::boot();
 must( array( 'rest_api_init' ) === $GLOBALS['hooks'], 'The routes must be registered on rest_api_init' );
 NH_VIEN_Rest::register();
 $expected = array(
-	'GET /status', 'POST /routes', 'POST /routes/undo',
+	'GET /status', 'POST /routes', 'POST /routes/undo', 'POST /settings',
 	'POST /categories', 'DELETE /categories/(?P<id>[1-9][0-9]*)',
 	'POST /posts', 'DELETE /posts/(?P<id>[1-9][0-9]*)',
 	'POST /pairs', 'DELETE /pairs/(?P<vi>[1-9][0-9]*)',
@@ -128,7 +129,8 @@ must( $expected === $registered, 'Unexpected routes: ' . implode( ', ', $registe
 foreach ( $GLOBALS['routes'] as $route => $args ) {
 	if ( isset( $args['args'] ) ) {
 		foreach ( $args['args'] as $name => $arg ) {
-			must( in_array( $arg['type'], array( 'integer', 'boolean' ), true ), "Argument $name of $route must be typed" );
+			must( in_array( $arg['type'], array( 'integer', 'boolean', 'string' ), true ), "Argument $name of $route must be typed" );
+			must( 'string' !== $arg['type'] || 'sanitize_text_field' === $arg['sanitize_callback'], "Text argument $name of $route must be sanitised" );
 		}
 	}
 }
@@ -201,4 +203,11 @@ must( error_is( $result, 'nh_vien_invalid_posts' ) && 400 === status_of( $result
 $result = NH_VIEN_Rest::undo();
 must( error_is( $result, 'nh_vien_nothing_to_undo' ) && 404 === status_of( $result ), 'Nothing to undo must answer 404' );
 
-echo "PASS: route registration, administrator permission, emergency constant, status, category, post, pair and page registrations with HTTP statuses.\n";
+// ---- The English site name: saved clean, reported in the status, administrators only.
+$result = NH_VIEN_Rest::settings( new Fake_Request( array( 'site_name_en' => ' Nguyen Ha Motorbike Rental ' ) ) );
+must( is_array( $result ) && 'Nguyen Ha Motorbike Rental' === $result['result']['site_name_en'] && 'Nguyen Ha Motorbike Rental' === $result['status']['site_name_en'], 'The English site name must be saved and reported' );
+$GLOBALS['can_manage'] = false;
+must( 403 === status_of( NH_VIEN_Rest::settings( new Fake_Request( array( 'site_name_en' => 'X' ) ) ) ), 'The name must refuse a non-administrator with 403' );
+$GLOBALS['can_manage'] = true;
+
+echo "PASS: route registration, administrator permission, emergency constant, status, category, post, pair and page registrations with HTTP statuses, English site name.\n";

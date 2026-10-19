@@ -14,6 +14,8 @@ defined( 'ABSPATH' ) || exit;
  */
 final class NH_VIEN_Settings {
 	const LAST_CHANGE_OPTION = 'nh_vien_last_change_v1';
+	const SITE_NAME_OPTION   = 'nh_vien_site_name_en';
+	const SITE_NAME_MAX      = 120;
 
 	/**
 	 * Switch the English routes on: preflight, setting, rewrite rules, smoke test; back to the previous state when the
@@ -115,6 +117,38 @@ final class NH_VIEN_Settings {
 		delete_option( self::LAST_CHANGE_OPTION );
 		do_action( 'nh_vien_pairs_changed', 0, 0 );
 		return array( 'enabled' => NH_VIEN_Routes::enabled() );
+	}
+
+	/**
+	 * The name of the site inside English pages: the <title> suffix and og:site_name of Yoast SEO, the WebSite of the
+	 * structured data, and wherever the theme prints the site name. Empty: English pages show the Vietnamese name too.
+	 *
+	 * @return string
+	 */
+	public static function site_name_en() {
+		$name = get_option( self::SITE_NAME_OPTION, '' );
+		return is_string( $name ) ? trim( $name ) : '';
+	}
+
+	/**
+	 * Save the English site name (administrators). An empty name removes the setting.
+	 *
+	 * @param mixed $name The name typed on the Tools screen or sent to the REST API.
+	 * @return array{site_name_en:string}|WP_Error
+	 */
+	public static function set_site_name( $name ) {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return self::error( 'nh_vien_forbidden', __( 'Administrator permission required.', 'nguyen-ha-vi-en' ), 403 );
+		}
+		$name = is_scalar( $name ) ? trim( mb_substr( sanitize_text_field( (string) $name ), 0, self::SITE_NAME_MAX ) ) : '';
+		if ( '' === $name ) {
+			delete_option( self::SITE_NAME_OPTION );
+		} elseif ( self::site_name_en() !== $name && ! update_option( self::SITE_NAME_OPTION, $name, true ) ) {
+			return self::error( 'nh_vien_save_failed', __( 'The setting could not be saved.', 'nguyen-ha-vi-en' ), 500 );
+		}
+		// Every English page prints the name: the page caches must be purged.
+		do_action( 'nh_vien_pairs_changed', 0, 0 );
+		return array( 'site_name_en' => $name );
 	}
 
 	/**
@@ -225,6 +259,7 @@ final class NH_VIEN_Settings {
 			'home_url'           => NH_VIEN_Routes::url(),
 			'pretty_permalinks'  => (bool) get_option( 'permalink_structure' ),
 			'yoast'              => defined( 'WPSEO_VERSION' ),
+			'site_name_en'       => self::site_name_en(),
 			'pairs'              => is_wp_error( $pairs ) ? array() : $pairs,
 			'independent_posts'  => NH_VIEN_Links::independent_ids(),
 			'english_categories' => NH_VIEN_Links::declared_en_terms(),

@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Nguyen Ha VI-EN Core
  * Description: Native Vietnamese and English sections for one WordPress site: paired posts, /en/ addresses, language switcher, hreflang and Yoast SEO integration. Off until an administrator switches it on under Tools > VI/EN Links.
- * Version: 0.5.1
+ * Version: 0.5.2
  * Requires at least: 6.3
  * Requires PHP: 7.4
  * Author: Nguyen Ha Editorial
@@ -15,7 +15,7 @@
 defined( 'ABSPATH' ) || exit;
 
 if ( ! defined( 'NH_VIEN_VERSION' ) ) {
-	define( 'NH_VIEN_VERSION', '0.5.1' );
+	define( 'NH_VIEN_VERSION', '0.5.2' );
 }
 
 if ( ! defined( 'NH_VIEN_PLUGIN_FILE' ) ) {

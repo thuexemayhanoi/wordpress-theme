@@ -18,6 +18,7 @@ final class NH_VIEN_Admin {
 	const HOME_NONCE   = 'nh_vien_create_home_page';
 	const TOGGLE_NONCE = 'nh_vien_toggle_routes';
 	const UNDO_NONCE   = 'nh_vien_undo_routes';
+	const NAME_NONCE   = 'nh_vien_site_name';
 
 	/** Register the administrator-only hooks. */
 	public static function boot() {
@@ -35,6 +36,7 @@ final class NH_VIEN_Admin {
 		add_action( 'admin_post_nh_vien_home_page', array( __CLASS__, 'home_page' ) );
 		add_action( 'admin_post_nh_vien_toggle', array( __CLASS__, 'toggle_routes' ) );
 		add_action( 'admin_post_nh_vien_undo', array( __CLASS__, 'undo_routes' ) );
+		add_action( 'admin_post_nh_vien_site_name', array( __CLASS__, 'site_name' ) );
 	}
 
 	/** Add the Tools navigation entry. */
@@ -73,6 +75,17 @@ final class NH_VIEN_Admin {
 		self::authorize( self::UNDO_NONCE );
 		$result = NH_VIEN_Settings::undo();
 		self::redirect( is_wp_error( $result ) ? $result->get_error_code() : 'undone' );
+	}
+
+	/** Save the name of the site inside English pages (empty: the Vietnamese name stays). Administrators, with a nonce. */
+	public static function site_name() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'Administrator permission required.', 'nguyen-ha-vi-en' ), '', array( 'response' => 403 ) );
+		}
+		check_admin_referer( self::NAME_NONCE );
+		$name   = isset( $_POST['nh_vien_site_name_en'] ) && is_string( $_POST['nh_vien_site_name_en'] ) ? sanitize_text_field( wp_unslash( $_POST['nh_vien_site_name_en'] ) ) : '';
+		$result = NH_VIEN_Settings::set_site_name( $name );
+		self::redirect( is_wp_error( $result ) ? $result->get_error_code() : 'site_name_saved' );
 	}
 
 	/** Save a pair after confirming a valid CSRF token. */
@@ -228,6 +241,7 @@ final class NH_VIEN_Admin {
 			'routes_enabled_unverified' => array( 'notice-warning', __( 'The English routes are on, but the server could not check /en/ by itself. Open /en/ in a browser now; if it is wrong, press "Undo the last switch".', 'nguyen-ha-vi-en' ) ),
 			'routes_disabled'           => array( 'notice-success', __( 'The English routes are off: the plugin answers no /en/ address any more and the Vietnamese site is as it was. Published English pages are still reachable at their WordPress addresses.', 'nguyen-ha-vi-en' ) ),
 			'undone'                    => array( 'notice-success', __( 'The state before the last switch was restored.', 'nguyen-ha-vi-en' ) ),
+			'site_name_saved'           => array( 'notice-success', __( 'The English site name was saved: English pages use it in their title, Open Graph tags and structured data.', 'nguyen-ha-vi-en' ) ),
 			'address_taken'             => array( 'notice-error', __( 'Nothing was changed: a published post already has the address /en/. Give that post another slug first, or the English home would take its address away.', 'nguyen-ha-vi-en' ) ),
 			'home_exists'               => array( 'notice-warning', __( 'A page with the address /en/ already exists; it was left as it is.', 'nguyen-ha-vi-en' ) ),
 			'home_failed'               => array( 'notice-error', __( 'The English home page could not be created.', 'nguyen-ha-vi-en' ) ),
@@ -340,6 +354,7 @@ final class NH_VIEN_Admin {
 			array( __( 'English home', 'nguyen-ha-vi-en' ), $home ),
 			array( __( 'Address /en/ used by a post', 'nguyen-ha-vi-en' ), NH_VIEN_Routes::post_at_en() ? __( 'Yes: the routes cannot be switched on until that post has another slug', 'nguyen-ha-vi-en' ) : $no ),
 			array( __( 'Yoast SEO active', 'nguyen-ha-vi-en' ), $status['yoast'] ? $yes : $no ),
+			array( __( 'English site name', 'nguyen-ha-vi-en' ), '' !== $status['site_name_en'] ? $status['site_name_en'] : __( 'Not set: English pages show the Vietnamese site name', 'nguyen-ha-vi-en' ) ),
 			array( __( 'Pretty permalinks', 'nguyen-ha-vi-en' ), $status['pretty_permalinks'] ? $yes : $no ),
 			array( __( 'Last switch', 'nguyen-ha-vi-en' ), $last ),
 		);
@@ -389,6 +404,13 @@ final class NH_VIEN_Admin {
 			submit_button( __( 'Create a draft English home page', 'nguyen-ha-vi-en' ), 'secondary', 'submit', false );
 			echo '</form>';
 		}
+		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="margin:1rem 0">';
+		wp_nonce_field( self::NAME_NONCE );
+		echo '<input type="hidden" name="action" value="nh_vien_site_name">';
+		echo '<p><label for="nh_vien_site_name_en">' . esc_html__( 'English site name: the title suffix, og:site_name and structured data of English pages (empty keeps the Vietnamese name)', 'nguyen-ha-vi-en' ) . '</label></p>';
+		echo '<input type="text" class="regular-text" id="nh_vien_site_name_en" name="nh_vien_site_name_en" maxlength="' . (int) NH_VIEN_Settings::SITE_NAME_MAX . '" value="' . esc_attr( $status['site_name_en'] ) . '"> ';
+		submit_button( __( 'Save the English site name', 'nguyen-ha-vi-en' ), 'secondary', 'submit', false );
+		echo '</form>';
 	}
 
 	/**
