@@ -34,6 +34,8 @@ final class NH_VIEN_Seo {
 		add_filter( 'wpseo_sitemap_post_content', array( __CLASS__, 'sitemap_home' ) );
 		add_filter( 'wpseo_sitemap_category_content', array( __CLASS__, 'sitemap_categories' ) );
 		add_filter( 'wpseo_sitemap_post_tag_content', array( __CLASS__, 'sitemap_tags' ) );
+		// The sitemap WordPress builds itself, used when no SEO plugin provides one.
+		add_filter( 'wp_sitemaps_posts_query_args', array( __CLASS__, 'core_sitemap_args' ), 10, 2 );
 	}
 
 	/**
@@ -245,6 +247,26 @@ final class NH_VIEN_Seo {
 			return $ids;
 		}
 		return array_merge( (array) $ids, array_keys( NH_VIEN_Links::en_only_term_ids() ) );
+	}
+
+	/**
+	 * In the sitemap of WordPress the posts are listed with the English posts that may be shown and without those that
+	 * may not; the language restriction of lists does not apply to a sitemap.
+	 *
+	 * @param array  $args      The arguments of the posts query.
+	 * @param string $post_type The post type of the sitemap.
+	 * @return array
+	 */
+	public static function core_sitemap_args( $args, $post_type ) {
+		if ( 'post' !== $post_type || ! is_array( $args ) || ! NH_VIEN_Routes::live() ) {
+			return $args;
+		}
+		$args[ NH_VIEN_Routes::SCOPE_VAR ] = 'off';
+		$args['post__not_in']              = array_merge(
+			isset( $args['post__not_in'] ) ? (array) $args['post__not_in'] : array(),
+			array_diff( NH_VIEN_Links::en_ids(), NH_VIEN_Links::public_en_ids() )
+		);
+		return $args;
 	}
 
 	/**
