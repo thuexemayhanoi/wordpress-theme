@@ -15,6 +15,7 @@ final class NH_VIEN_Links {
 	const OPTION       = 'nh_vien_translation_pairs_v1';
 	const INDEPENDENT_OPTION = 'nh_vien_independent_en_posts_v1';
 	const EN_TERMS_OPTION   = 'nh_vien_english_categories_v1';
+	const PAGE_OPTION       = 'nh_vien_page_pairs_v1';
 	const NONCE_ACTION = 'nh_vien_manage_links';
 
 	/**
@@ -377,6 +378,138 @@ final class NH_VIEN_Links {
 		self::flush_cache();
 		do_action( 'nh_vien_pairs_changed', 0, 0 );
 		return true;
+	}
+
+
+	/**
+	 * Page-to-page correspondences, separate from article translations. Pages retain their own wording.
+	 *
+	 * @return array<int,int>|WP_Error Validated Vietnamese page ID => English page ID.
+	 */
+	public static function page_pairs() {
+		$stored = get_option( self::PAGE_OPTION, array() );
+		if ( ! is_array( $stored ) ) {
+			return new WP_Error( 'nh_vien_invalid_store', 'Page link store is invalid.' );
+		}
+		$pairs = array();
+		$seen  = array();
+		foreach ( $stored as $vi => $en ) {
+			if ( ! self::positive_id( $vi ) || ! self::positive_id( $en ) || (int) $vi === (int) $en || isset( $seen[ (int) $en ] ) ) {
+				return new WP_Error( 'nh_vien_invalid_store', 'Page link store has conflicting IDs.' );
+			}
+			$pairs[ (int) $vi ] = (int) $en;
+			$seen[ (int) $en ] = true;
+		}
+		foreach ( $pairs as $vi => $en ) {
+			if ( isset( $pairs[ $en ] ) || isset( $seen[ $vi ] ) ) {
+				return new WP_Error( 'nh_vien_invalid_store', 'A page is used for both languages.' );
+			}
+		}
+		return $pairs;
+	}
+
+	/**
+	 * Lookup an explicit page pair. An English page without a pair is legitimate and has no hreflang pair.
+	 *
+	 * @param mixed $page_id Page identifier.
+	 * @return array<string,int>|null Pair, or null.
+	 */
+	public static function for_page( $page_id ) {
+		$pairs = self::page_pairs();
+		if ( is_wp_error( $pairs ) || ! self::positive_id( $page_id ) ) {
+			return null;
+		}
+		foreach ( $pairs as $vi => $en ) {
+			if ( (int) $page_id === $vi || (int) $page_id === $en ) {
+				return array( 'vi' => $vi, 'en' => $en );
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Link two independently authored pages, with the English one strictly below /en/.
+	 *
+	 * @param mixed $vi Vietnamese page ID.
+	 * @param mixed $en English page ID.
+	 * @param mixed $nonce Nonce for this operation.
+	 * @return true|WP_Error
+	 */
+	public static function link_page( $vi, $en, $nonce ) {
+		$security = self::authorize( $nonce );
+		if ( is_wp_error( $security ) ) {
+			return $security;
+		}
+		if ( ! self::positive_id( $vi ) || ! self::positive_id( $en ) || (int) $vi === (int) $en ) {
+			return new WP_Error( 'nh_vien_invalid_ids', 'Specify two different page IDs.' );
+		}
+		$vi = (int) $vi;
+		$en = (int) $en;
+		if ( ! self::eligible_page( $vi ) || ! self::eligible_page( $en ) ||
+			0 === strpos( (string) get_page_uri( $vi ), 'en/' ) || 'en' === get_page_uri( $vi ) ||
+			0 !== strpos( (string) get_page_uri( $en ), 'en/' ) ) {
+			return new WP_Error( 'nh_vien_invalid_posts', 'Choose a Vietnamese page and an English child page under /en/.' );
+		}
+		if ( ! current_user_can( 'edit_post', $vi ) || ! current_user_can( 'edit_post', $en ) ) {
+			return new WP_Error( 'nh_vien_forbidden', 'You must be able to edit both pages.' );
+		}
+		$pairs = self::page_pairs();
+		if ( is_wp_error( $pairs ) ) {
+			return $pairs;
+		}
+		if ( isset( $pairs[ $vi ] ) ) {
+			return $pairs[ $vi ] === $en ? true : new WP_Error( 'nh_vien_conflict', 'Vietnamese page is already linked.' );
+		}
+		if ( isset( $pairs[ $en ] ) || in_array( $vi, $pairs, true ) || in_array( $en, $pairs, true ) ) {
+			return new WP_Error( 'nh_vien_conflict', 'One of the pages is already linked.' );
+		}
+		$pairs[ $vi ] = $en;
+		if ( ! update_option( self::PAGE_OPTION, $pairs, false ) ) {
+			return new WP_Error( 'nh_vien_save_failed', 'Could not save page link.' );
+		}
+		self::flush_cache();
+		do_action( 'nh_vien_pairs_changed', $vi, $en );
+		return true;
+	}
+
+	/**
+	 * Unlink a page pair without modifying either page.
+	 *
+	 * @param mixed $vi Vietnamese page ID.
+	 * @param mixed $nonce Nonce.
+	 * @return true|WP_Error
+	 */
+	public static function unlink_page( $vi, $nonce ) {
+		$security = self::authorize( $nonce );
+		if ( is_wp_error( $security ) ) {
+			return $security;
+		}
+		$pairs = self::page_pairs();
+		if ( is_wp_error( $pairs ) ) {
+			return $pairs;
+		}
+		$vi = (int) $vi;
+		if ( ! isset( $pairs[ $vi ] ) ) {
+			return new WP_Error( 'nh_vien_not_found', 'Page link does not exist.' );
+		}
+		if ( ! current_user_can( 'edit_post', $vi ) || ! current_user_can( 'edit_post', $pairs[ $vi ] ) ) {
+			return new WP_Error( 'nh_vien_forbidden', 'You must be able to edit both pages.' );
+		}
+		$en = $pairs[ $vi ];
+		unset( $pairs[ $vi ] );
+		if ( ! update_option( self::PAGE_OPTION, $pairs, false ) ) {
+			return new WP_Error( 'nh_vien_save_failed', 'Could not unlink pages.' );
+		}
+		self::flush_cache();
+		do_action( 'nh_vien_pairs_changed', $vi, $en );
+		return true;
+	}
+
+	/** Whether a page can participate in an explicit translation link. */
+	private static function eligible_page( $page_id ) {
+		$page = get_post( $page_id );
+		return $page instanceof WP_Post && 'page' === $page->post_type &&
+			! in_array( $page->post_status, array( 'trash', 'auto-draft', 'inherit' ), true );
 	}
 
 	/**

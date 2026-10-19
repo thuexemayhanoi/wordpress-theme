@@ -129,6 +129,14 @@ final class NH_VIEN_Switcher {
 				$vi      = (string) get_permalink( $id );
 			}
 		}
+		if ( is_singular( 'page' ) ) {
+			$pair = NH_VIEN_Links::for_page( (int) get_queried_object_id() );
+			if ( $pair && 'publish' === get_post_status( $pair['vi'] ) && 'publish' === get_post_status( $pair['en'] ) &&
+				0 === strpos( (string) get_page_uri( $pair['en'] ), 'en/' ) ) {
+				$vi = (string) get_permalink( $pair['vi'] );
+				$en = (string) get_permalink( $pair['en'] );
+			}
+		}
 		if ( '' === $vi || '' === $en ) {
 			return null;
 		}

@@ -26,6 +26,8 @@ final class NH_VIEN_Admin {
 		add_action( 'admin_post_nh_vien_unmark_english', array( __CLASS__, 'unmark_english' ) );
 		add_action( 'admin_post_nh_vien_mark_category', array( __CLASS__, 'mark_category' ) );
 		add_action( 'admin_post_nh_vien_unmark_category', array( __CLASS__, 'unmark_category' ) );
+		add_action( 'admin_post_nh_vien_link_page', array( __CLASS__, 'link_page' ) );
+		add_action( 'admin_post_nh_vien_unlink_page', array( __CLASS__, 'unlink_page' ) );
 		add_action( 'admin_post_nh_vien_flush', array( __CLASS__, 'flush' ) );
 		add_action( 'admin_post_nh_vien_home_page', array( __CLASS__, 'home_page' ) );
 	}
@@ -84,6 +86,24 @@ final class NH_VIEN_Admin {
 		$nonce = isset( $_POST['_wpnonce'] ) && is_string( $_POST['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ) : '';
 		$id    = isset( $_POST['en_category_id'] ) && is_string( $_POST['en_category_id'] ) ? wp_unslash( $_POST['en_category_id'] ) : '';
 		self::redirect( NH_VIEN_Links::unmark_english_category( $id, $nonce ) );
+	}
+
+
+	/** Pair two independent pages that serve equivalent visitor needs. */
+	public static function link_page() {
+		check_admin_referer( NH_VIEN_Links::NONCE_ACTION );
+		$nonce = isset( $_POST['_wpnonce'] ) && is_string( $_POST['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ) : '';
+		$vi    = isset( $_POST['vi_page_id'] ) && is_string( $_POST['vi_page_id'] ) ? wp_unslash( $_POST['vi_page_id'] ) : '';
+		$en    = isset( $_POST['en_page_id'] ) && is_string( $_POST['en_page_id'] ) ? wp_unslash( $_POST['en_page_id'] ) : '';
+		self::redirect( NH_VIEN_Links::link_page( $vi, $en, $nonce ) );
+	}
+
+	/** Unlink two pages without modifying either. */
+	public static function unlink_page() {
+		check_admin_referer( NH_VIEN_Links::NONCE_ACTION );
+		$nonce = isset( $_POST['_wpnonce'] ) && is_string( $_POST['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ) : '';
+		$vi    = isset( $_POST['vi_page_id'] ) && is_string( $_POST['vi_page_id'] ) ? wp_unslash( $_POST['vi_page_id'] ) : '';
+		self::redirect( NH_VIEN_Links::unlink_page( $vi, $nonce ) );
 	}
 
 	/**
@@ -220,6 +240,7 @@ final class NH_VIEN_Admin {
 		self::render_pairs( $pairs );
 		self::render_independent();
 		self::render_english_categories();
+		self::render_page_pairs();
 		echo '</div>';
 	}
 
@@ -337,6 +358,35 @@ final class NH_VIEN_Admin {
 			echo '<input type="hidden" name="action" value="nh_vien_unmark_category">';
 			echo '<input type="hidden" name="en_category_id" value="' . esc_attr( (string) $id ) . '">';
 			submit_button( __( 'Unregister', 'nguyen-ha-vi-en' ), 'secondary small', 'submit', false );
+			echo '</form></td></tr>';
+		}
+		echo '</tbody></table>';
+	}
+
+
+	/** Manage optional Page-to-Page relationships for equivalent English and Vietnamese pages. */
+	private static function render_page_pairs() {
+		echo '<h2>' . esc_html__( 'English pages / About, Prices, Contact', 'nguyen-ha-vi-en' ) . '</h2>';
+		echo '<p>' . esc_html__( 'Create an English page below the English homepage /en/ using WordPress Pages. Pair with a Vietnamese page only if the pages serve the same intent; the English text may be completely original.', 'nguyen-ha-vi-en' ) . '</p>';
+		$pairs = NH_VIEN_Links::page_pairs();
+		if ( is_wp_error( $pairs ) ) {
+			echo '<p>' . esc_html__( 'Invalid page-pair data. Resolve this before editing pairs.', 'nguyen-ha-vi-en' ) . '</p>';
+			return;
+		}
+		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+		wp_nonce_field( NH_VIEN_Links::NONCE_ACTION );
+		echo '<input type="hidden" name="action" value="nh_vien_link_page">';
+		echo '<p><label>' . esc_html__( 'Vietnamese page ID', 'nguyen-ha-vi-en' ) . ' <input type="number" name="vi_page_id" min="1" required></label></p>';
+		echo '<p><label>' . esc_html__( 'English page ID (must be under /en/)', 'nguyen-ha-vi-en' ) . ' <input type="number" name="en_page_id" min="1" required></label></p>';
+		submit_button( __( 'Link equivalent pages', 'nguyen-ha-vi-en' ) );
+		echo '</form><table class="widefat striped"><thead><tr><th>VI</th><th>EN</th><th>' . esc_html__( 'Action', 'nguyen-ha-vi-en' ) . '</th></tr></thead><tbody>';
+		foreach ( $pairs as $vi => $en ) {
+			echo '<tr><td>' . wp_kses_post( self::post_cell( $vi ) ) . '</td><td>' . wp_kses_post( self::post_cell( $en ) ) . '</td><td>';
+			echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+			wp_nonce_field( NH_VIEN_Links::NONCE_ACTION );
+			echo '<input type="hidden" name="action" value="nh_vien_unlink_page">';
+			echo '<input type="hidden" name="vi_page_id" value="' . esc_attr( (string) $vi ) . '">';
+			submit_button( __( 'Unlink', 'nguyen-ha-vi-en' ), 'secondary small', 'submit', false );
 			echo '</form></td></tr>';
 		}
 		echo '</tbody></table>';
