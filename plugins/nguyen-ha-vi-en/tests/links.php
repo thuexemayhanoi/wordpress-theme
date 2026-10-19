@@ -14,6 +14,7 @@ $GLOBALS['allow_manage'] = true;
 $GLOBALS['allow_edit'] = true;
 $GLOBALS['nonce_ok'] = true;
 $GLOBALS['hooks'] = array();
+$GLOBALS['fired'] = array();
 
 class WP_Post {
 	public $post_type = 'post';
@@ -41,6 +42,7 @@ function get_post( $id ) { return isset( $GLOBALS['mock_posts'][ $id ] ) ? $GLOB
 function current_user_can( $cap, $id = null ) { return 'manage_options' === $cap ? $GLOBALS['allow_manage'] : $GLOBALS['allow_edit']; }
 function wp_verify_nonce( $nonce, $action ) { return $GLOBALS['nonce_ok'] && 'ok' === $nonce && 'nh_vien_manage_links' === $action; }
 function add_action( $name, $callback, $priority = 10 ) { $GLOBALS['hooks'][] = $name; }
+function do_action( $name ) { $GLOBALS['fired'][] = func_get_args(); }
 function is_admin() { return false; }
 function must( $condition, $message ) { if ( ! $condition ) { throw new RuntimeException( $message ); } }
 function error_is( $result, $code ) { return is_wp_error( $result ) && $code === $result->get_error_code(); }
@@ -54,7 +56,7 @@ $GLOBALS['mock_posts'][55] = new WP_Post( 'page' );
 $GLOBALS['mock_posts'][66] = new WP_Post( 'post', 'trash' );
 $GLOBALS['mock_posts'][77] = new WP_Post( 'revision', 'inherit' );
 
-must( '0.3.0' === NH_VIEN_VERSION, 'Wrong version' );
+must( '0.4.0' === NH_VIEN_VERSION, 'Wrong version' );
 must( array() === NH_VIEN_Links::all(), 'Map should start empty' );
 must( array() === $GLOBALS['mock_writes'], 'Bootstrap must not write' );
 must( null === NH_VIEN_Links::for_post( 11 ), 'No implicit pairing' );
@@ -72,12 +74,17 @@ must( error_is( NH_VIEN_Links::link( 11, 55, 'ok' ), 'nh_vien_invalid_posts' ), 
 must( error_is( NH_VIEN_Links::link( 11, 66, 'ok' ), 'nh_vien_invalid_posts' ), 'Trash accepted' );
 must( error_is( NH_VIEN_Links::link( 11, 77, 'ok' ), 'nh_vien_invalid_posts' ), 'Revision accepted' );
 must( true === NH_VIEN_Links::link( 11, 22, 'ok' ), 'Valid pair rejected' );
+must( array( array( 'nh_vien_pairs_changed', 11, 22 ) ) === $GLOBALS['fired'], 'A new pair must announce itself so that caches are purged' );
 must( count( $GLOBALS['mock_writes'] ) === 1, 'Unexpected write count' );
 must( NH_VIEN_Links::OPTION === $GLOBALS['mock_writes'][0][0], 'Unexpected data destination' );
 must( false === $GLOBALS['mock_writes'][0][2], 'Option must not autoload' );
 must( array( 11 => 22 ) === NH_VIEN_Links::all(), 'Map mismatch' );
 must( array( 'vi' => 11, 'en' => 22 ) === NH_VIEN_Links::for_post( 11 ), 'VI lookup failed' );
 must( array( 'vi' => 11, 'en' => 22 ) === NH_VIEN_Links::for_post( 22 ), 'EN lookup failed' );
+must( 22 === NH_VIEN_Links::en_for_vi( 11 ) && 11 === NH_VIEN_Links::vi_for_en( 22 ), 'Partner lookups wrong' );
+must( 0 === NH_VIEN_Links::en_for_vi( 22 ) && 0 === NH_VIEN_Links::vi_for_en( 11 ) && 0 === NH_VIEN_Links::vi_for_en( 999 ), 'A partner was invented' );
+must( 'en' === NH_VIEN_Links::language_of( 22 ) && 'vi' === NH_VIEN_Links::language_of( 11 ) && 'vi' === NH_VIEN_Links::language_of( 999 ), 'Language of a post wrong' );
+must( array( 22 ) === NH_VIEN_Links::en_ids() && NH_VIEN_Links::is_en( 22 ) && ! NH_VIEN_Links::is_en( 11 ), 'English post set wrong' );
 must( true === NH_VIEN_Links::link( 11, 22, 'ok' ), 'Repeat pair not idempotent' );
 must( 1 === count( $GLOBALS['mock_writes'] ), 'Repeat pair triggered write' );
 must( error_is( NH_VIEN_Links::link( 11, 33, 'ok' ), 'nh_vien_conflict' ), 'VI conflict allowed' );
@@ -91,6 +98,7 @@ $GLOBALS['allow_edit'] = false;
 must( error_is( NH_VIEN_Links::unlink( 11, 'ok' ), 'nh_vien_forbidden' ), 'Unlink edit permission ignored' );
 $GLOBALS['allow_edit'] = true;
 must( true === NH_VIEN_Links::unlink( 11, 'ok' ), 'Unlink failed' );
+must( array( 'nh_vien_pairs_changed', 11, 22 ) === end( $GLOBALS['fired'] ), 'Unlink must announce itself with the pair it removed' );
 must( null === NH_VIEN_Links::for_post( 22 ), 'Old counterpart still resolves' );
 must( array( 33 => 44 ) === NH_VIEN_Links::all(), 'Unlink removed wrong pair' );
 must( error_is( NH_VIEN_Links::unlink( 11, 'ok' ), 'nh_vien_not_found' ), 'Missing pair ignored' );

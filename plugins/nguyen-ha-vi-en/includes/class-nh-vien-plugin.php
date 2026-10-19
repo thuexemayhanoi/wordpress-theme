@@ -25,13 +25,19 @@ final class NH_VIEN_Plugin {
 	 */
 	public static function boot() {
 		$instance = self::instance();
-		// Staging-only: production never registers /en/ rewrite rules or switcher. The rewrite rule is registered on
-		// every request, administration screens included: Settings > Permalinks flushes the stored rules from the
-		// admin, and a flush that never saw the rule would leave the preview route out of them.
+		// Everything below is switched off unless the site opts in (NH_VIEN_Routes::enabled()). The rules are
+		// registered on every request, administration screens included: Settings > Permalinks stores the rules from the
+		// admin, and a store that never saw the rules would leave the English routes out of them.
 		NH_VIEN_Routes::boot();
+		NH_VIEN_Context::boot();
+		NH_VIEN_Urls::boot();
+		NH_VIEN_Cache::boot();
 		if ( function_exists( 'is_admin' ) && is_admin() ) {
 			NH_VIEN_Admin::boot();
 		} else {
+			NH_VIEN_Query::boot();
+			NH_VIEN_Content::boot();
+			NH_VIEN_Seo::boot();
 			NH_VIEN_Switcher::boot();
 		}
 		return $instance;

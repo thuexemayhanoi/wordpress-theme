@@ -3,7 +3,7 @@ Contributors: nguyen-ha-editorial
 Tags: multilingual, vietnamese, english
 Requires at least: 6.0
 Requires PHP: 7.4
-Stable tag: 0.3.0
+Stable tag: 0.4.0
 License: GPLv2 or later
 
 == Description ==

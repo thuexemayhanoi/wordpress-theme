@@ -1,6 +1,10 @@
 <?php
 /**
- * Minimal accessible VI/EN switcher; frontend remains off by default.
+ * The VI/EN language switcher: a small accessible navigation that is printed at the top of every front-end page
+ * (and can be placed by hand with the [nh_vien_switcher] shortcode).
+ *
+ * On a post that has a translation it links to the translation. On every other page it links to the home page of the
+ * other language, and it is left out altogether while there is no English page to link to.
  *
  * @package Nguyen_Ha_VI_EN
  */
@@ -8,35 +12,55 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Provide accessible staging-only VI/EN article navigation.
+ * Accessible language switcher.
  */
 final class NH_VIEN_Switcher {
-	/** Register staging-only switcher hooks. */
+	/** Register the switcher hooks when the English side is switched on. */
 	public static function boot() {
 		if ( ! NH_VIEN_Routes::enabled() ) {
 			return;
 		}
+		add_action( 'wp_body_open', array( __CLASS__, 'bar' ), 5 );
 		add_filter( 'the_content', array( __CLASS__, 'prepend' ), 8 );
 		add_shortcode( 'nh_vien_switcher', array( __CLASS__, 'shortcode' ) );
 		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'styles' ) );
 	}
 
-	/** Enqueue only the lightweight navigation stylesheet. */
+	/** Enqueue the lightweight navigation stylesheet, on the pages that show the switcher only. */
 	public static function styles() {
+		if ( null === self::alternates() ) {
+			return;
+		}
 		wp_enqueue_style( 'nh-vien-switcher', plugins_url( 'assets/switcher.css', NH_VIEN_PLUGIN_FILE ), array(), NH_VIEN_VERSION );
 	}
 
+	/** Print the switcher right after the opening of the body, where themes call wp_body_open(). */
+	public static function bar() {
+		/**
+		 * Filters whether the switcher is printed automatically after the opening of the body.
+		 *
+		 * @param bool $print True by default. Return false to place the switcher with the shortcode instead.
+		 */
+		if ( ! apply_filters( 'nh_vien_switcher_auto_placement', true ) ) {
+			return;
+		}
+		$html = self::html();
+		if ( '' !== $html ) {
+			echo '<div class="nh-vien-bar">' . $html . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Built and escaped in html().
+		}
+	}
+
 	/**
-	 * Place a switcher before eligible single-post content.
+	 * For themes that never call wp_body_open(): place the switcher before the content of a single post.
 	 *
 	 * @param string $content WordPress post body.
 	 * @return string Original or augmented content.
 	 */
 	public static function prepend( $content ) {
-		if ( ! is_singular( 'post' ) || ! is_main_query() || ! in_the_loop() || is_feed() || has_shortcode( $content, 'nh_vien_switcher' ) ) {
+		if ( did_action( 'wp_body_open' ) || ! is_singular( 'post' ) || ! is_main_query() || ! in_the_loop() || is_feed() || has_shortcode( $content, 'nh_vien_switcher' ) ) {
 			return $content;
 		}
-		return self::html( get_queried_object_id() ) . $content;
+		return self::html() . $content;
 	}
 
 	/**
@@ -45,38 +69,62 @@ final class NH_VIEN_Switcher {
 	 * @return string Navigation markup or empty string.
 	 */
 	public static function shortcode() {
-		if ( ! is_singular( 'post' ) ) {
-			return '';
-		}
-		return self::html( get_queried_object_id() );
+		return self::html();
 	}
 
 	/**
-	 * Build the switcher only for a published VI/EN pair.
+	 * Where each language goes for the page being answered.
 	 *
-	 * @param int $post_id Current post identifier.
+	 * @return array{vi: string, en: string, current: string}|null Null when the switcher is not shown.
+	 */
+	public static function alternates() {
+		if ( ! NH_VIEN_Routes::live() ) {
+			return null;
+		}
+		$english = NH_VIEN_Context::is_english();
+		$page    = NH_VIEN_Urls::current_url();
+		$vi      = $english ? NH_VIEN_Urls::vi_home() : $page;
+		$en      = $english ? $page : NH_VIEN_Urls::en_home();
+		if ( is_singular( 'post' ) ) {
+			$id = (int) get_queried_object_id();
+			if ( $english ) {
+				$partner = NH_VIEN_Links::vi_for_en( $id );
+				$link    = $partner ? get_permalink( $partner ) : '';
+				$vi      = $link ? $link : $vi;
+				$en      = NH_VIEN_Routes::english_url( $id );
+			} else {
+				$partner = NH_VIEN_Links::en_for_vi( $id );
+				$link    = $partner ? NH_VIEN_Routes::english_url( $partner ) : '';
+				$en      = '' !== $link ? $link : $en;
+				$vi      = (string) get_permalink( $id );
+			}
+		}
+		if ( '' === $vi || '' === $en ) {
+			return null;
+		}
+		return array(
+			'vi'      => $vi,
+			'en'      => $en,
+			'current' => $english ? 'en' : 'vi',
+		);
+	}
+
+	/**
+	 * Build the switcher for the page being answered.
+	 *
 	 * @return string Escaped navigation markup or empty string.
 	 */
-	public static function html( $post_id ) {
-		if ( ! NH_VIEN_Routes::enabled() ) {
+	public static function html() {
+		$alternates = self::alternates();
+		if ( ! $alternates ) {
 			return '';
 		}
-		$pair = NH_VIEN_Links::for_post( $post_id );
-		if ( ! is_array( $pair ) ) {
-			return '';
+		$items = '';
+		foreach ( array( 'vi', 'en' ) as $code ) {
+			$language = NH_VIEN_Languages::get( $code );
+			$current  = $code === $alternates['current'] ? ' aria-current="page"' : '';
+			$items   .= '<a class="nh-vien-switcher__link" href="' . esc_url( $alternates[ $code ] ) . '" lang="' . esc_attr( $code ) . '" hreflang="' . esc_attr( $code ) . '" aria-label="' . esc_attr( $language['label'] ) . '"' . $current . '>' . esc_html( strtoupper( $code ) ) . '</a>';
 		}
-		$en_url = NH_VIEN_Routes::english_url( $pair['en'] );
-		$vi     = get_post( (int) $pair['vi'] );
-		$vi_url = $vi instanceof WP_Post && 'publish' === $vi->post_status ? get_permalink( $vi->ID ) : '';
-		if ( ! $vi_url || ! $en_url ) {
-			return '';
-		}
-		$current    = (int) $post_id === (int) $pair['en'] ? 'en' : 'vi';
-		$vi_current = 'vi' === $current ? ' aria-current="page"' : '';
-		$en_current = 'en' === $current ? ' aria-current="page"' : '';
-		return '<nav class="nh-vien-switcher" aria-label="Language">'
-			. '<a class="nh-vien-switcher__link" href="' . esc_url( $vi_url ) . '" lang="vi" hreflang="vi"' . $vi_current . '>VI</a>'
-			. '<a class="nh-vien-switcher__link" href="' . esc_url( $en_url ) . '" lang="en" hreflang="en"' . $en_current . '>EN</a>'
-			. '</nav>';
+		return '<nav class="nh-vien-switcher" aria-label="Language">' . $items . '</nav>';
 	}
 }

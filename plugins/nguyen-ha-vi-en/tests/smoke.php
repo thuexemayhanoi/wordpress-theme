@@ -14,6 +14,10 @@ function add_action( $tag, $callback, $priority = 10 ) {
 	return true;
 }
 
+function get_option( $key, $default = false ) {
+	return $default;
+}
+
 function nh_vien_expect( $condition, $message ) {
 	if ( ! $condition ) {
 		throw new RuntimeException( $message );
@@ -22,7 +26,7 @@ function nh_vien_expect( $condition, $message ) {
 
 require dirname( __DIR__ ) . '/nguyen-ha-vi-en.php';
 
-nh_vien_expect( '0.3.0' === NH_VIEN_VERSION, 'Version mismatch' );
+nh_vien_expect( '0.4.0' === NH_VIEN_VERSION, 'Version mismatch' );
 nh_vien_expect( 1 === count( $GLOBALS['nh_vien_smoke_hooks'] ), 'Expected one bootstrap hook' );
 nh_vien_expect( 'plugins_loaded' === $GLOBALS['nh_vien_smoke_hooks'][0][0], 'Unexpected WordPress hook' );
 nh_vien_expect( 20 === $GLOBALS['nh_vien_smoke_hooks'][0][2], 'Unexpected hook priority' );
