@@ -20,6 +20,10 @@ final class NH_VIEN_Plugin {
 		$instance = self::instance();
 		if ( function_exists( 'is_admin' ) && is_admin() ) {
 			NH_VIEN_Admin::boot();
+		} else {
+			// Staging-only: production never registers /en/ rewrite rules or switcher.
+			NH_VIEN_Routes::boot();
+			NH_VIEN_Switcher::boot();
 		}
 		return $instance;
 	}

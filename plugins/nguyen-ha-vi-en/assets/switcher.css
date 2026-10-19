@@ -1,0 +1,4 @@
+.nh-vien-switcher{display:inline-flex;align-items:center;gap:.375rem;padding:.25rem;border:1px solid currentColor;border-radius:999px;margin:0 0 1rem;max-width:100%}
+.nh-vien-switcher__link{display:inline-flex;align-items:center;justify-content:center;min-width:2.75rem;min-height:2.75rem;padding:.375rem .625rem;border-radius:999px;text-decoration:none;font-weight:600}
+.nh-vien-switcher__link[aria-current="page"]{outline:1px solid currentColor;outline-offset:-1px;text-decoration:underline;text-underline-offset:.125rem}
+.nh-vien-switcher__link:focus-visible{outline:2px solid currentColor;outline-offset:3px}
