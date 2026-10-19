@@ -319,7 +319,7 @@ final class NH_VIEN_Admin {
 	/** Manage articles authored directly in English, without requiring a VI/EN pair. */
 	private static function render_independent() {
 		echo '<h2>' . esc_html__( 'Independent English articles', 'nguyen-ha-vi-en' ) . '</h2>';
-		echo '<p>' . esc_html__( 'Draft your English article normally, then register its ID here. Vietnamese articles are never changed. An English article goes live only when the language routes are enabled, the article is published and the slug is valid.', 'nguyen-ha-vi-en' ) . '</p>';
+		echo '<p>' . esc_html__( 'Create an English draft, register its ID here before publishing, then complete its content. Vietnamese articles are never changed. An English article goes live only when the language routes are enabled, the article is published and the slug is valid.', 'nguyen-ha-vi-en' ) . '</p>';
 		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
 		wp_nonce_field( NH_VIEN_Links::NONCE_ACTION );
 		echo '<input type="hidden" name="action" value="nh_vien_mark_english">';

@@ -146,21 +146,23 @@ $GLOBALS['mock_options'][NH_VIEN_Links::OPTION] = 'bad';
 must( is_wp_error( NH_VIEN_Links::all() ), 'Non-array store allowed' );
 
 /** Standalone EN articles: no automatic translation and no change to Vietnamese article data. */
+$GLOBALS['mock_posts'][88] = new WP_Post( 'post', 'draft' );
 $GLOBALS['mock_options'][ NH_VIEN_Links::OPTION ] = array();
 NH_VIEN_Links::flush_cache();
 must( array() === NH_VIEN_Links::independent_ids(), 'No EN article should be pre-registered' );
 must( error_is( NH_VIEN_Links::mark_english( 44, 'bad' ), 'nh_vien_bad_nonce' ), 'English marker ignored nonce' );
 must( error_is( NH_VIEN_Links::mark_english( 55, 'ok' ), 'nh_vien_invalid_posts' ), 'English marker accepted a page' );
 must( error_is( NH_VIEN_Links::mark_english( 66, 'ok' ), 'nh_vien_invalid_posts' ), 'English marker accepted a trashed post' );
-must( true === NH_VIEN_Links::mark_english( 44, 'ok' ), 'Could not designate standalone English article' );
-must( array( 44 ) === NH_VIEN_Links::en_ids(), 'Standalone English ID not included' );
-must( 'en' === NH_VIEN_Links::language_of( 44 ), 'Standalone article has wrong language' );
-must( null === NH_VIEN_Links::for_post( 44 ), 'Standalone article should not invent a Vietnamese counterpart' );
+must( error_is( NH_VIEN_Links::mark_english( 44, 'ok' ), 'nh_vien_invalid_posts' ), 'Existing published Vietnamese article was relabeled' );
+must( true === NH_VIEN_Links::mark_english( 88, 'ok' ), 'Could not designate standalone English draft article' );
+must( array( 88 ) === NH_VIEN_Links::en_ids(), 'Standalone English ID not included' );
+must( 'en' === NH_VIEN_Links::language_of( 88 ), 'Standalone article has wrong language' );
+must( null === NH_VIEN_Links::for_post( 88 ), 'Standalone article should not invent a Vietnamese counterpart' );
 must( true === NH_VIEN_Links::link( 11, 22, 'ok' ), 'Valid pair should still work' );
 must( error_is( NH_VIEN_Links::mark_english( 11, 'ok' ), 'nh_vien_conflict' ), 'Vietnamese half of a pair was marked English' );
-must( error_is( NH_VIEN_Links::link( 44, 33, 'ok' ), 'nh_vien_conflict' ), 'Standalone English article reused as Vietnamese' );
-must( true === NH_VIEN_Links::unmark_english( 44, 'ok' ), 'Could not unregister independent English article' );
-must( 'vi' === NH_VIEN_Links::language_of( 44 ), 'Unregistered article did not return to default language' );
+must( error_is( NH_VIEN_Links::link( 88, 33, 'ok' ), 'nh_vien_conflict' ), 'Standalone English article reused as Vietnamese' );
+must( true === NH_VIEN_Links::unmark_english( 88, 'ok' ), 'Could not unregister independent English article' );
+must( 'vi' === NH_VIEN_Links::language_of( 88 ), 'Unregistered article did not return to default language' );
 must( true === NH_VIEN_Links::unlink( 11, 'ok' ), 'Could not unlink test pair' );
 
 /** English category trees must start empty and must not adopt a Vietnamese parent. */

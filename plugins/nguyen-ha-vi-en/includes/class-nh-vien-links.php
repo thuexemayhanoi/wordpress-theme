@@ -244,6 +244,12 @@ final class NH_VIEN_Links {
 		if ( in_array( $post_id, $ids, true ) ) {
 			return true;
 		}
+		$post = get_post( $post_id );
+		// Explicitly protect existing published Vietnamese articles: English registration is allowed only
+		// while an article is still a draft or pending editorial review.
+		if ( ! in_array( $post->post_status, array( 'draft', 'pending' ), true ) ) {
+			return new WP_Error( 'nh_vien_invalid_posts', 'Register a draft English article before publishing it.' );
+		}
 		$ids[] = $post_id;
 		if ( ! update_option( self::INDEPENDENT_OPTION, $ids, false ) ) {
 			return new WP_Error( 'nh_vien_save_failed', 'Could not save the English article.' );
