@@ -4,7 +4,7 @@ Tags: multilingual, vietnamese, english, hreflang, seo
 Requires at least: 6.3
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.4.0
+Stable tag: 0.5.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -113,6 +113,12 @@ The CI also installs the plugin from its zip on real WordPress sites (WordPress 
 * The first matching rule wins: a real page at `/en/` or below it takes priority over the plugin's addresses, and a page at `/en/` has no page 2.
 
 == Changelog ==
+
+= 0.5.0 =
+* Permit administrator-designated English articles without mandatory Vietnamese partners; no content or slug is rewritten.
+* Permit explicitly designated empty parent/child English categories without changing or taking over Vietnamese categories.
+* Keep production routes disabled until both explicit production gates and the administrator rewrite-rule action are completed.
+
 
 = 0.4.0 =
 * The English side: addresses for posts, home, categories, tags, pagination and search; one language per list; locale, menus and caches per language; redirect of the ordinary English post address; hreflang, canonical and sitemap entries; Yoast SEO integration; accessible switcher; administration status screen with the rewrite and English home page buttons.

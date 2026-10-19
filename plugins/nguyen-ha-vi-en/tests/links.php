@@ -24,6 +24,32 @@ class WP_Post {
 		$this->post_status = $status;
 	}
 }
+class WP_Term {
+	public $term_id;
+	public $parent;
+	public $count;
+	public $name;
+	public function __construct( $id, $parent = 0, $count = 0, $name = '' ) {
+		$this->term_id = $id;
+		$this->parent = $parent;
+		$this->count = $count;
+		$this->name = $name;
+	}
+}
+$GLOBALS['mock_terms'] = array();
+function get_term( $id, $taxonomy = 'category' ) {
+	return isset( $GLOBALS['mock_terms'][ $id ] ) ? $GLOBALS['mock_terms'][ $id ] : null;
+}
+function get_term_children( $id, $taxonomy = 'category' ) {
+	$out = array();
+	foreach ( $GLOBALS['mock_terms'] as $term ) {
+		if ( $term->parent === $id ) {
+			$out[] = $term->term_id;
+			$out = array_merge( $out, get_term_children( $term->term_id, $taxonomy ) );
+		}
+	}
+	return $out;
+}
 class WP_Error {
 	private $code;
 	public function __construct( $code, $message ) { $this->code = $code; }
@@ -57,7 +83,7 @@ $GLOBALS['mock_posts'][55] = new WP_Post( 'page' );
 $GLOBALS['mock_posts'][66] = new WP_Post( 'post', 'trash' );
 $GLOBALS['mock_posts'][77] = new WP_Post( 'revision', 'inherit' );
 
-must( '0.4.0' === NH_VIEN_VERSION, 'Wrong version' );
+must( '0.5.0' === NH_VIEN_VERSION, 'Wrong version' );
 must( array() === NH_VIEN_Links::all(), 'Map should start empty' );
 must( array() === $GLOBALS['mock_writes'], 'Bootstrap must not write' );
 must( null === NH_VIEN_Links::for_post( 11 ), 'No implicit pairing' );
@@ -114,5 +140,44 @@ $GLOBALS['mock_options'][NH_VIEN_Links::OPTION] = array( 11 => 22, 33 => 11 );
 must( is_wp_error( NH_VIEN_Links::all() ), 'Reversed language-column overlap allowed' );
 $GLOBALS['mock_options'][NH_VIEN_Links::OPTION] = 'bad';
 must( is_wp_error( NH_VIEN_Links::all() ), 'Non-array store allowed' );
+
+/** Standalone EN articles: no automatic translation and no change to Vietnamese article data. */
+$GLOBALS['mock_options'][ NH_VIEN_Links::OPTION ] = array();
+NH_VIEN_Links::flush_cache();
+must( array() === NH_VIEN_Links::independent_ids(), 'No EN article should be pre-registered' );
+must( error_is( NH_VIEN_Links::mark_english( 44, 'bad' ), 'nh_vien_bad_nonce' ), 'English marker ignored nonce' );
+must( error_is( NH_VIEN_Links::mark_english( 55, 'ok' ), 'nh_vien_invalid_posts' ), 'English marker accepted a page' );
+must( error_is( NH_VIEN_Links::mark_english( 66, 'ok' ), 'nh_vien_invalid_posts' ), 'English marker accepted a trashed post' );
+must( true === NH_VIEN_Links::mark_english( 44, 'ok' ), 'Could not designate standalone English article' );
+must( array( 44 ) === NH_VIEN_Links::en_ids(), 'Standalone English ID not included' );
+must( 'en' === NH_VIEN_Links::language_of( 44 ), 'Standalone article has wrong language' );
+must( null === NH_VIEN_Links::for_post( 44 ), 'Standalone article should not invent a Vietnamese counterpart' );
+must( true === NH_VIEN_Links::link( 11, 22, 'ok' ), 'Valid pair should still work' );
+must( error_is( NH_VIEN_Links::mark_english( 11, 'ok' ), 'nh_vien_conflict' ), 'Vietnamese half of a pair was marked English' );
+must( error_is( NH_VIEN_Links::link( 44, 33, 'ok' ), 'nh_vien_conflict' ), 'Standalone English article reused as Vietnamese' );
+must( true === NH_VIEN_Links::unmark_english( 44, 'ok' ), 'Could not unregister independent English article' );
+must( 'vi' === NH_VIEN_Links::language_of( 44 ), 'Unregistered article did not return to default language' );
+must( true === NH_VIEN_Links::unlink( 11, 'ok' ), 'Could not unlink test pair' );
+
+/** English category trees must start empty and must not adopt a Vietnamese parent. */
+$GLOBALS['mock_terms'] = array(
+	201 => new WP_Term( 201, 0, 0, 'English guides' ),
+	202 => new WP_Term( 202, 201, 0, 'Rental guides' ),
+	301 => new WP_Term( 301, 0, 4, 'Vietnamese guide' ),
+	302 => new WP_Term( 302, 301, 0, 'Child of Vietnamese guide' ),
+);
+must( error_is( NH_VIEN_Links::mark_english_category( 202, 'ok' ), 'nh_vien_category_conflict' ), 'Accepted English child without English parent' );
+must( error_is( NH_VIEN_Links::mark_english_category( 301, 'ok' ), 'nh_vien_category_conflict' ), 'Changed populated Vietnamese category' );
+must( error_is( NH_VIEN_Links::mark_english_category( 302, 'ok' ), 'nh_vien_category_conflict' ), 'Changed child of Vietnamese category' );
+must( true === NH_VIEN_Links::mark_english_category( 201, 'ok' ), 'Failed to register English parent category' );
+must( true === NH_VIEN_Links::mark_english_category( 202, 'ok' ), 'Failed to register English child category' );
+must( array( 201, 202 ) === NH_VIEN_Links::declared_en_terms(), 'English parent/child registry mismatch' );
+must( isset( NH_VIEN_Links::en_only_term_ids()[201] ), 'English-only parent must be hidden in Vietnamese lists' );
+must( isset( NH_VIEN_Links::en_term_ids()[202] ), 'Empty English child must have an EN identity' );
+must( error_is( NH_VIEN_Links::unmark_english_category( 201, 'ok' ), 'nh_vien_category_conflict' ), 'Removed parent before English child' );
+must( true === NH_VIEN_Links::unmark_english_category( 202, 'ok' ), 'Failed to unmark English child' );
+must( true === NH_VIEN_Links::unmark_english_category( 201, 'ok' ), 'Failed to unmark English parent' );
+must( array() === NH_VIEN_Links::declared_en_terms(), 'English categories were not cleared' );
+
 must( array( 'plugins_loaded' ) === $GLOBALS['hooks'], 'Non-admin bootstrap added unexpected hooks' );
 echo "PASS: reciprocal links, one-to-one conflicts, CSRF/capability, corrupt-store and write boundaries.\n";
