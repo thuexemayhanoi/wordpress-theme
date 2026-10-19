@@ -17,7 +17,45 @@ final class NH_VIEN_Content {
 			return;
 		}
 		add_filter( 'wp_nav_menu_args', array( __CLASS__, 'nav_menu_args' ) );
+		add_filter( 'template_include', array( __CLASS__, 'english_home_template' ), 30 );
+		add_filter( 'the_title', array( __CLASS__, 'escape_english_title' ), 99 );
 		add_shortcode( 'nh_vien_posts', array( __CLASS__, 'posts_shortcode' ) );
+	}
+
+
+
+	/**
+	 * WordPress' the_title() does not escape post titles for HTML. The editorial
+	 * cards use that function directly; English headings must never emit user-provided
+	 * HTML. Preserve Vietnamese presentation by applying only to live EN routes.
+	 *
+	 * @param string $title Original post or page title.
+	 * @return string Escaped English title or untouched Vietnamese title.
+	 */
+	public static function escape_english_title( $title ) {
+		if ( ! is_string( $title ) || is_admin() || ! NH_VIEN_Routes::live() || ! NH_VIEN_Context::is_english() ) {
+			return $title;
+		}
+		return esc_html( $title );
+	}
+
+	/**
+	 * Reuse the active Editorial theme's layout for the English home page while keeping the
+	 * ordinary WordPress page.php fallback for other themes and all Vietnamese routes.
+	 *
+	 * @param string $template WordPress' selected PHP template.
+	 * @return string Selected template path.
+	 */
+	public static function english_home_template( $template ) {
+		if ( ! NH_VIEN_Routes::live() || ! NH_VIEN_Context::is_english() || ! is_page() ) {
+			return $template;
+		}
+		$home = NH_VIEN_Routes::home_page();
+		if ( ! $home instanceof WP_Post || (int) get_queried_object_id() !== (int) $home->ID ) {
+			return $template;
+		}
+		$editorial = locate_template( 'page-templates/template-english-home.php', false, false );
+		return $editorial ? $editorial : $template;
 	}
 
 	/**
@@ -35,11 +73,72 @@ final class NH_VIEN_Content {
 		$locations = get_nav_menu_locations();
 		$location  = (string) $args['theme_location'];
 		$menu      = ! empty( $locations[ $location ] ) ? wp_get_nav_menu_object( $locations[ $location ] ) : false;
-		$english   = $menu ? wp_get_nav_menu_object( $menu->slug . '-en' ) : false;
+		// English navigation has its own stable slug per theme location (primary-en,
+		// footer-en). Also recognize the old Vietnamese-menu-slug-en convention so
+		// existing setups keep working without renaming either menu.
+		$english = wp_get_nav_menu_object( $location . '-en' );
+		if ( ! $english && $menu ) {
+			$english = wp_get_nav_menu_object( $menu->slug . '-en' );
+		}
 		if ( $english ) {
 			$args['menu'] = $english;
+		} else {
+			// Do not fall back to the Vietnamese menu before an English menu is created.
+			$args['menu']           = -1;
+			$args['theme_location'] = '';
+			$args['fallback_cb']    = array( __CLASS__, 'fallback_english_menu' );
 		}
 		return $args;
+	}
+
+	/**
+	 * Render a small English-only menu while its editorial replacement is not set.
+	 *
+	 * @param array $args WordPress menu fallback arguments.
+	 * @return void
+	 */
+	public static function fallback_english_menu( $args ) {
+		$items = array(
+			array(
+				'label' => 'Home',
+				'url'   => NH_VIEN_Routes::url(),
+			),
+		);
+		foreach (
+			array(
+				'about'   => 'About',
+				'prices'  => 'Prices',
+				'contact' => 'Contact',
+			) as $slug => $label
+		) {
+			$page = NH_VIEN_Routes::page_at( 'en/' . $slug );
+			if ( $page instanceof WP_Post ) {
+				$items[] = array(
+					'label' => $label,
+					'url'   => (string) get_permalink( $page ),
+				);
+			}
+		}
+		foreach ( NH_VIEN_Links::declared_en_terms() as $id ) {
+			$term = get_term( $id, 'category' );
+			if ( ! $term instanceof WP_Term || (int) $term->parent ) {
+				continue;
+			}
+			$link = get_term_link( $term );
+			if ( ! is_wp_error( $link ) ) {
+				$items[] = array(
+					'label' => $term->name,
+					'url'   => $link,
+				);
+			}
+		}
+		$class = isset( $args['menu_class'] ) ? $args['menu_class'] : 'nav-list';
+		$id    = isset( $args['menu_id'] ) ? $args['menu_id'] : 'english-navigation';
+		echo '<ul class="' . esc_attr( $class ) . '" id="' . esc_attr( $id ) . '">';
+		foreach ( $items as $item ) {
+			echo '<li class="menu-item"><a href="' . esc_url( $item['url'] ) . '">' . esc_html( $item['label'] ) . '</a></li>';
+		}
+		echo '</ul>';
 	}
 
 	/**

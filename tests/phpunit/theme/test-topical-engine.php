@@ -40,6 +40,28 @@ class NH_Test_Cache extends NH_Unit_Test_Case {
 		$this->assertSame( array( 'n' => 2 ), nh_editorial_cache_remember( 'unit-test', $cb ) );
 	}
 
+	public function test_structural_caches_keep_each_language_in_a_separate_namespace() {
+		$default    = nh_editorial_cache_key( 'hubs:8' );
+		$english    = static function () {
+			return 'en';
+		};
+		$vietnamese = static function () {
+			return 'vi';
+		};
+
+		add_filter( 'nh_editorial_cache_scope', $english );
+		$en_key = nh_editorial_cache_key( 'hubs:8' );
+		$this->assertNotSame( $default, $en_key );
+		remove_filter( 'nh_editorial_cache_scope', $english );
+
+		add_filter( 'nh_editorial_cache_scope', $vietnamese );
+		$vi_key = nh_editorial_cache_key( 'hubs:8' );
+		$this->assertNotSame( $en_key, $vi_key );
+		remove_filter( 'nh_editorial_cache_scope', $vietnamese );
+
+		$this->assertSame( $default, nh_editorial_cache_key( 'hubs:8' ) );
+	}
+
 	public function test_false_and_empty_results_are_cached_too() {
 		$calls = 0;
 		$cb    = static function () use ( &$calls ) {

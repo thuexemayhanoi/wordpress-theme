@@ -8,6 +8,12 @@
 
 defined( 'ABSPATH' ) || exit;
 
+// Display a dedicated English footer without inheriting the Vietnamese footer widgets.
+if ( class_exists( 'NH_VIEN_Routes' ) && class_exists( 'NH_VIEN_Context' ) && NH_VIEN_Routes::live() && NH_VIEN_Context::is_english() ) {
+	get_template_part( 'template-parts/footer/english' );
+	return;
+}
+
 $nh_editorial_business = nh_editorial_business();
 $nh_editorial_social   = nh_editorial_social_links();
 $nh_editorial_privacy  = get_privacy_policy_url();

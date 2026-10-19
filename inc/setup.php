@@ -120,6 +120,18 @@ function nh_editorial_widgets() {
 				'after_title'   => '</h2>',
 			)
 		);
+		register_sidebar(
+			array(
+				/* translators: %d: English footer column number. */
+				'name'          => sprintf( 'English %s', sprintf( __( 'Footer Column %d', 'nguyen-ha-editorial' ), $i ) ),
+				'id'            => 'footer-en-' . $i,
+				'description'   => 'English: ' . __( 'When this column has widgets they replace its default content.', 'nguyen-ha-editorial' ),
+				'before_widget' => '<section id="%1$s" class="widget footer-widget %2$s">',
+				'after_widget'  => '</section>',
+				'before_title'  => '<h2 class="widget-title footer-title">',
+				'after_title'   => '</h2>',
+			)
+		);
 	}
 }
 add_action( 'widgets_init', 'nh_editorial_widgets' );

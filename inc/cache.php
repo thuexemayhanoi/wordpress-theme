@@ -66,7 +66,22 @@ function nh_editorial_cache_version() {
  * @return string
  */
 function nh_editorial_cache_key( $name ) {
-	return 'nh_ed_' . substr( md5( $name . '|' . nh_editorial_cache_version() ), 0, 24 );
+	// Every structural fragment (hubs, categories, featured and related posts) depends on
+	// the request language when the native VI/EN plugin is active. Never share VI and EN
+	// transient keys; a cached Vietnamese hub must not be rendered on an English page.
+	$scope = 'default';
+	if ( class_exists( 'NH_VIEN_Routes' ) && class_exists( 'NH_VIEN_Context' ) && NH_VIEN_Routes::live() ) {
+		$scope = NH_VIEN_Context::is_english() ? 'en' : 'vi';
+	}
+
+	/**
+	 * Filter the cache namespace when external presentation context changes the data.
+	 *
+	 * @param string $scope Request-language cache namespace.
+	 */
+	$scope = (string) apply_filters( 'nh_editorial_cache_scope', $scope );
+
+	return 'nh_ed_' . substr( md5( $name . '|' . $scope . '|' . nh_editorial_cache_version() ), 0, 24 );
 }
 
 /**
