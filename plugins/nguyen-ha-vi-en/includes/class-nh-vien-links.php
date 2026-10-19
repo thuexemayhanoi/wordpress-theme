@@ -30,6 +30,52 @@ final class NH_VIEN_Links {
 		self::$memo = array();
 	}
 
+	/** Register the publish guard when the English side is switched on. */
+	public static function boot() {
+		if ( NH_VIEN_Routes::enabled() ) {
+			add_action( 'wp_after_insert_post', array( __CLASS__, 'after_insert_post' ), 10, 2 );
+		}
+	}
+
+	/**
+	 * A post published with English categories only is an English post: register it when nobody did, so that it never
+	 * shows up in a Vietnamese list and is served at /en/{slug}/. A post with any other category, a page, every other
+	 * post type, a draft and the Vietnamese side of a pair are left alone. The categories reserved for English are empty
+	 * when they are registered and their parents are English too, so no existing Vietnamese post can match.
+	 *
+	 * @param int|WP_Post  $post_id The post that was saved.
+	 * @param WP_Post|null $post    The post object, when WordPress passes it.
+	 */
+	public static function after_insert_post( $post_id, $post = null ) {
+		$post = $post instanceof WP_Post ? $post : get_post( $post_id );
+		if ( ! $post instanceof WP_Post || 'post' !== $post->post_type || 'publish' !== $post->post_status ) {
+			return;
+		}
+		$id = (int) $post->ID;
+		if ( self::is_en( $id ) || isset( self::pairs()[ $id ] ) ) {
+			return;
+		}
+		$declared = self::declared_en_terms();
+		if ( ! $declared ) {
+			return;
+		}
+		$categories = wp_get_post_categories( $id, array( 'fields' => 'ids' ) );
+		if ( is_wp_error( $categories ) || ! is_array( $categories ) || ! $categories ) {
+			return;
+		}
+		foreach ( $categories as $term_id ) {
+			if ( ! in_array( (int) $term_id, $declared, true ) ) {
+				return;
+			}
+		}
+		$ids   = self::independent_ids();
+		$ids[] = $id;
+		if ( update_option( self::INDEPENDENT_OPTION, $ids, false ) ) {
+			self::flush_cache();
+			do_action( 'nh_vien_pairs_changed', 0, $id );
+		}
+	}
+
 	/**
 	 * Read validated Vietnamese-post-ID => English-post-ID relationships.
 	 * Malformed or ambiguous maps are never overwritten automatically.
