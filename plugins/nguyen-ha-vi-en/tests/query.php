@@ -343,6 +343,7 @@ $GLOBALS['options'][ NH_VIEN_Links::EN_TERMS_OPTION ] = array( 201, 202 );
 $GLOBALS['published'][] = new WP_Post( 77, 'new-english-guide' );
 $GLOBALS['terms'][201] = new WP_Term( 201, 'category', 'guides-english', 0 );
 $GLOBALS['terms'][202] = new WP_Term( 202, 'category', 'rental-guides-english', 1 );
+$GLOBALS['terms'][999] = new WP_Term( 999, 'category', 'unmodified-vietnamese', 3 );
 $GLOBALS['parents'][202] = 201;
 $GLOBALS['assigned'][77] = array( 202 );
 fresh( 'en' );
@@ -355,8 +356,8 @@ fresh( 'vi' );
 $q = query();
 NH_VIEN_Query::scope( $q );
 must( array( 77 ) === $q->get( 'post__not_in' ), 'Vietnamese query must exclude the independent English article' );
-$terms = NH_VIEN_Query::filter_terms( array( $GLOBALS['terms'][201], $GLOBALS['terms'][202], $GLOBALS['terms'][1] ), array( 'category' ) );
-must( array( $GLOBALS['terms'][1] ) === $terms, 'English category tree leaked into Vietnamese terms' );
+$terms = NH_VIEN_Query::filter_terms( array( $GLOBALS['terms'][201], $GLOBALS['terms'][202], $GLOBALS['terms'][999] ), array( 'category' ) );
+must( array( $GLOBALS['terms'][999] ) === $terms, 'English category tree leaked into Vietnamese terms' );
 
 
 $GLOBALS['options'] = $saved_options;

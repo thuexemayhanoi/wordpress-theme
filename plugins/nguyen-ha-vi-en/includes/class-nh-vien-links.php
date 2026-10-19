@@ -410,7 +410,7 @@ final class NH_VIEN_Links {
 			if ( ! self::positive_id( $vi ) || ! self::positive_id( $en ) || (int) $vi === (int) $en || isset( $seen[ (int) $en ] ) ) {
 				return new WP_Error( 'nh_vien_invalid_store', 'Page link store has conflicting IDs.' );
 			}
-			$pairs[ (int) $vi ] = (int) $en;
+			$pairs[ (int) $vi ]  = (int) $en;
 			$seen[ (int) $en ] = true;
 		}
 		foreach ( $pairs as $vi => $en ) {
