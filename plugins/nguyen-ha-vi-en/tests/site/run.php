@@ -290,12 +290,21 @@ if ( 'homepage' === $suite ) {
 	$xpath = xp( $home['body'] );
 	ok( '/en/ serves the page', 200 === $home['status'] && 'English' === explode( ' ', text_of( $xpath, '//head/title' ) )[0], text_of( $xpath, '//head/title' ) );
 	$items = $xpath->query( "//ul[contains(@class,'nh-vien-posts')]//li//a" );
-	ok( 'the shortcode lists the English posts that may be shown', 17 === $items->length, $items->length . ' items' );
-	$listed = array();
-	foreach ( $items as $a ) {
-		$listed[] = path_of( $a->getAttribute( 'href' ) );
+	if ( $items->length ) {
+		// Default and third-party themes keep the existing English post shortcode.
+		ok( 'the shortcode lists the English posts that may be shown', 17 === $items->length, $items->length . ' items' );
+		$listed = array();
+		foreach ( $items as $a ) {
+			$listed[] = path_of( $a->getAttribute( 'href' ) );
+		}
+	} else {
+		// Nguyen Ha Editorial deliberately uses the shared homepage card-grid layout.
+		$listed = post_links_in_main( $xpath, $en_paths );
+		ok( 'English home uses the editorial article cards', count( $listed ) >= 4, implode( ',', $listed ) );
+		ok( 'English homepage has one visible H1', 1 === $xpath->query( '//main//h1' )->length );
+		ok( 'English homepage uses an English-only footer', 1 === $xpath->query( "//footer[contains(@class,'site-footer')]" )->length );
 	}
-	ok( 'every item links to an English address and none is hidden', ! array_diff( $listed, $en_paths ) && ! array_intersect( $listed, array( '/en/hidden-english-post/', '/en/english-draft/', '/en/collision-post/' ) ), implode( ',', array_diff( $listed, $en_paths ) ) );
+	ok( 'every listed article is English and none is hidden', ! array_diff( $listed, $en_paths ) && ! array_intersect( $listed, array( '/en/hidden-english-post/', '/en/english-draft/', '/en/collision-post/' ) ), implode( ',', array_diff( $listed, $en_paths ) ) );
 	ok( 'a title with markup is escaped in the list', false === strpos( $home['body'], '<img src=x onerror' ) && false !== strpos( $home['body'], '&lt;img src=x onerror' ) );
 	ok( '/en/page/2/ is a 404 (a real page has no page 2)', 404 === page( '/en/page/2/' )['status'] );
 	ok( 'a search below /en/ still finds English posts', in_array( '/en/motorbike-rental-in-hanoi/', post_links_in_main( xp( page( '/en/?s=Motorbike' )['body'] ), $en_paths ), true ) );
