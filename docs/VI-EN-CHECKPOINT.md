@@ -53,7 +53,9 @@ work. The user-facing description (how it works, switching it on, production con
   at `wp_body_open`, else before the content of a single post, plus `[nh_vien_switcher]`.
 - **SEO** (`class-nh-vien-seo.php`): hreflang for pairs and homes; own canonical for English lists only without an SEO
   plugin; Yoast through documented filters (canonical, og:url, dynamic permalinks, title of the virtual English
-  home, breadcrumbs, sitemap exclusions and extra entries); core sitemap arguments without an SEO plugin.
+  home, breadcrumbs, sitemap: English posts that may not be shown are excluded, the entry of an English-only term moves to
+  its English address, the English archive of a shared term follows it, the English home is added); core sitemap
+  arguments without an SEO plugin (English-only terms are left out; the sitemap of WordPress cannot take extra entries).
 - **Admin** (`class-nh-vien-admin.php`): status table, store-rules button, draft English home page button, pair form
   and table; every action needs `manage_options` and a nonce; every value is escaped. Storing the rules is refused
   while the gate is open and a published *post* has the slug `en` (it would be shadowed by the English home).

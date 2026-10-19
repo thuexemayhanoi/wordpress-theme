@@ -16,6 +16,14 @@ defined( 'ABSPATH' ) || exit;
  * Hreflang, canonical addresses and Yoast SEO integration.
  */
 final class NH_VIEN_Seo {
+	/**
+	 * The English archives of the terms that Yoast SEO put into the sitemap being built, by taxonomy: the terms that both
+	 * languages use get their English archive as an extra entry after the Vietnamese ones.
+	 *
+	 * @var array<string,array<string,bool>>
+	 */
+	private static $english_entries = array();
+
 	/** Register the SEO hooks when the English side is switched on. */
 	public static function boot() {
 		if ( ! NH_VIEN_Routes::enabled() ) {
@@ -30,7 +38,7 @@ final class NH_VIEN_Seo {
 		add_filter( 'wpseo_title', array( __CLASS__, 'title' ) );
 		add_filter( 'wpseo_breadcrumb_links', array( __CLASS__, 'breadcrumbs' ) );
 		add_filter( 'wpseo_exclude_from_sitemap_by_post_ids', array( __CLASS__, 'exclude_posts' ) );
-		add_filter( 'wpseo_exclude_from_sitemap_by_term_ids', array( __CLASS__, 'exclude_terms' ) );
+		add_filter( 'wpseo_sitemap_entry', array( __CLASS__, 'sitemap_entry' ), 10, 3 );
 		add_filter( 'wpseo_sitemap_post_content', array( __CLASS__, 'sitemap_home' ) );
 		add_filter( 'wpseo_sitemap_category_content', array( __CLASS__, 'sitemap_categories' ) );
 		add_filter( 'wpseo_sitemap_post_tag_content', array( __CLASS__, 'sitemap_tags' ) );
@@ -238,36 +246,34 @@ final class NH_VIEN_Seo {
 	}
 
 	/**
-	 * Leave the categories and tags whose posts are all English out of the Vietnamese sitemap.
+	 * Yoast SEO lists every category and tag with its address without /en/. A term that only English posts use has no
+	 * Vietnamese archive (that address answers 404): its entry gets the English address instead, so that the sitemap is
+	 * never empty because of the language and never lists a missing page. A term that both languages use keeps its
+	 * entry, and its English archive is added after the others (see sitemap_terms()). Yoast has already left out the
+	 * terms it keeps out of the search results.
 	 *
-	 * @param array $ids Term IDs excluded so far.
-	 * @return array
+	 * @param array|false $url    The sitemap entry.
+	 * @param string      $type   What the entry is for: post, term or user.
+	 * @param mixed       $object The post, term or user.
+	 * @return array|false
 	 */
-	public static function exclude_terms( $ids ) {
-		if ( ! NH_VIEN_Routes::live() ) {
-			return $ids;
+	public static function sitemap_entry( $url, $type, $object = null ) {
+		if ( 'term' !== $type || ! is_array( $url ) || ! $object instanceof WP_Term || ! NH_VIEN_Routes::live() ) {
+			return $url;
 		}
-		return array_merge( (array) $ids, array_keys( NH_VIEN_Links::en_only_term_ids() ) );
-	}
-
-	/**
-	 * In the sitemap of WordPress the posts are listed with the English posts that may be shown and without those that
-	 * may not; the language restriction of lists does not apply to a sitemap.
-	 *
-	 * @param array  $args      The arguments of the posts query.
-	 * @param string $post_type The post type of the sitemap.
-	 * @return array
-	 */
-	public static function core_sitemap_args( $args, $post_type ) {
-		if ( 'post' !== $post_type || ! is_array( $args ) || ! NH_VIEN_Routes::live() ) {
-			return $args;
+		$english = NH_VIEN_Urls::english_term_url( $object );
+		if ( isset( NH_VIEN_Links::en_only_term_ids()[ (int) $object->term_id ] ) ) {
+			if ( '' === $english ) {
+				// Only English posts that may not be shown yet use the term: it has no archive in either language.
+				return array();
+			}
+			$url['loc'] = $english;
+			return $url;
 		}
-		$args[ NH_VIEN_Routes::SCOPE_VAR ] = 'off';
-		$args['post__not_in']              = array_merge(
-			isset( $args['post__not_in'] ) ? (array) $args['post__not_in'] : array(),
-			array_diff( NH_VIEN_Links::en_ids(), NH_VIEN_Links::public_en_ids() )
-		);
-		return $args;
+		if ( '' !== $english ) {
+			self::$english_entries[ $object->taxonomy ][ $english ] = true;
+		}
+		return $url;
 	}
 
 	/**
@@ -302,7 +308,7 @@ final class NH_VIEN_Seo {
 		if ( ! NH_VIEN_Routes::live() || NH_VIEN_Routes::home_page() || ! NH_VIEN_Links::public_en_ids() ) {
 			return $content;
 		}
-		return $content . self::sitemap_entry( NH_VIEN_Routes::url() );
+		return $content . self::sitemap_entry_xml( NH_VIEN_Routes::url() );
 	}
 
 	/**
@@ -326,23 +332,21 @@ final class NH_VIEN_Seo {
 	}
 
 	/**
-	 * Sitemap entries for the English archives of a taxonomy.
+	 * Sitemap entries for the English archives of the terms that both languages use, collected while Yoast SEO built the
+	 * entries of the sitemap that is being finished.
 	 *
 	 * @param string $taxonomy Taxonomy name.
 	 * @return string
 	 */
 	private static function sitemap_terms( $taxonomy ) {
-		if ( ! NH_VIEN_Routes::live() ) {
+		if ( ! NH_VIEN_Routes::live() || empty( self::$english_entries[ $taxonomy ] ) ) {
 			return '';
 		}
 		$xml = '';
-		foreach ( array_keys( NH_VIEN_Links::en_term_ids() ) as $term_id ) {
-			$term = get_term( (int) $term_id, $taxonomy );
-			$url  = $term instanceof WP_Term ? NH_VIEN_Urls::english_term_url( $term ) : '';
-			if ( '' !== $url ) {
-				$xml .= self::sitemap_entry( $url );
-			}
+		foreach ( array_keys( self::$english_entries[ $taxonomy ] ) as $url ) {
+			$xml .= self::sitemap_entry_xml( $url );
 		}
+		unset( self::$english_entries[ $taxonomy ] );
 		return $xml;
 	}
 
@@ -352,7 +356,7 @@ final class NH_VIEN_Seo {
 	 * @param string $url Absolute address.
 	 * @return string
 	 */
-	private static function sitemap_entry( $url ) {
+	private static function sitemap_entry_xml( $url ) {
 		return "\t<url>\n\t\t<loc>" . esc_url( $url ) . "</loc>\n\t</url>\n";
 	}
 }
