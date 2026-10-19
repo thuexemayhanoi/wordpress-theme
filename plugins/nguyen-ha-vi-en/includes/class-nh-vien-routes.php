@@ -45,13 +45,24 @@ final class NH_VIEN_Routes {
 	 * @return bool
 	 */
 	public static function enabled() {
-		if ( ! defined( 'NH_VIEN_ENABLE_EN_ROUTES' ) || true !== NH_VIEN_ENABLE_EN_ROUTES || ! function_exists( 'wp_get_environment_type' ) ) {
+		if ( ! function_exists( 'wp_get_environment_type' ) ) {
+			return false;
+		}
+		// A wp-config.php constant, when present, remains the authoritative emergency override.
+		if ( defined( 'NH_VIEN_ENABLE_EN_ROUTES' ) ) {
+			if ( true !== NH_VIEN_ENABLE_EN_ROUTES ) {
+				return false;
+			}
+		} elseif ( 'yes' !== get_option( 'nh_vien_routes_enabled_v1', 'no' ) ) {
 			return false;
 		}
 		if ( in_array( wp_get_environment_type(), array( 'local', 'development', 'staging' ), true ) ) {
 			return true;
 		}
-		return defined( 'NH_VIEN_ALLOW_PRODUCTION' ) && true === NH_VIEN_ALLOW_PRODUCTION;
+		if ( defined( 'NH_VIEN_ALLOW_PRODUCTION' ) ) {
+			return true === NH_VIEN_ALLOW_PRODUCTION;
+		}
+		return 'yes' === get_option( 'nh_vien_production_enabled_v1', 'no' );
 	}
 
 	/**
