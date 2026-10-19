@@ -59,8 +59,57 @@ final class NH_VIEN_Content {
 		$english   = $menu ? wp_get_nav_menu_object( $menu->slug . '-en' ) : false;
 		if ( $english ) {
 			$args['menu'] = $english;
+		} else {
+			// Do not fall back to the Vietnamese menu before an English menu is created.
+			$args['menu']           = -1;
+			$args['theme_location'] = '';
+			$args['fallback_cb']    = array( __CLASS__, 'fallback_english_menu' );
 		}
 		return $args;
+	}
+
+	/**
+	 * Render a small English-only menu while its editorial replacement is not set.
+	 *
+	 * @param array $args WordPress menu fallback arguments.
+	 * @return void
+	 */
+	public static function fallback_english_menu( $args ) {
+		$items = array(
+			array(
+				'label' => 'Home',
+				'url'   => NH_VIEN_Routes::url(),
+			),
+		);
+		foreach ( array( 'about' => 'About', 'prices' => 'Prices', 'contact' => 'Contact' ) as $slug => $label ) {
+			$page = NH_VIEN_Routes::page_at( 'en/' . $slug );
+			if ( $page instanceof WP_Post ) {
+				$items[] = array(
+					'label' => $label,
+					'url'   => (string) get_permalink( $page ),
+				);
+			}
+		}
+		foreach ( NH_VIEN_Links::declared_en_terms() as $id ) {
+			$term = get_term( $id, 'category' );
+			if ( ! $term instanceof WP_Term || (int) $term->parent ) {
+				continue;
+			}
+			$link = get_term_link( $term );
+			if ( ! is_wp_error( $link ) ) {
+				$items[] = array(
+					'label' => $term->name,
+					'url'   => $link,
+				);
+			}
+		}
+		$class = isset( $args['menu_class'] ) ? $args['menu_class'] : 'nav-list';
+		$id    = isset( $args['menu_id'] ) ? $args['menu_id'] : 'english-navigation';
+		echo '<ul class="' . esc_attr( $class ) . '" id="' . esc_attr( $id ) . '">';
+		foreach ( $items as $item ) {
+			echo '<li class="menu-item"><a href="' . esc_url( $item['url'] ) . '">' . esc_html( $item['label'] ) . '</a></li>';
+		}
+		echo '</ul>';
 	}
 
 	/**
