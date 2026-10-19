@@ -277,6 +277,26 @@ final class NH_VIEN_Seo {
 	}
 
 	/**
+	 * In the sitemap of WordPress the posts are listed with the English posts that may be shown and without those that
+	 * may not; the language restriction of lists does not apply to a sitemap.
+	 *
+	 * @param array  $args      The arguments of the posts query.
+	 * @param string $post_type The post type of the sitemap.
+	 * @return array
+	 */
+	public static function core_sitemap_args( $args, $post_type ) {
+		if ( 'post' !== $post_type || ! is_array( $args ) || ! NH_VIEN_Routes::live() ) {
+			return $args;
+		}
+		$args[ NH_VIEN_Routes::SCOPE_VAR ] = 'off';
+		$args['post__not_in']              = array_merge(
+			isset( $args['post__not_in'] ) ? (array) $args['post__not_in'] : array(),
+			array_diff( NH_VIEN_Links::en_ids(), NH_VIEN_Links::public_en_ids() )
+		);
+		return $args;
+	}
+
+	/**
 	 * In the sitemap of categories and tags of WordPress, leave out the terms that only English posts fill: their address
 	 * without /en/ answers 404. The sitemap of WordPress does not list the English archives; without an SEO plugin they
 	 * are found through the links of the pages.

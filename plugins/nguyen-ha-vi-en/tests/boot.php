@@ -13,15 +13,25 @@ define( 'NH_VIEN_PLUGIN_FILE', dirname( __DIR__ ) . '/nguyen-ha-vi-en.php' );
 $GLOBALS['env']      = 'staging';
 $GLOBALS['is_admin'] = false;
 $GLOBALS['hooks']    = array();
+$GLOBALS['callbacks'] = array();
 $GLOBALS['options']  = array();
 
 function wp_get_environment_type() { return $GLOBALS['env']; }
 function is_admin() { return $GLOBALS['is_admin']; }
 function get_option( $key, $default = false ) { return array_key_exists( $key, $GLOBALS['options'] ) ? $GLOBALS['options'][ $key ] : $default; }
-function add_action( $tag ) { $GLOBALS['hooks'][] = $tag; }
-function add_filter( $tag ) { $GLOBALS['hooks'][] = $tag; }
-function add_shortcode( $tag ) { $GLOBALS['hooks'][] = 'shortcode:' . $tag; }
+function add_action( $tag, $callback = null ) { $GLOBALS['hooks'][] = $tag; $GLOBALS['callbacks'][ $tag ][] = $callback; }
+function add_filter( $tag, $callback = null ) { $GLOBALS['hooks'][] = $tag; $GLOBALS['callbacks'][ $tag ][] = $callback; }
+function add_shortcode( $tag, $callback = null ) { $GLOBALS['hooks'][] = 'shortcode:' . $tag; $GLOBALS['callbacks'][ 'shortcode:' . $tag ][] = $callback; }
 function must( $condition, $message ) { if ( ! $condition ) { throw new RuntimeException( $message ); } }
+
+/** Every callback that was registered must exist and be public: WordPress would fatal on the first request otherwise. */
+function callbacks_exist( $where ) {
+	foreach ( $GLOBALS['callbacks'] as $tag => $callbacks ) {
+		foreach ( $callbacks as $callback ) {
+			must( is_callable( $callback ), "The callback registered for $tag does not exist or is not public ($where): " . json_encode( $callback ) );
+		}
+	}
+}
 
 foreach ( array( 'languages', 'links', 'admin', 'routes', 'context', 'urls', 'query', 'cache', 'content', 'seo', 'switcher', 'plugin' ) as $part ) {
 	require dirname( __DIR__ ) . '/includes/class-nh-vien-' . $part . '.php';
@@ -29,10 +39,12 @@ foreach ( array( 'languages', 'links', 'admin', 'routes', 'context', 'urls', 'qu
 
 /** Run the plugin bootstrap in one context and return the sorted list of hooks it registered. */
 function boot_hooks( $env, $admin ) {
-	$GLOBALS['env']      = $env;
-	$GLOBALS['is_admin'] = $admin;
-	$GLOBALS['hooks']    = array();
+	$GLOBALS['env']       = $env;
+	$GLOBALS['is_admin']  = $admin;
+	$GLOBALS['hooks']     = array();
+	$GLOBALS['callbacks'] = array();
 	NH_VIEN_Plugin::boot();
+	callbacks_exist( "$env, " . ( $admin ? 'admin' : 'front end' ) );
 	$hooks = $GLOBALS['hooks'];
 	sort( $hooks );
 	return $hooks;
@@ -40,11 +52,13 @@ function boot_hooks( $env, $admin ) {
 
 /** The hooks the given modules register on their own, sorted. */
 function hooks_of( ...$classes ) {
-	$GLOBALS['env']   = 'staging';
-	$GLOBALS['hooks'] = array();
+	$GLOBALS['env']       = 'staging';
+	$GLOBALS['hooks']     = array();
+	$GLOBALS['callbacks'] = array();
 	foreach ( $classes as $class ) {
 		$class::boot();
 	}
+	callbacks_exist( implode( ', ', $classes ) );
 	$hooks = $GLOBALS['hooks'];
 	sort( $hooks );
 	return $hooks;
