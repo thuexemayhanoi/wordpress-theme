@@ -18,6 +18,10 @@ function get_option( $key, $default = false ) {
 	return $default;
 }
 
+function register_deactivation_hook( $file, $callback ) {
+	$GLOBALS['nh_vien_smoke_deactivation'] = array( $file, $callback );
+}
+
 function nh_vien_expect( $condition, $message ) {
 	if ( ! $condition ) {
 		throw new RuntimeException( $message );
@@ -30,6 +34,8 @@ nh_vien_expect( '0.4.0' === NH_VIEN_VERSION, 'Version mismatch' );
 nh_vien_expect( 1 === count( $GLOBALS['nh_vien_smoke_hooks'] ), 'Expected one bootstrap hook' );
 nh_vien_expect( 'plugins_loaded' === $GLOBALS['nh_vien_smoke_hooks'][0][0], 'Unexpected WordPress hook' );
 nh_vien_expect( 20 === $GLOBALS['nh_vien_smoke_hooks'][0][2], 'Unexpected hook priority' );
+nh_vien_expect( array( 'NH_VIEN_Routes', 'deactivate' ) === $GLOBALS['nh_vien_smoke_deactivation'][1], 'Deactivation must take the stored rules of the plugin out' );
+nh_vien_expect( realpath( $GLOBALS['nh_vien_smoke_deactivation'][0] ) === realpath( dirname( __DIR__ ) . '/nguyen-ha-vi-en.php' ), 'The deactivation hook belongs to the main plugin file' );
 call_user_func( $GLOBALS['nh_vien_smoke_hooks'][0][1] );
 
 $plugin = nh_vien();

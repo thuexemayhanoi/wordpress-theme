@@ -623,7 +623,7 @@ jobs:
           retention-days: 14
 
   vi-en-site:
-    name: VI-EN plugin on a real site (${{ matrix.theme }} theme, ${{ matrix.seo }})
+    name: VI-EN plugin on a real site (${{ matrix.theme }} theme, ${{ matrix.seo }}, WordPress ${{ matrix.wp || '7.1.3' }})
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
@@ -639,6 +639,10 @@ jobs:
             seo: none
           - theme: default
             seo: none
+          # The oldest WordPress the plugin declares (Requires at least: 6.3).
+          - theme: editorial
+            seo: none
+            wp: '6.3.5'
     services:
       mysql:
         image: mysql:8.0
@@ -676,10 +680,10 @@ jobs:
           npm ci
           npx playwright install --with-deps chromium
 
-      - name: Download WP-CLI and WordPress 7.1.3
+      - name: Download WP-CLI and WordPress ${{ matrix.wp || '7.1.3' }}
         run: |
           curl -fsSL -o "$RUNNER_TEMP/wp-cli.phar" "$WP_CLI_PHAR_URL"
-          php "$RUNNER_TEMP/wp-cli.phar" --allow-root core download --path="$RUNNER_TEMP/wp" --version=7.1.3
+          php "$RUNNER_TEMP/wp-cli.phar" --allow-root core download --path="$RUNNER_TEMP/wp" --version=${{ matrix.wp || '7.1.3' }}
           echo "WP_DIR=$RUNNER_TEMP/wp" >> "$GITHUB_ENV"
           echo "NH_VIEN_FIXTURE=$RUNNER_TEMP/nh-vien-fixture.json" >> "$GITHUB_ENV"
 
@@ -708,10 +712,14 @@ jobs:
           wp theme activate "$theme"
           wp theme list --fields=name,status,version
 
-      - name: Install the VI-EN plugin (the gate stays closed)
+      - name: Install the VI-EN plugin from its zip (the gate stays closed)
         run: |
           wp() { php "$RUNNER_TEMP/wp-cli.phar" --allow-root --path="$WP_DIR" "$@"; }
-          ln -sfn "$GITHUB_WORKSPACE/plugins/nguyen-ha-vi-en" "$WP_DIR/wp-content/plugins/nguyen-ha-vi-en"
+          # The package the release ships (tools/package.sh), not the source folder: it holds no test script and no fixture.
+          bash tools/package.sh
+          unzip -q dist/nguyen-ha-vi-en-*.zip -d "$WP_DIR/wp-content/plugins"
+          test -f "$WP_DIR/wp-content/plugins/nguyen-ha-vi-en/nguyen-ha-vi-en.php"
+          test ! -e "$WP_DIR/wp-content/plugins/nguyen-ha-vi-en/tests"
           wp plugin activate nguyen-ha-vi-en
           wp plugin list --fields=name,status,version
 
@@ -774,6 +782,22 @@ jobs:
           wp() { php "$RUNNER_TEMP/wp-cli.phar" --allow-root --path="$WP_DIR" "$@"; }
           wp config delete NH_VIEN_ENABLE_EN_ROUTES
           php "$SITE_TESTS/run.php" --base="$SITE_URL" --fixture="$NH_VIEN_FIXTURE" --suite=inert --seo=${{ matrix.seo }} --theme=${{ matrix.theme }}
+
+      - name: Deactivate the plugin, nothing of the English side may answer and the Vietnamese pages must be as before
+        run: |
+          wp() { php "$RUNNER_TEMP/wp-cli.phar" --allow-root --path="$WP_DIR" "$@"; }
+          en_rules() { wp eval 'echo count( array_filter( array_keys( (array) get_option( "rewrite_rules" ) ), function ( $k ) { return 0 === strpos( $k, "^en/" ); } ) );'; }
+          # The English home page of the previous step goes back to a draft: this step compares with the first snapshot.
+          page=$(php -r 'echo json_decode( file_get_contents( getenv( "NH_VIEN_FIXTURE" ) ), true )["en_page"];')
+          wp post update "$page" --post_status=draft
+          echo "English rules stored before the deactivation: $(en_rules)"
+          test "$(en_rules)" != "0"
+          wp plugin deactivate nguyen-ha-vi-en
+          echo "English rules stored after the deactivation: $(en_rules)"
+          test "$(en_rules)" = "0"
+          php "$SITE_TESTS/run.php" --base="$SITE_URL" --fixture="$NH_VIEN_FIXTURE" --suite=deactivated
+          php "$SITE_TESTS/run.php" --base="$SITE_URL" --suite=snapshot --dir="$RUNNER_TEMP/snap-deactivated"
+          php "$SITE_TESTS/run.php" --suite=compare --dir="$RUNNER_TEMP/snap-closed" --other="$RUNNER_TEMP/snap-deactivated"
 
       - name: Upload the traces and screenshots of the browser tests that failed
         if: ${{ failure() }}

@@ -42,6 +42,7 @@ function get_post( $id ) { return isset( $GLOBALS['mock_posts'][ $id ] ) ? $GLOB
 function current_user_can( $cap, $id = null ) { return 'manage_options' === $cap ? $GLOBALS['allow_manage'] : $GLOBALS['allow_edit']; }
 function wp_verify_nonce( $nonce, $action ) { return $GLOBALS['nonce_ok'] && 'ok' === $nonce && 'nh_vien_manage_links' === $action; }
 function add_action( $name, $callback, $priority = 10 ) { $GLOBALS['hooks'][] = $name; }
+function register_deactivation_hook() {}
 function do_action( $name ) { $GLOBALS['fired'][] = func_get_args(); }
 function is_admin() { return false; }
 function must( $condition, $message ) { if ( ! $condition ) { throw new RuntimeException( $message ); } }

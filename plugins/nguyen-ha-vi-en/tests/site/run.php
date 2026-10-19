@@ -11,6 +11,7 @@
  *   inert     the gate is closed again while the pairs and the stored rules remain: nothing may change on the site
  *   homepage  the English home is a real page at /en/ that holds [nh_vien_posts]
  *   legacy    the active theme never calls wp_body_open() (tests/site/legacy-theme): one switcher, in the post
+ *   deactivated  the plugin was deactivated after the English side had been live: no /en/ address may answer
  *
  * Exit code 0 when every check passed.
  *
@@ -287,6 +288,27 @@ if ( 'homepage' === $suite ) {
 			$count += count( array_keys( array_map( 'path_of', $m[1] ), '/en/' ) );
 		}
 		ok( 'the English home is in the sitemaps exactly once (the page, not a second entry for the list)', 1 === $count, $count . ' entries' );
+	}
+	echo "\n$checks checks, $failures failed\n";
+	exit( $failures ? 1 : 0 );
+}
+
+if ( 'deactivated' === $suite ) {
+	echo "The plugin was deactivated while its rewrite rules were stored: nothing of the English side may answer\n";
+	foreach ( array( '/en/', '/en/category/travel-tips/', '/en/tag/hanoi/', '/en/page/2/', '/en/nope/' ) as $url ) {
+		$r = page( $url );
+		ok( "$url is a 404, not a copy of the Vietnamese home page", 404 === $r['status'], 'status ' . $r['status'] );
+	}
+	// WordPress guesses the post of an old address from its slug: the English post goes back to the address it had before.
+	$r = page( '/en/motorbike-rental-in-hanoi/' );
+	ok( '/en/motorbike-rental-in-hanoi/ goes back to the address the English post had before the plugin', 301 === $r['status'] && '/motorbike-rental-in-hanoi/' === path_of( $r['location'] ), 'status ' . $r['status'] . ' ' . $r['location'] );
+	$r = page( '/motorbike-rental-in-hanoi/' );
+	ok( 'the English post answers at its own address again', 200 === $r['status'], 'status ' . $r['status'] );
+	foreach ( array( '/', '/thue-xe-may-ha-noi/', '/category/kinh-nghiem/' ) as $url ) {
+		$r  = page( $url );
+		$xp = xp( $r['body'] );
+		$alternates = array_filter( head_links( $xp, 'alternate' ), function ( $l ) { return '' !== $l['hreflang']; } );
+		ok( "$url answers 200 in Vietnamese with no switcher and no hreflang", 200 === $r['status'] && 'vi' === $xp->query( '//html' )->item( 0 )->getAttribute( 'lang' ) && 0 === $xp->query( "//nav[contains(@class,'nh-vien-switcher')]" )->length && ! $alternates, 'status ' . $r['status'] );
 	}
 	echo "\n$checks checks, $failures failed\n";
 	exit( $failures ? 1 : 0 );

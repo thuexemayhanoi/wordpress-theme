@@ -1,0 +1,4 @@
+# Development only: `git archive` (tools/package.sh) leaves these out of the installable plugin zip, so the zip holds
+# the plugin and nothing else (no test scripts, no fixture theme).
+/.gitattributes export-ignore
+/tests          export-ignore

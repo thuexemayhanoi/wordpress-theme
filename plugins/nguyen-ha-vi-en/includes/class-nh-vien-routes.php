@@ -3,7 +3,8 @@
  * English routes: the /en/ prefix, the rewrite rules behind it, and how a request for one of them is resolved.
  *
  * Nothing here runs unless the site opts in with NH_VIEN_ENABLE_EN_ROUTES (see enabled()), no rewrite rule is stored
- * or removed without an administrator pressing a button, and no existing post, page or URL is changed.
+ * without an administrator pressing a button (and only this plugin's own rules are taken out again, when it is
+ * deactivated), and no existing post, page or URL is changed.
  *
  * @package Nguyen_Ha_VI_EN
  */
@@ -115,6 +116,22 @@ final class NH_VIEN_Routes {
 			}
 		}
 		return true;
+	}
+
+	/**
+	 * On deactivation, take this plugin's own rules out of the stored rewrite rules. Without the plugin nothing would
+	 * answer them: every /en/ address would show the Vietnamese home page. Only keys of this plugin are removed, the
+	 * other stored rules stay exactly as they are, and nothing is written when none of ours is stored.
+	 */
+	public static function deactivate() {
+		$stored = get_option( 'rewrite_rules' );
+		if ( ! is_array( $stored ) ) {
+			return;
+		}
+		$left = array_diff_key( $stored, self::rules() );
+		if ( count( $left ) !== count( $stored ) ) {
+			update_option( 'rewrite_rules', $left );
+		}
 	}
 
 	/**

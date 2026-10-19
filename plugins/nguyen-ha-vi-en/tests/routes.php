@@ -13,6 +13,7 @@ define( 'NH_VIEN_PLUGIN_FILE', dirname( __DIR__ ) . '/nguyen-ha-vi-en.php' );
 
 $GLOBALS['env']       = 'staging';
 $GLOBALS['options']   = array();
+$GLOBALS['writes']    = 0;
 $GLOBALS['hooks']     = array();
 $GLOBALS['rewrite']   = array();
 $GLOBALS['pages']     = array();
@@ -36,6 +37,7 @@ class WP_Error {
 function is_wp_error( $value ) { return $value instanceof WP_Error; }
 function wp_get_environment_type() { return $GLOBALS['env']; }
 function get_option( $key, $default = false ) { return array_key_exists( $key, $GLOBALS['options'] ) ? $GLOBALS['options'][ $key ] : $default; }
+function update_option( $key, $value ) { $GLOBALS['options'][ $key ] = $value; ++$GLOBALS['writes']; return true; }
 function add_action( $tag ) { $GLOBALS['hooks'][] = $tag; }
 function add_filter( $tag ) { $GLOBALS['hooks'][] = $tag; }
 function add_rewrite_rule( $regex, $query, $position ) { $GLOBALS['rewrite'][] = array( $regex, $query, $position ); }
@@ -229,4 +231,28 @@ fresh();
 NH_VIEN_Routes::boot();
 must( array( 'init', 'query_vars', 'parse_request' ) === $GLOBALS['hooks'], 'Open gate: wrong hooks' );
 
-echo "PASS: gate, rules, slugs, live state, pairs, request resolution, English addresses.\n";
+// ---- Deactivation takes the plugin's own rules out of the stored ones and nothing else.
+$ours   = NH_VIEN_Routes::rules();
+$others = array(
+	'^wp-json/?$'                       => 'index.php?rest_route=/',
+	'category/(.+?)/?$'                 => 'index.php?category_name=$matches[1]',
+	'([^/]+)(?:/([0-9]+))?/?$'          => 'index.php?name=$matches[1]&page=$matches[2]',
+	'^en/([^/]+)/?$-lookalike'          => 'index.php?x=1',
+);
+$GLOBALS['options']['rewrite_rules'] = array_merge( $ours, $others );
+$GLOBALS['writes']                   = 0;
+NH_VIEN_Routes::deactivate();
+must( 1 === $GLOBALS['writes'], 'Deactivation must write the stored rules once' );
+must( $others === $GLOBALS['options']['rewrite_rules'], 'Deactivation must remove every rule of this plugin and keep every other rule, in order' );
+$GLOBALS['writes'] = 0;
+NH_VIEN_Routes::deactivate();
+must( 0 === $GLOBALS['writes'], 'Deactivation without rules of this plugin must not write anything' );
+$GLOBALS['options'] = array();
+NH_VIEN_Routes::deactivate();
+must( 0 === $GLOBALS['writes'] && array() === $GLOBALS['options'], 'Deactivation without stored rules must not create the option' );
+$GLOBALS['options']['rewrite_rules'] = '';
+NH_VIEN_Routes::deactivate();
+must( 0 === $GLOBALS['writes'], 'Deactivation with a corrupt option must leave it alone' );
+$GLOBALS['options'] = array();
+
+echo "PASS: gate, rules, slugs, live state, pairs, request resolution, English addresses, deactivation.\n";
