@@ -8,7 +8,7 @@ if ( 'cli' !== PHP_SAPI ) {
 
 define( 'ABSPATH', __DIR__ . '/../../../../' );
 define( 'OBJECT', 'OBJECT' );
-define( 'NH_VIEN_VERSION', '0.5.0' );
+define( 'NH_VIEN_VERSION', '0.5.1' );
 define( 'NH_VIEN_PLUGIN_FILE', dirname( __DIR__ ) . '/nguyen-ha-vi-en.php' );
 
 $GLOBALS['env']       = 'staging';
@@ -85,9 +85,16 @@ function request( $rule, $vars ) {
 	);
 }
 
-// ---- Gate: the constant is required, and a production site needs a second constant.
+// ---- Gate: WordPress administrator option is opt-in, defaults to legacy constant gate.
 fresh();
 must( ! NH_VIEN_Routes::enabled(), 'Gate open without the constant' );
+$GLOBALS['env'] = 'production';
+$GLOBALS['options'][ NH_VIEN_Routes::CONTROL_OPTION ] = '1';
+must( NH_VIEN_Routes::enabled(), 'Explicit WordPress toggle did not enable production English routing' );
+$GLOBALS['options'][ NH_VIEN_Routes::CONTROL_OPTION ] = '0';
+must( ! NH_VIEN_Routes::enabled(), 'Explicit WordPress off switch failed on production' );
+unset( $GLOBALS['options'][ NH_VIEN_Routes::CONTROL_OPTION ] );
+$GLOBALS['env'] = 'staging';
 define( 'NH_VIEN_ENABLE_EN_ROUTES', true );
 $GLOBALS['env'] = 'production';
 must( ! NH_VIEN_Routes::enabled(), 'Production gate open with the first constant only' );
@@ -245,6 +252,118 @@ must( ! NH_VIEN_Routes::post_at_en(), 'A page or a draft with the slug en must n
 $GLOBALS['published'][] = new WP_Post( 4, 'en' );
 must( NH_VIEN_Routes::post_at_en(), 'A published post with the slug en must be noticed' );
 $GLOBALS['published'] = array();
+
+// The WordPress toggle must remove only this plugin's runtime rule registrations.
+$wp_rewrite = (object) array(
+	'extra_rules_top' => array_merge(
+		NH_VIEN_Routes::rules(),
+		array( '^other/?
+$ours   = NH_VIEN_Routes::rules();
+$others = array(
+	'^wp-json/?$'                       => 'index.php?rest_route=/',
+	'category/(.+?)/?$'                 => 'index.php?category_name=$matches[1]',
+	'([^/]+)(?:/([0-9]+))?/?$'          => 'index.php?name=$matches[1]&page=$matches[2]',
+	'^en/([^/]+)/?$-lookalike'          => 'index.php?x=1',
+);
+$GLOBALS['options']['rewrite_rules'] = array_merge( $ours, $others );
+$GLOBALS['writes']                   = 0;
+NH_VIEN_Routes::deactivate();
+must( 1 === $GLOBALS['writes'], 'Deactivation must write the stored rules once' );
+must( $others === $GLOBALS['options']['rewrite_rules'], 'Deactivation must remove every rule of this plugin and keep every other rule, in order' );
+$GLOBALS['writes'] = 0;
+NH_VIEN_Routes::deactivate();
+must( 0 === $GLOBALS['writes'], 'Deactivation without rules of this plugin must not write anything' );
+$GLOBALS['options'] = array();
+NH_VIEN_Routes::deactivate();
+must( 0 === $GLOBALS['writes'] && array() === $GLOBALS['options'], 'Deactivation without stored rules must not create the option' );
+$GLOBALS['options']['rewrite_rules'] = '';
+NH_VIEN_Routes::deactivate();
+must( 0 === $GLOBALS['writes'], 'Deactivation with a corrupt option must leave it alone' );
+$GLOBALS['options'] = array();
+
+echo "PASS: gate, rules, slugs, live state, pairs, request resolution, English addresses, deactivation.\n";
+ => 'index.php?name=other' )
+	),
+	'extra_rules' => array( '^another/?
+$ours   = NH_VIEN_Routes::rules();
+$others = array(
+	'^wp-json/?$'                       => 'index.php?rest_route=/',
+	'category/(.+?)/?$'                 => 'index.php?category_name=$matches[1]',
+	'([^/]+)(?:/([0-9]+))?/?$'          => 'index.php?name=$matches[1]&page=$matches[2]',
+	'^en/([^/]+)/?$-lookalike'          => 'index.php?x=1',
+);
+$GLOBALS['options']['rewrite_rules'] = array_merge( $ours, $others );
+$GLOBALS['writes']                   = 0;
+NH_VIEN_Routes::deactivate();
+must( 1 === $GLOBALS['writes'], 'Deactivation must write the stored rules once' );
+must( $others === $GLOBALS['options']['rewrite_rules'], 'Deactivation must remove every rule of this plugin and keep every other rule, in order' );
+$GLOBALS['writes'] = 0;
+NH_VIEN_Routes::deactivate();
+must( 0 === $GLOBALS['writes'], 'Deactivation without rules of this plugin must not write anything' );
+$GLOBALS['options'] = array();
+NH_VIEN_Routes::deactivate();
+must( 0 === $GLOBALS['writes'] && array() === $GLOBALS['options'], 'Deactivation without stored rules must not create the option' );
+$GLOBALS['options']['rewrite_rules'] = '';
+NH_VIEN_Routes::deactivate();
+must( 0 === $GLOBALS['writes'], 'Deactivation with a corrupt option must leave it alone' );
+$GLOBALS['options'] = array();
+
+echo "PASS: gate, rules, slugs, live state, pairs, request resolution, English addresses, deactivation.\n";
+ => 'index.php?name=another' ),
+);
+NH_VIEN_Routes::clear_registered_rules();
+must( array( '^other/?
+$ours   = NH_VIEN_Routes::rules();
+$others = array(
+	'^wp-json/?$'                       => 'index.php?rest_route=/',
+	'category/(.+?)/?$'                 => 'index.php?category_name=$matches[1]',
+	'([^/]+)(?:/([0-9]+))?/?$'          => 'index.php?name=$matches[1]&page=$matches[2]',
+	'^en/([^/]+)/?$-lookalike'          => 'index.php?x=1',
+);
+$GLOBALS['options']['rewrite_rules'] = array_merge( $ours, $others );
+$GLOBALS['writes']                   = 0;
+NH_VIEN_Routes::deactivate();
+must( 1 === $GLOBALS['writes'], 'Deactivation must write the stored rules once' );
+must( $others === $GLOBALS['options']['rewrite_rules'], 'Deactivation must remove every rule of this plugin and keep every other rule, in order' );
+$GLOBALS['writes'] = 0;
+NH_VIEN_Routes::deactivate();
+must( 0 === $GLOBALS['writes'], 'Deactivation without rules of this plugin must not write anything' );
+$GLOBALS['options'] = array();
+NH_VIEN_Routes::deactivate();
+must( 0 === $GLOBALS['writes'] && array() === $GLOBALS['options'], 'Deactivation without stored rules must not create the option' );
+$GLOBALS['options']['rewrite_rules'] = '';
+NH_VIEN_Routes::deactivate();
+must( 0 === $GLOBALS['writes'], 'Deactivation with a corrupt option must leave it alone' );
+$GLOBALS['options'] = array();
+
+echo "PASS: gate, rules, slugs, live state, pairs, request resolution, English addresses, deactivation.\n";
+ => 'index.php?name=other' ) === $wp_rewrite->extra_rules_top, 'Disable removed unrelated top rules' );
+must( array( '^another/?
+$ours   = NH_VIEN_Routes::rules();
+$others = array(
+	'^wp-json/?$'                       => 'index.php?rest_route=/',
+	'category/(.+?)/?$'                 => 'index.php?category_name=$matches[1]',
+	'([^/]+)(?:/([0-9]+))?/?$'          => 'index.php?name=$matches[1]&page=$matches[2]',
+	'^en/([^/]+)/?$-lookalike'          => 'index.php?x=1',
+);
+$GLOBALS['options']['rewrite_rules'] = array_merge( $ours, $others );
+$GLOBALS['writes']                   = 0;
+NH_VIEN_Routes::deactivate();
+must( 1 === $GLOBALS['writes'], 'Deactivation must write the stored rules once' );
+must( $others === $GLOBALS['options']['rewrite_rules'], 'Deactivation must remove every rule of this plugin and keep every other rule, in order' );
+$GLOBALS['writes'] = 0;
+NH_VIEN_Routes::deactivate();
+must( 0 === $GLOBALS['writes'], 'Deactivation without rules of this plugin must not write anything' );
+$GLOBALS['options'] = array();
+NH_VIEN_Routes::deactivate();
+must( 0 === $GLOBALS['writes'] && array() === $GLOBALS['options'], 'Deactivation without stored rules must not create the option' );
+$GLOBALS['options']['rewrite_rules'] = '';
+NH_VIEN_Routes::deactivate();
+must( 0 === $GLOBALS['writes'], 'Deactivation with a corrupt option must leave it alone' );
+$GLOBALS['options'] = array();
+
+echo "PASS: gate, rules, slugs, live state, pairs, request resolution, English addresses, deactivation.\n";
+ => 'index.php?name=another' ) === $wp_rewrite->extra_rules, 'Disable removed unrelated rewrite rules' );
 
 // ---- Deactivation takes the plugin's own rules out of the stored ones and nothing else.
 $ours   = NH_VIEN_Routes::rules();

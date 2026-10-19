@@ -7,7 +7,7 @@ if ( 'cli' !== PHP_SAPI ) {
 }
 
 define( 'ABSPATH', __DIR__ . '/../../../../' );
-define( 'NH_VIEN_VERSION', '0.5.0' );
+define( 'NH_VIEN_VERSION', '0.5.1' );
 define( 'NH_VIEN_PLUGIN_FILE', dirname( __DIR__ ) . '/nguyen-ha-vi-en.php' );
 
 $GLOBALS['env']      = 'staging';

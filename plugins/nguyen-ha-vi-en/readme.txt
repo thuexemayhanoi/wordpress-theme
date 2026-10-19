@@ -4,7 +4,7 @@ Tags: multilingual, vietnamese, english, hreflang, seo
 Requires at least: 6.3
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.5.0
+Stable tag: 0.5.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -38,27 +38,19 @@ The Vietnamese site stays exactly where it is. The English side is a second set 
 3. Pair each English post with its Vietnamese post under Tools > VI/EN Links.
 4. Opt in (next section), store the rewrite rules once, publish the English posts.
 
-== Switching it on ==
+== Switch it on in WordPress — no Hostinger required ==
 
-The English side needs two things, so that installing or activating the plugin can never change a live site by accident.
+Version 0.5.1 lets administrators switch English routing on and off directly under **Tools > VI/EN Links**. It does not require editing `wp-config.php` or installing WPCode.
 
-1. **A constant**, in `wp-config.php`: `define( 'NH_VIEN_ENABLE_EN_ROUTES', true );`
-2. **The right environment.** `local`, `development` and `staging` (the WordPress environment type) work with the constant alone. A **production** site also needs `define( 'NH_VIEN_ALLOW_PRODUCTION', true );`, set by its owner only after the staging checks below.
+1. Back up the database and files and check that Vietnamese pages are intact.
+2. Create English pages and category trees separately. The English home can be a published WordPress Page with slug `en`. Confirm the English page copy, prices and verified contact information before enabling.
+3. Open **Tools > VI/EN Links** in WordPress. Click **Enable English routing**. The action requires an administrator account, a security nonce, pretty permalinks and no conflicting published post at the root `/en/`. WordPress stores the setting and refreshes the URL rules; a failed rule update restores the previous setting.
+4. Verify `/en/`, English page URLs and category archives; confirm English menus, canonical, hreflang, Yoast `/sitemap_index.xml`, Vietnamese homepage and mobile navigation. Use a fresh backup and plan a rollback before any public rollout.
+5. Click **Disable English routing** to turn off the plugin-specific routes. **This does not unpublish English WordPress Pages** (their own WordPress page URLs may still work) or delete posts, terms, menus, SEO or content. Draft those Pages separately if public access must stop.
 
-Then open Tools > VI/EN Links and press **Store the rewrite rules**. Until that button has been pressed the plugin changes nothing: no URL, no query, no page, no tag. The screen says whether the English pages are live, and why not when they are not.
+Legacy settings: if the WordPress toggle has never been used, the earlier `NH_VIEN_ENABLE_EN_ROUTES` and `NH_VIEN_ALLOW_PRODUCTION` constants remain supported. Once an administrator saves an explicit on/off choice through WordPress, that choice takes precedence.
 
-**Before production** (every item on a staging copy of the site, with the same theme, the same SEO plugin and the same permalink structure):
-
-* A complete backup of the database and `wp-content` exists and was opened once.
-* The Vietnamese pages are identical with the plugin switched on and off (compare the HTML of the home, a category, a post, the search and the feed). The plugin's own tests do this on a seeded site.
-* No post already has the address `/en/` (a published post with the slug `en` makes the plugin refuse to store the rules, so that it is never shadowed). A published page at `/en/` becomes the English home (put `[nh_vien_posts]` in it); a page below `/en/` keeps its address and wins over an English post with the same slug.
-* `/sitemap_index.xml` (Yoast SEO) or `/wp-sitemap.xml` lists the English posts at `/en/{slug}/`, no draft, and no second sitemap exists.
-* One canonical and the right hreflang pair on a Vietnamese post, its English partner, both home pages and an English category; the English post has no ordinary-address copy that answers 200.
-* The switcher is visible and usable on a phone, a tablet and a desktop, with the keyboard, in the theme that is live.
-* The page cache and the CDN keep `/en/...` addresses apart (they are different URLs) and are purged after the pairs are made.
-* Nothing answers `/en/...` that should not (drafts, unpaired posts, unknown slugs: all 404).
-
-**Switching it off.** Remove the constant (the plugin is inert at once and `/en/...` answers 404), press **Store the rewrite rules** so that the stored rules lose the English ones, then deactivate. Deactivating by itself also takes the plugin's own rules out of the stored rules, so no `/en/...` address can be left answering with the Vietnamese home page. After deactivation an old `/en/{slug}/` address answers 404, or WordPress's own guess sends it to the address the English post has without the plugin. The list of pairs stays in the database (option `nh_vien_translation_pairs_v1`) so that switching on again needs no new work; delete the option by hand if you want it gone.
+**Safety:** Installing or activating the plugin alone does not enable English routes. A non-administrator cannot toggle them. The plugin does not create a second sitemap or overwrite the Vietnamese site.
 
 == The switcher ==
 
@@ -113,6 +105,12 @@ The CI also installs the plugin from its zip on real WordPress sites (WordPress 
 * The first matching rule wins: a real page at `/en/` or below it takes priority over the plugin's addresses, and a page at `/en/` has no page 2.
 
 == Changelog ==
+
+= 0.5.1 =
+* Add administrator-only buttons to enable/disable the English routes through Tools > VI/EN Links, without editing wp-config.php.
+* Rebuild the plugin's own rewrite rules on toggle and revert settings if verification fails; keep support for legacy constants.
+* Leave all Vietnamese posts, pages, menus, URLs and SEO data untouched; disabling routing does not automatically unpublish English pages.
+
 
 = 0.5.0 =
 * Permit administrator-designated English articles without mandatory Vietnamese partners; no content or slug is rewritten.
