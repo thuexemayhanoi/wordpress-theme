@@ -117,9 +117,10 @@ if [ -n "$VI_EN_ZIP" ]; then
 	done
 
 	# Independent of this repository's theme and companion plugin. It may notice them, always behind a check that they
-	# exist: the action the theme fires after its skip link, the theme's fragment-cache filter and bump function, and
-	# the companion's purge queue. Nothing else of theirs may be referenced.
-	coupling="$(grep -rEno "nh_editorial[a-z_]*|NH_EDITORIAL[A-Za-z_]*|nh_seo[a-z_]*|NH_SEO[A-Za-z_]*|nguyen-ha-seo-companion|nguyen-ha-editorial|get_template_directory|get_stylesheet_directory" "$ROOT" --include='*.php' | grep -vE ':(nh_editorial_after_skip_link|nh_editorial_cache_bump|nh_editorial_cache_version|NH_SEO_Cache)$' || true)"
+	# exist: the action the theme fires after its skip link, the theme's fragment-cache filter and bump function, the
+	# companion's purge queue, and the filter through which the companion asks for more addresses to purge (a hook name
+	# only: nothing runs unless the companion fires it). Nothing else of theirs may be referenced.
+	coupling="$(grep -rEno "nh_editorial[a-z_]*|NH_EDITORIAL[A-Za-z_]*|nh_seo[a-z_]*|NH_SEO[A-Za-z_]*|nguyen-ha-seo-companion|nguyen-ha-editorial|get_template_directory|get_stylesheet_directory" "$ROOT" --include='*.php' | grep -vE ':(nh_editorial_after_skip_link|nh_editorial_cache_bump|nh_editorial_cache_version|NH_SEO_Cache|nh_seo_purge_post_urls)$' || true)"
 	[ -z "$coupling" ] || fail "VI-EN plugin refers to the theme or the companion plugin beyond its optional hooks: $coupling"
 	# A file read from outside the plugin folder would break the zip on its own.
 	if grep -rEn "(require|include)(_once)?[^;]*\.\./" "$ROOT" --include='*.php' | grep -q .; then
