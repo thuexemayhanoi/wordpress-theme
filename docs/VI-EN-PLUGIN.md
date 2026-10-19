@@ -66,6 +66,7 @@ Làm trên **bản sao** có cùng theme, cùng plugin SEO, cùng cấu trúc pe
 
 - [ ] Có sao lưu **mới** (CSDL + `wp-content`) đã mở thử được; biết cách quay lại (mục 6).
 - [ ] Trước khi bật, lưu HTML của trang chủ, một danh mục, một bài, `/?s=xe`, `/feed/`; sau khi **bật** (chưa ghép/đăng ký bài nào) các trang đó **giống hệt**. Sau khi **tắt** lại cũng giống hệt.
+- [ ] Chạy `wp eval-file tools/staging-preflight.php content` (chỉ đọc) **trước** và **sau** khi bật, không thêm nội dung nào giữa hai lần: dấu vân tay của bài viết/trang, danh mục/thẻ, gán danh mục, tùy chọn được bảo vệ (địa chỉ, tiêu đề, trang chủ, permalink) và **toàn bộ chữ của bài/trang** phải giống hệt; chỉ dòng `rewrite rules` đổi (plugin lưu quy tắc của nó). Trong phòng thử của dự án kết quả đúng như vậy: bài tiếng Việt không bị chạm tới.
 - [ ] Không có trang hay bài nào đã dùng `/en/` hoặc `/en/…` ngoài ý muốn. Một **bài** đã xuất bản có slug `en` làm plugin từ chối bật (màn hình ghi "Address /en/ used by a post"); một **trang** đã xuất bản ở `/en/` trở thành trang chủ tiếng Anh; một trang dưới `/en/…` giữ địa chỉ và làm ẩn bài Anh cùng slug (màn hình báo trạng thái của từng cặp).
 - [ ] Một bài Việt đã ghép: có hreflang `vi`, `en`, `x-default` đúng hai chiều; một canonical; bộ chuyển ngôn ngữ dẫn đúng. Bài/trang tiếng Anh không có đối ứng: không có hreflang.
 - [ ] Bài Anh: `<html lang="en-US">`, canonical là `/en/{slug}/`, JSON-LD (`WebPage`/`Article`/`BreadcrumbList`) có `url` là `/en/{slug}/`; địa chỉ `/{slug}/` trả **301** sang `/en/{slug}/` và không bị vòng lặp.
@@ -85,7 +86,7 @@ Chỉ khi mục 4 đạt hoàn toàn và chủ sở hữu duyệt bằng văn b�
 1. Sao lưu CSDL + `wp-content` (từ hPanel) và xác nhận mở được.
 2. Cài ZIP (plugin đang tắt), kích hoạt (chưa thay đổi gì).
 3. Tạo/nhập nội dung tiếng Anh ở dạng **nháp** và đăng ký danh mục, bài, trang như trên staging. **Không dùng lại ID số của staging** — kiểm tra lại ID của môi trường đang làm.
-4. *Công cụ → VI/EN Links → Switch English routing on*, tick xác nhận (hoặc đặt **cả hai** hằng số trong `wp-config.php` rồi bấm "Store the rewrite rules"). Kiểm tra trên chính website: `/en/` chưa có gì công khai (còn nháp), trang tiếng Việt giống hệt.
+4. Chạy `wp eval-file tools/staging-preflight.php content` và lưu kết quả; rồi *Công cụ → VI/EN Links → Switch English routing on*, tick xác nhận (hoặc đặt **cả hai** hằng số trong `wp-config.php` rồi bấm "Store the rewrite rules"); chạy lại lệnh dấu vân tay: chỉ dòng `rewrite rules` được đổi. Kiểm tra trên chính website: `/en/` chưa có gì công khai (còn nháp), trang tiếng Việt giống hệt.
 5. Xuất bản trang chủ `/en/`, các trang con và từng bài đã duyệt; kiểm tra các mục chính của mục 4 trên chính website.
 6. Đưa `https://blog.rentbikehanoi.com/sitemap_index.xml` vào Google Search Console nếu chưa có (không cần gửi lại sơ đồ riêng cho `/en/`), theo dõi Coverage, hreflang và canonical trong vài tuần.
 
