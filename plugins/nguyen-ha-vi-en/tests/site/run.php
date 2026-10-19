@@ -244,6 +244,18 @@ function save_snapshot( $dir ) {
 	}
 }
 
+/** Where two texts first differ: the offset and a little of each text around it, for the message of a failed check. */
+function first_difference( $a, $b ) {
+	$n = min( strlen( $a ), strlen( $b ) );
+	for ( $i = 0; $i < $n && $a[ $i ] === $b[ $i ]; $i++ ) {
+		continue;
+	}
+	$around = function ( $text ) use ( $i ) {
+		return str_replace( array( "\r", "\n" ), ' ', substr( $text, max( 0, $i - 60 ), 160 ) );
+	};
+	return "first difference at byte $i of " . strlen( $a ) . '/' . strlen( $b ) . ': [' . $around( $a ) . '] / [' . $around( $b ) . ']';
+}
+
 /** Check that two saved snapshots of the Vietnamese pages are identical. */
 function compare_snapshots( $a, $b, $label = 'identical' ) {
 	foreach ( vietnamese_urls() as $n => $url ) {
@@ -255,7 +267,8 @@ function compare_snapshots( $a, $b, $label = 'identical' ) {
 		$strip = function ( $html ) {
 			return preg_replace( array( '#<lastBuildDate>.*?</lastBuildDate>#', '#<lastmod>.*?</lastmod>#', '#<sy:updatePeriod>.*?</sy:updatePeriod>#' ), '', $html );
 		};
-		ok( "$label: $url", '' !== $status_a && $status_a === $status_b && $strip( $body_a ) === $strip( $body_b ), 'status ' . trim( $status_a ) . ' / ' . trim( $status_b ) );
+		$same = '' !== $status_a && $status_a === $status_b && $strip( $body_a ) === $strip( $body_b );
+		ok( "$label: $url", $same, 'status ' . trim( $status_a ) . ' / ' . trim( $status_b ) . ( $same ? '' : '; ' . first_difference( $strip( $body_a ), $strip( $body_b ) ) ) );
 	}
 }
 
@@ -467,7 +480,10 @@ if ( 'dashboard' === $suite ) {
 	};
 
 	ok( 'the administrator can log in', $login( 'admin', 'admin' ) );
+	// One pass to settle the caches and the first-run work of an SEO plugin, then the pass that is kept.
+	save_snapshot( "$work/warm" );
 	save_snapshot( "$work/closed" );
+	compare_snapshots( "$work/warm", "$work/closed", 'the Vietnamese page is the same twice' );
 
 	echo "\n[1] Closed after the plugin was activated\n";
 	ok( 'WordPress answers as it would without the plugin, and no rewrite rule of the English side is stored', $off(), (string) $stored_rules() );
