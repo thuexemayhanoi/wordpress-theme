@@ -1,5 +1,11 @@
 <?php
 /** Offline checks for staging-only routes/switcher. */
+
+// Test tooling: runs from the command line only, never through a web server.
+if ( 'cli' !== PHP_SAPI ) {
+	exit;
+}
+
 define( 'ABSPATH', __DIR__ );
 define( 'OBJECT', 'OBJECT' );
 define( 'NH_VIEN_VERSION', '0.3.0' );

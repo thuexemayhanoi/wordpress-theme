@@ -112,6 +112,16 @@ jobs:
             done
             exit $status'
 
+      # The offline tests need nothing but PHP, so the oldest and the newest supported versions both run them.
+      - name: Run the VI-EN plugin offline tests with the official PHP ${{ matrix.php }} image
+        run: |
+          docker run --rm -v "$PWD":/work -w /work php:${{ matrix.php }}-cli sh -c '
+            status=0
+            for test in plugins/nguyen-ha-vi-en/tests/*.php; do
+              php "$test" || status=1
+            done
+            exit $status'
+
   phpunit:
     name: PHPUnit (WordPress ${{ matrix.wp }})
     runs-on: ubuntu-latest

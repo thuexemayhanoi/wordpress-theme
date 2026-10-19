@@ -1,5 +1,11 @@
 <?php
 /** Offline WordPress stub tests: explicit reciprocal VI/EN post linking. */
+
+// Test tooling: runs from the command line only, never through a web server.
+if ( 'cli' !== PHP_SAPI ) {
+	exit;
+}
+
 define( 'ABSPATH', __DIR__ . '/../../../../' );
 $GLOBALS['mock_options'] = array();
 $GLOBALS['mock_writes'] = array();

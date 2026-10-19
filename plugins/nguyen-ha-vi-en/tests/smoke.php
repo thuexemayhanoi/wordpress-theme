@@ -1,6 +1,11 @@
 <?php
 /** CLI smoke tests; run `php plugins/nguyen-ha-vi-en/tests/smoke.php`. */
 
+// Test tooling: runs from the command line only, never through a web server.
+if ( 'cli' !== PHP_SAPI ) {
+	exit;
+}
+
 define( 'ABSPATH', __DIR__ . '/../../../../' );
 $GLOBALS['nh_vien_smoke_hooks'] = array();
 

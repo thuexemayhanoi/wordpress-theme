@@ -33,8 +33,11 @@ No rewrite flush or database operation runs automatically. On an isolated stagin
 - No production activation, merge or content migration is authorized by this development branch.
 
 == Offline checks ==
+The tests run from the command line only (they stop under any other PHP SAPI) and need nothing but PHP. The Theme QA workflow runs all of them on PHP 7.4 to 8.4.
+
 php plugins/nguyen-ha-vi-en/tests/smoke.php
 php plugins/nguyen-ha-vi-en/tests/links.php
 php plugins/nguyen-ha-vi-en/tests/routes.php
+php plugins/nguyen-ha-vi-en/tests/boot.php
 php -l plugins/nguyen-ha-vi-en/includes/class-nh-vien-routes.php
 php -l plugins/nguyen-ha-vi-en/includes/class-nh-vien-switcher.php
