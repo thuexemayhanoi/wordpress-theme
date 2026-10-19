@@ -4,7 +4,7 @@ Tags: multilingual, vietnamese, english, hreflang, seo
 Requires at least: 6.3
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.5.0
+Stable tag: 0.6.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -113,6 +113,12 @@ The CI also installs the plugin from its zip on real WordPress sites (WordPress 
 * The first matching rule wins: a real page at `/en/` or below it takes priority over the plugin's addresses, and a page at `/en/` has no page 2.
 
 == Changelog ==
+
+= 0.6.0 =
+* Reuse the existing Editorial magazine homepage for /en/ with an English-authored page title, excerpt and body.
+* Keep English footer widgets, menus and navigation fallback separate from Vietnamese content.
+* Maintain opt-in production gates; nothing activates automatically.
+
 
 = 0.5.0 =
 * Permit administrator-designated English articles without mandatory Vietnamese partners; no content or slug is rewritten.
