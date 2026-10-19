@@ -356,8 +356,8 @@ fresh( 'vi' );
 $q = query();
 NH_VIEN_Query::scope( $q );
 must( array( 77 ) === $q->get( 'post__not_in' ), 'Vietnamese query must exclude the independent English article' );
-$terms = NH_VIEN_Query::filter_terms( array( $GLOBALS['terms'][201], $GLOBALS['terms'][202], $GLOBALS['terms'][999] ), array( 'category' ) );
-must( array( $GLOBALS['terms'][999] ) === $terms, 'English category tree leaked into Vietnamese terms' );
+$filtered_terms = NH_VIEN_Query::filter_terms( array( $GLOBALS['terms'][201], $GLOBALS['terms'][202], $GLOBALS['terms'][999] ), array( 'category' ) );
+must( array( $GLOBALS['terms'][999] ) === $filtered_terms, 'English category tree leaked into Vietnamese terms' );
 
 
 $GLOBALS['options'] = $saved_options;
