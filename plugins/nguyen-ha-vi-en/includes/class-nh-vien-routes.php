@@ -15,13 +15,13 @@ defined( 'ABSPATH' ) || exit;
  * Gate, rules and request resolution of the English side of the site.
  */
 final class NH_VIEN_Routes {
-	const REWRITE   = '^en/([^/]+)/?$';
-	const MULTIPAGE = '^en/([^/]+)/([0-9]{1,})/?$';
-	const HOME      = '^en/?$';
-	const HOME_PAGE = '^en/page/([0-9]{1,})/?$';
-	const QUERY_VAR = 'nh_vien_en_slug';
-	const LANG_VAR  = 'nh_vien_lang';
-	const SCOPE_VAR = 'nh_vien_scope';
+	const REWRITE        = '^en/([^/]+)/?$';
+	const MULTIPAGE      = '^en/([^/]+)/([0-9]{1,})/?$';
+	const HOME           = '^en/?$';
+	const HOME_PAGE      = '^en/page/([0-9]{1,})/?$';
+	const QUERY_VAR      = 'nh_vien_en_slug';
+	const LANG_VAR       = 'nh_vien_lang';
+	const SCOPE_VAR      = 'nh_vien_scope';
 	const CONTROL_OPTION = 'nh_vien_routes_enabled_v1';
 
 	/**
@@ -129,11 +129,6 @@ final class NH_VIEN_Routes {
 	}
 
 	/**
-	 * On deactivation, take this plugin's own rules out of the stored rewrite rules. Without the plugin nothing would
-	 * answer them: every /en/ address would show the Vietnamese home page. Only keys of this plugin are removed, the
-	 * other stored rules stay exactly as they are, and nothing is written when none of ours is stored.
-	 */
-	/**
 	 * Clear the runtime rewrite entries after switching the English section off.
 	 * Preserve every other registered rewrite rule.
 	 *
@@ -152,6 +147,12 @@ final class NH_VIEN_Routes {
 		}
 	}
 
+	/**
+	 * On deactivation remove only the plugin-owned stored rewrite rules. Nothing
+	 * is changed if the plugin's rules are absent.
+	 *
+	 * @return void
+	 */
 	public static function deactivate() {
 		$stored = get_option( 'rewrite_rules' );
 		if ( ! is_array( $stored ) ) {

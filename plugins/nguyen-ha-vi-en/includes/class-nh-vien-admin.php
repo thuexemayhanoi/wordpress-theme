@@ -12,9 +12,9 @@ defined( 'ABSPATH' ) || exit;
  * Tools panel: pairs, status of the English routes, and the two maintenance buttons.
  */
 final class NH_VIEN_Admin {
-	const PAGE        = 'nh-vien-links';
-	const FLUSH_NONCE = 'nh_vien_flush_rules';
-	const HOME_NONCE  = 'nh_vien_create_home_page';
+	const PAGE         = 'nh-vien-links';
+	const FLUSH_NONCE  = 'nh_vien_flush_rules';
+	const HOME_NONCE   = 'nh_vien_create_home_page';
 	const TOGGLE_NONCE = 'nh_vien_toggle_routes';
 
 	/** Register the administrator-only hooks. */
@@ -248,26 +248,26 @@ final class NH_VIEN_Admin {
 	private static function messages() {
 		$error = array( 'notice-error', __( 'Nothing was changed. Check the post IDs, your permissions, existing links and the nonce.', 'nguyen-ha-vi-en' ) );
 		return array(
-			'saved'                     => array( 'notice-success', __( 'Translation link operation completed.', 'nguyen-ha-vi-en' ) ),
-			'flushed'                   => array( 'notice-success', __( 'The rewrite rules were stored again.', 'nguyen-ha-vi-en' ) ),
-			'routes_enabled'            => array( 'notice-success', __( 'English routing is enabled. Check the English homepage, menu and SEO.', 'nguyen-ha-vi-en' ) ),
-			'routes_disabled'           => array( 'notice-success', __( 'English routing is off. Published WordPress pages can still be reached at their WordPress URLs.', 'nguyen-ha-vi-en' ) ),
-			'nh_vien_invalid_mode'      => array( 'notice-error', __( 'Invalid English routing action.', 'nguyen-ha-vi-en' ) ),
+			'saved'                         => array( 'notice-success', __( 'Translation link operation completed.', 'nguyen-ha-vi-en' ) ),
+			'flushed'                       => array( 'notice-success', __( 'The rewrite rules were stored again.', 'nguyen-ha-vi-en' ) ),
+			'routes_enabled'                => array( 'notice-success', __( 'English routing is enabled. Check the English homepage, menu and SEO.', 'nguyen-ha-vi-en' ) ),
+			'routes_disabled'               => array( 'notice-success', __( 'English routing is off. Published WordPress pages can still be reached at their WordPress URLs.', 'nguyen-ha-vi-en' ) ),
+			'nh_vien_invalid_mode'          => array( 'notice-error', __( 'Invalid English routing action.', 'nguyen-ha-vi-en' ) ),
 			'nh_vien_pretty_links_required' => array( 'notice-error', __( 'Pretty permalinks are required. Set these under Settings > Permalinks.', 'nguyen-ha-vi-en' ) ),
-			'nh_vien_rewrite_failed'    => array( 'notice-error', __( 'Could not verify English rewrite rules; the previous setting was restored.', 'nguyen-ha-vi-en' ) ),
-			'address_taken'             => array( 'notice-error', __( 'Nothing was changed: a published post already has the address /en/. Give that post another slug first, or the English home would take its address away.', 'nguyen-ha-vi-en' ) ),
-			'home_exists'               => array( 'notice-warning', __( 'A page with the address /en/ already exists; it was left as it is.', 'nguyen-ha-vi-en' ) ),
-			'home_failed'               => array( 'notice-error', __( 'The English home page could not be created.', 'nguyen-ha-vi-en' ) ),
-			'nh_vien_forbidden'         => $error,
-			'nh_vien_bad_nonce'         => $error,
-			'nh_vien_invalid_ids'       => $error,
-			'nh_vien_invalid_posts'     => $error,
-			'nh_vien_invalid_category'  => $error,
-			'nh_vien_category_conflict' => $error,
-			'nh_vien_invalid_store'     => $error,
-			'nh_vien_conflict'          => $error,
-			'nh_vien_not_found'         => $error,
-			'nh_vien_save_failed'       => $error,
+			'nh_vien_rewrite_failed'        => array( 'notice-error', __( 'Could not verify English rewrite rules; the previous setting was restored.', 'nguyen-ha-vi-en' ) ),
+			'address_taken'                 => array( 'notice-error', __( 'Nothing was changed: a published post already has the address /en/. Give that post another slug first, or the English home would take its address away.', 'nguyen-ha-vi-en' ) ),
+			'home_exists'                   => array( 'notice-warning', __( 'A page with the address /en/ already exists; it was left as it is.', 'nguyen-ha-vi-en' ) ),
+			'home_failed'                   => array( 'notice-error', __( 'The English home page could not be created.', 'nguyen-ha-vi-en' ) ),
+			'nh_vien_forbidden'             => $error,
+			'nh_vien_bad_nonce'             => $error,
+			'nh_vien_invalid_ids'           => $error,
+			'nh_vien_invalid_posts'         => $error,
+			'nh_vien_invalid_category'      => $error,
+			'nh_vien_category_conflict'     => $error,
+			'nh_vien_invalid_store'         => $error,
+			'nh_vien_conflict'              => $error,
+			'nh_vien_not_found'             => $error,
+			'nh_vien_save_failed'           => $error,
 		);
 	}
 
