@@ -19,6 +19,8 @@ defined( 'ABSPATH' ) || exit;
 get_header();
 
 $nh_editorial_posts_mode = is_home();
+$nh_editorial_en_home    = class_exists( 'NH_VIEN_Routes', false ) && NH_VIEN_Routes::live() &&
+	class_exists( 'NH_VIEN_Context', false ) && NH_VIEN_Context::is_english() && is_page();
 
 if ( $nh_editorial_posts_mode && is_paged() ) {
 	?>
@@ -95,7 +97,7 @@ get_template_part( 'template-parts/home/topic-sections', null, array( 'skip' => 
 			array(
 				'title'      => __( 'Latest articles', 'nguyen-ha-editorial' ),
 				'id'         => 'latest-title',
-				'link_url'   => ( ! $nh_editorial_posts_mode && $nh_editorial_posts_page ) ? (string) get_permalink( $nh_editorial_posts_page ) : '',
+				'link_url'   => ( ! $nh_editorial_en_home && ! $nh_editorial_posts_mode && $nh_editorial_posts_page ) ? (string) get_permalink( $nh_editorial_posts_page ) : '',
 				'link_label' => __( 'All articles', 'nguyen-ha-editorial' ),
 			)
 		);
@@ -129,7 +131,7 @@ get_template_part( 'template-parts/home/topic-sections', null, array( 'skip' => 
 	</div>
 </section>
 
-<?php if ( ! empty( nh_editorial_cta() ) ) : ?>
+<?php if ( ! $nh_editorial_en_home && ! empty( nh_editorial_cta() ) ) : ?>
 <div class="wrap section section--cta">
 	<?php get_template_part( 'template-parts/components/cta', null, array( 'class' => 'cta--home' ) ); ?>
 </div>

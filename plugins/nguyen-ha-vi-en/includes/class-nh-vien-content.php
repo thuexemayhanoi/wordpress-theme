@@ -18,6 +18,28 @@ final class NH_VIEN_Content {
 		}
 		add_filter( 'wp_nav_menu_args', array( __CLASS__, 'nav_menu_args' ) );
 		add_shortcode( 'nh_vien_posts', array( __CLASS__, 'posts_shortcode' ) );
+		add_filter( 'template_include', array( __CLASS__, 'english_home_template' ), 30 );
+	}
+
+
+	/**
+	 * Reuse Nguyen Ha Editorial's existing magazine homepage for the published /en/ page.
+	 * The Vietnamese homepage keeps its original template and settings. Other themes keep their template.
+	 *
+	 * @param string $template WordPress-selected template.
+	 * @return string The editorial front-page template only on the English homepage.
+	 */
+	public static function english_home_template( $template ) {
+		if ( ! NH_VIEN_Routes::live() || ! NH_VIEN_Context::is_english() || ! is_page() ||
+			'wordpress-theme' !== get_stylesheet() ) {
+			return $template;
+		}
+		$home = NH_VIEN_Routes::home_page();
+		if ( ! $home instanceof WP_Post || (int) $home->ID !== (int) get_queried_object_id() ) {
+			return $template;
+		}
+		$front = get_theme_file_path( 'front-page.php' );
+		return is_readable( $front ) ? $front : $template;
 	}
 
 	/**
