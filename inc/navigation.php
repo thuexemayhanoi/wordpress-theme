@@ -60,14 +60,20 @@ function nh_editorial_fallback_menu() {
 	echo '<ul id="primary-menu" class="nav-list">';
 
 	if ( empty( $hubs ) ) {
-		wp_list_pages(
-			array(
-				'title_li'    => '',
-				'depth'       => 1,
-				'number'      => 5,
-				'sort_column' => 'menu_order, post_title',
-			)
+		$nh_editorial_en_home = class_exists( 'NH_VIEN_Routes', false ) && NH_VIEN_Routes::live() &&
+			class_exists( 'NH_VIEN_Context', false ) && NH_VIEN_Context::is_english();
+		$nh_editorial_home_page = $nh_editorial_en_home ? NH_VIEN_Routes::home_page() : null;
+		$args = array(
+			'title_li'    => '',
+			'depth'       => 1,
+			'number'      => 5,
+			'sort_column' => 'menu_order, post_title',
 		);
+		if ( $nh_editorial_en_home ) {
+			// An English menu fallback may only list children of the actual /en/ page.
+			$args['child_of'] = $nh_editorial_home_page ? (int) $nh_editorial_home_page->ID : -1;
+		}
+		wp_list_pages( $args );
 		echo '</ul>';
 		return;
 	}
