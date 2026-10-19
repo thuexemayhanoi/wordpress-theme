@@ -71,7 +71,11 @@ function nh_editorial_fallback_menu() {
 		);
 		if ( $nh_editorial_en_home ) {
 			// An English menu fallback may only list children of the actual /en/ page.
-			$args['child_of'] = $nh_editorial_home_page ? (int) $nh_editorial_home_page->ID : -1;
+			if ( ! $nh_editorial_home_page ) {
+				echo '</ul>';
+				return;
+			}
+			$args['child_of'] = (int) $nh_editorial_home_page->ID;
 		}
 		wp_list_pages( $args );
 		echo '</ul>';
