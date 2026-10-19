@@ -17,11 +17,13 @@ $GLOBALS['hooks'] = array();
 $GLOBALS['fired'] = array();
 
 class WP_Post {
+	public $ID = 0;
 	public $post_type = 'post';
 	public $post_status = 'publish';
-	public function __construct( $type = 'post', $status = 'publish' ) {
+	public function __construct( $type = 'post', $status = 'publish', $id = 0 ) {
 		$this->post_type = $type;
 		$this->post_status = $status;
+		$this->ID = $id;
 	}
 }
 class WP_Term {
@@ -75,6 +77,8 @@ function add_action( $name, $callback, $priority = 10 ) { $GLOBALS['hooks'][] = 
 function register_deactivation_hook() {}
 function do_action( $name ) { $GLOBALS['fired'][] = func_get_args(); }
 function is_admin() { return false; }
+$GLOBALS['post_categories'] = array();
+function wp_get_post_categories( $id, $args = array() ) { return isset( $GLOBALS['post_categories'][ $id ] ) ? $GLOBALS['post_categories'][ $id ] : array(); }
 function must( $condition, $message ) { if ( ! $condition ) { throw new RuntimeException( $message ); } }
 function error_is( $result, $code ) { return is_wp_error( $result ) && $code === $result->get_error_code(); }
 
@@ -87,7 +91,7 @@ $GLOBALS['mock_posts'][55] = new WP_Post( 'page' );
 $GLOBALS['mock_posts'][66] = new WP_Post( 'post', 'trash' );
 $GLOBALS['mock_posts'][77] = new WP_Post( 'revision', 'inherit' );
 
-must( '0.5.0' === NH_VIEN_VERSION, 'Wrong version' );
+must( '0.5.1' === NH_VIEN_VERSION, 'Wrong version' );
 must( array() === NH_VIEN_Links::all(), 'Map should start empty' );
 must( array() === $GLOBALS['mock_writes'], 'Bootstrap must not write' );
 must( null === NH_VIEN_Links::for_post( 11 ), 'No implicit pairing' );
@@ -207,4 +211,56 @@ must( true === NH_VIEN_Links::unlink_page( 501, 'ok' ), 'Could not unlink page p
 must( null === NH_VIEN_Links::for_page( 502 ), 'Old English page still paired after unlink' );
 
 must( array( 'plugins_loaded' ) === $GLOBALS['hooks'], 'Non-admin bootstrap added unexpected hooks' );
-echo "PASS: reciprocal links, one-to-one conflicts, CSRF/capability, corrupt-store and write boundaries.\n";
+
+// ---- Publish guard: a post published with English categories only registers itself as English; nothing else does.
+$GLOBALS['mock_options'] = array( NH_VIEN_Links::EN_TERMS_OPTION => array( 46, 49 ) );
+$GLOBALS['mock_writes']  = array();
+$GLOBALS['fired']        = array();
+NH_VIEN_Links::flush_cache();
+foreach ( array( 88 => 'publish', 89 => 'publish', 90 => 'draft', 91 => 'publish', 92 => 'publish', 93 => 'publish' ) as $id => $status ) {
+	$GLOBALS['mock_posts'][ $id ] = new WP_Post( 'post', $status, $id );
+}
+$GLOBALS['mock_posts'][92] = new WP_Post( 'page', 'publish', 92 );
+$GLOBALS['post_categories'] = array(
+	88 => array( 49 ),
+	89 => array( 49, 7 ),
+	90 => array( 46 ),
+	91 => array(),
+	92 => array( 49 ),
+	93 => array( 46, 49 ),
+);
+NH_VIEN_Links::after_insert_post( 88 );
+must( array( 88 ) === NH_VIEN_Links::independent_ids(), 'A published post with English categories only must be registered as English' );
+must( array( 'nh_vien_pairs_changed', 0, 88 ) === end( $GLOBALS['fired'] ), 'The registration must announce the change' );
+NH_VIEN_Links::after_insert_post( 88 );
+must( array( 88 ) === NH_VIEN_Links::independent_ids() && 1 === count( $GLOBALS['mock_writes'] ), 'A registered post must not be written again' );
+NH_VIEN_Links::after_insert_post( 89 );
+must( ! in_array( 89, NH_VIEN_Links::independent_ids(), true ), 'A post with a Vietnamese category too must stay Vietnamese' );
+NH_VIEN_Links::after_insert_post( 90 );
+must( ! in_array( 90, NH_VIEN_Links::independent_ids(), true ), 'A draft must not be registered' );
+NH_VIEN_Links::after_insert_post( 91 );
+must( ! in_array( 91, NH_VIEN_Links::independent_ids(), true ), 'A post without categories must not be registered' );
+NH_VIEN_Links::after_insert_post( 92 );
+must( ! in_array( 92, NH_VIEN_Links::independent_ids(), true ), 'A page must not be registered' );
+NH_VIEN_Links::after_insert_post( 999 );
+must( 1 === count( $GLOBALS['mock_writes'] ), 'A missing post must not be written' );
+// The Vietnamese side of a pair is never English, whatever its categories.
+$GLOBALS['mock_options'][ NH_VIEN_Links::OPTION ] = array( 93 => 11 );
+NH_VIEN_Links::flush_cache();
+NH_VIEN_Links::after_insert_post( 93 );
+must( ! in_array( 93, NH_VIEN_Links::independent_ids(), true ), 'The Vietnamese side of a pair must not be registered as English' );
+// Without registered English categories the guard does nothing at all.
+$GLOBALS['mock_options'] = array();
+$GLOBALS['mock_writes']  = array();
+NH_VIEN_Links::flush_cache();
+NH_VIEN_Links::after_insert_post( 88 );
+must( array() === $GLOBALS['mock_writes'], 'Without English categories the guard must not write' );
+// The guard is hooked only while the English side is switched on.
+$GLOBALS['hooks'] = array();
+NH_VIEN_Links::boot();
+must( array() === $GLOBALS['hooks'], 'With the gate closed the publish guard must not be hooked' );
+$GLOBALS['mock_options'][ NH_VIEN_Routes::CONTROL_OPTION ] = '1';
+NH_VIEN_Links::boot();
+must( array( 'wp_after_insert_post' ) === $GLOBALS['hooks'], 'With the gate open the publish guard must be hooked' );
+
+echo "PASS: reciprocal links, one-to-one conflicts, CSRF/capability, corrupt-store, write boundaries and the publish guard.\n";

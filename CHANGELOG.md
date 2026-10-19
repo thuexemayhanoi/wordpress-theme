@@ -2,6 +2,14 @@
 
 Định dạng theo [Keep a Changelog](https://keepachangelog.com/vi/1.1.0/); phiên bản theo [SemVer](https://semver.org/lang/vi/). Mỗi mục dưới đây có commit và kiểm thử tương ứng trong lịch sử của nhánh `feature/premium-seo-theme`.
 
+## [Chưa phát hành] — plugin `nguyen-ha-vi-en` 0.5.1: công tắc trong WordPress Admin (20/10/2026)
+
+- Công tắc bật/tắt phần tiếng Anh chuyển vào *Công cụ → VI/EN Links* (quản trị viên, nonce), lưu bằng Options API (`nh_vien_routes_enabled_v1`, autoload): không cần `NH_VIEN_ENABLE_EN_ROUTES`/`NH_VIEN_ALLOW_PRODUCTION` trong `wp-config.php` nữa. Cài đặt đã lưu thắng hằng số; hằng số của 0.4–0.5 vẫn hoạt động khi chưa lưu; `NH_VIEN_ENABLE_EN_ROUTES === false` là công tắc khẩn cấp.
+- Bật: preflight (permalink, bài ở `/en/`, trang ở địa chỉ dành riêng dưới `/en/`, rewrite rule/post type/taxonomy lạ chiếm `/en/`, trang chủ tiếng Anh, môi trường, plugin SEO), đăng ký và lưu quy tắc rewrite đúng một lần, smoke test tự gọi `/en/` (header `X-NH-VIEN-Lang: en`), tự quay lại trạng thái trước nếu không lưu được quy tắc hoặc `/en/` không trả lời bằng tiếng Anh; production cần ô xác nhận. Tắt: chỉ rút quy tắc của plugin khỏi quy tắc đã lưu. Nút *Undo the last switch*.
+- REST API `/wp-json/nh-vien/v1/` (quản trị viên, application password): trạng thái, công tắc, undo, đăng ký danh mục/bài tiếng Anh, cặp bài và cặp trang — để pipeline phát hành làm được việc của màn hình Công cụ với cùng kiểm tra.
+- Bài xuất bản chỉ trong danh mục tiếng Anh đã đăng ký được tự đăng ký là bài tiếng Anh (`wp_after_insert_post`), không bao giờ lọt vào danh sách tiếng Việt.
+- Kiểm thử offline mới `tests/settings.php`, `tests/rest.php`; mở rộng `routes.php`, `boot.php`, `links.php`. Theme không đổi.
+
 ## [2.0.1] — Sửa nhỏ giao diện mobile (17/10/2026)
 
 - Bài không có ảnh đại diện hiển thị nhãn danh mục thực thay vì biểu tượng sách mặc định; không tạo ảnh giả và không thay đổi ảnh WordPress. Nhãn tự xuống dòng khi không gian hẹp hoặc người dùng tăng khoảng cách chữ để tránh cắt chữ ở tablet.

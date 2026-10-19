@@ -32,6 +32,9 @@ final class NH_VIEN_Plugin {
 		NH_VIEN_Context::boot();
 		NH_VIEN_Urls::boot();
 		NH_VIEN_Cache::boot();
+		NH_VIEN_Links::boot();
+		// The REST routes exist whether the gate is open or not: they are how it is opened without hosting access.
+		NH_VIEN_Rest::boot();
 		if ( function_exists( 'is_admin' ) && is_admin() ) {
 			NH_VIEN_Admin::boot();
 		} else {

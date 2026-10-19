@@ -108,7 +108,7 @@ jobs:
           docker run --rm -v "$PWD":/work -w /work php:${{ matrix.php }}-cli sh -c '
             status=0
             for file in $(find . -path ./.git -prune -o -path ./vendor -prune -o -path ./node_modules -prune -o -name "*.php" -print); do
-              php -l "$file" > /dev/null || status=1
+              php -l "$file" > /dev/null || { echo "PHP lint failed: $file"; php -l "$file"; status=1; }
             done
             exit $status'
 

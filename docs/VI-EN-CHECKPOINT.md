@@ -25,7 +25,11 @@ work. The user-facing description (how it works, switching it on, production con
 | `feature/chat-vi-en-links-step3-20261019` | step 3, manual VI/EN pairs (`4037673`) |
 | `feature/chat-vi-en-routes-step4-20261019` | step 4; fast-forwarded to the green CI fix `67cadc2` |
 | `feature/vi-en-step4-ci-fix-20261019` | step 4 plus the CI fixes (`67cadc2`) |
-| `feature/vi-en-complete-20261019` | **the complete plugin** (pieces B, C and D below), built on `67cadc2`; continue here |
+| `feature/vi-en-complete-20261019` | the complete plugin 0.4.0 (pieces B, C and D below), built on `67cadc2`; merged through PR #4 |
+| `main` (2026-10-20) | 0.5.0 (PR #5), the Editorial English home, menus and footer (PR #6), the Stage 3 inventory (PR #8) |
+| `feature/vi-en-051-wordpress-toggle` (PR #9) | 0.5.1 first cut: the WordPress-only switch, green CI; superseded by the branch below, which contains it |
+| `feature/vi-en-051-admin-toggle-rest-20261020` | **0.5.1 complete**: switch with preflight, smoke test, rollback and undo; emergency constant; REST API; publish guard; continue here |
+| `feature/vi-en-dashboard-toggle-20261020` (PR #10) | another 0.5.1 attempt, red CI (PHP syntax), no tests; not used |
 
 ## What exists (architecture in one page)
 
@@ -33,11 +37,25 @@ work. The user-facing description (how it works, switching it on, production con
   administrator with a nonce (Tools > VI/EN Links). A post is English iff it is the English side of a pair. An English
   post is *public* when both posts are published, its slug is routable (`[a-z0-9][a-z0-9_-]*`, not reserved) and no
   page lives at `en/{slug}`.
-- **Gate** (`NH_VIEN_Routes::enabled()`): constant `NH_VIEN_ENABLE_EN_ROUTES === true` and a local/development/staging
-  environment, or on production also `NH_VIEN_ALLOW_PRODUCTION === true`. **Live** = gate open and all eight rewrite
-  rules present in the stored `rewrite_rules`; until an administrator presses "Store the rewrite rules" the plugin
-  changes nothing. A stale stored rule with a closed gate answers 404; deactivating the plugin removes its own stored
-  rules (`NH_VIEN_Routes::deactivate()`; without it every `/en/...` address answered 200 with the Vietnamese home).
+- **Gate** (`NH_VIEN_Routes::enabled()`, decided by `source()`): the emergency constant `NH_VIEN_ENABLE_EN_ROUTES === false`
+  wins over everything; then the setting an administrator saved (`nh_vien_routes_enabled_v1`, '1'/'0', autoloaded);
+  then, without a setting, the constants of 0.4–0.5 (`NH_VIEN_ENABLE_EN_ROUTES === true` on local/development/staging,
+  plus `NH_VIEN_ALLOW_PRODUCTION === true` on production). **Live** = gate open and all eight rewrite rules present in
+  the stored `rewrite_rules`. A stale stored rule with a closed gate answers 404; deactivating the plugin removes its own
+  stored rules (`NH_VIEN_Routes::deactivate()`; without it every `/en/...` address answered 200 with the Vietnamese home).
+- **Switch** (`class-nh-vien-settings.php`, `NH_VIEN_Settings`): `enable( $confirmed )` = capability, emergency constant,
+  confirmation on production, `NH_VIEN_Routes::preflight()` (permalinks, post at /en/, reserved pages below /en/, foreign
+  rewrite rules, post types/taxonomies at /en/, home page, environment, SEO plugin), save the setting, `register()` +
+  one `flush_rewrite_rules( false )`, verify `rules_stored()`, `smoke_test()` (loopback GET of `/en/?nh_vien_probe=`,
+  judged by the `X-NH-VIEN-Lang: en` header the English side adds through `wp_headers`), `restore()` of the snapshot
+  when the rules are not stored or the smoke test fails (200/404 without the marker); 3xx/401/403/429/5xx or a transport
+  error are inconclusive and leave the switch on. `disable()` = setting '0' + `remove_stored_rules()` (array_diff_key,
+  no regeneration). `undo()` restores `nh_vien_last_change_v1`. The Tools screen and the REST API both call this class.
+- **REST** (`class-nh-vien-rest.php`, namespace `nh-vien/v1`, `manage_options`, registered whatever the gate says):
+  `GET /status`, `POST /routes {enabled, confirm}`, `POST /routes/undo`, `POST|DELETE /categories`, `/posts`, `/pairs`,
+  `/pages`. The registration handlers call `NH_VIEN_Links` with a nonce created in the request. Errors carry HTTP statuses.
+- **Publish guard** (`NH_VIEN_Links::after_insert_post()` on `wp_after_insert_post`, gate open only): a post published
+  with registered English categories only is registered as an independent English post; anything else is left alone.
 - **Addresses** (`class-nh-vien-urls.php`): `post_link` makes `/en/{slug}/` the permalink of a public English post
   (canonical, sitemaps, theme lists); the native address 301-redirects there; hidden posts are 404 everywhere;
   `term_link` gives English archives inside English pages; the home address is rewritten to `/en/` only between the end
@@ -66,7 +84,7 @@ work. The user-facing description (how it works, switching it on, production con
 
 | What | Where | How |
 | --- | --- | --- |
-| Offline scripts (PHP only) | `plugins/nguyen-ha-vi-en/tests/*.php` | `for t in plugins/nguyen-ha-vi-en/tests/*.php; do php "$t"; done`; CI runs them on PHP 7.4 to 8.4 |
+| Offline scripts (PHP only) | `plugins/nguyen-ha-vi-en/tests/*.php` (`settings.php`: the switch, smoke test, rollback, undo; `rest.php`: routes, permission, emergency constant, statuses) | `for t in plugins/nguyen-ha-vi-en/tests/*.php; do php "$t"; done`; CI runs them on PHP 7.4 to 8.4 |
 | Real WordPress over HTTP | `tests/site/seed.php`, `tests/site/run.php` (suites `snapshot`, `compare`, `main`, `homepage`, `legacy`, `inert`, `deactivated`) | job `vi-en-site` of `.github/workflows/theme-qa.yml` (four variants: editorial + Yoast, editorial, Twenty Twenty-Five, WordPress 6.3.5); the plugin is installed from its zip |
 | Browser | `tests/e2e/switcher.spec.mjs` | Playwright + axe at 375/768/1440 px, in the same job (`NH_E2E_THEME=other` for a theme the plugin does not know) |
 | Packages | `tools/verify-package.sh dist` | job `static` |
@@ -95,8 +113,15 @@ See `readme.txt` ("Known limitations") and [VI-EN-PLUGIN.md](VI-EN-PLUGIN.md) se
 counts and monthly archives widget, themes that build the home link without `home_url( '/' )`, ASCII English slugs
 only, a real page at `/en/` has no page 2.
 
-## Next steps (owner's decision)
+## Next steps
 
-1. Review the branch; merge into `main` only when the owner says so.
-2. Run the staging checklist, then the production procedure of [VI-EN-PLUGIN.md](VI-EN-PLUGIN.md) section 5.
-3. After production, watch Search Console (coverage, hreflang, canonical) for a few weeks.
+1. Merge the 0.5.1 branch when Theme QA is green, take `dist/nguyen-ha-vi-en-0.5.1.zip` from the release artifact (or the
+   GitHub Release), upload it in Plugins → Add New → Upload Plugin → "Replace current with uploaded" (the one manual step:
+   WordPress cannot install a zip through the REST API).
+2. Switch the routes on from Tools → VI/EN Links (confirmation box on production), or through
+   `POST /wp-json/nh-vien/v1/routes {"enabled": true, "confirm": true}` from the wp-aiwriter workflow that holds the
+   administrator application password. Read the preflight and the smoke test result; purge the page cache.
+3. Register the English categories 46–56 (parents 46, 47, 48 first) and the page pairs 14↔1759, 19↔1760, 25↔1761 through
+   the same REST API, then check /en/, the seven English pages, the category archives, canonical, hreflang and
+   `/sitemap_index.xml` from the public side.
+4. After production, watch Search Console (coverage, hreflang, canonical) for a few weeks.

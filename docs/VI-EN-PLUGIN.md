@@ -1,6 +1,6 @@
 # Plugin Nguyen Ha VI-EN: blog song ngữ Việt – Anh bản địa
 
-Plugin `plugins/nguyen-ha-vi-en/` thêm phần tiếng Anh dưới `/en/` cho `https://blog.rentbikehanoi.com/`. Tiếng Việt vẫn nằm ở nguyên chỗ hiện tại. **Không có bước nào trong tài liệu này, và không có workflow nào, bật tính năng trên website đang chạy**: bật là quyết định của chủ sở hữu, sau khi xem trước trên staging.
+Plugin `plugins/nguyen-ha-vi-en/` thêm phần tiếng Anh dưới `/en/` cho `https://blog.rentbikehanoi.com/`. Tiếng Việt vẫn nằm ở nguyên chỗ hiện tại. **Từ 0.5.1, công tắc bật/tắt nằm ngay trong WordPress Admin (Công cụ → VI/EN Links)**: không cần sửa `wp-config.php`, không cần WPCode hay truy cập hosting. Không có workflow nào tự bật trên website đang chạy: bấm công tắc là quyết định của quản trị viên.
 
 Plugin chạy độc lập (có ZIP riêng, không cần theme hay plugin đồng hành của repository này), không dùng Polylang, WPML hay plugin đa ngôn ngữ nào, không dịch tự động, không gọi API trả phí và không bao giờ tự đăng bài tiếng Anh.
 
@@ -8,8 +8,8 @@ Plugin chạy độc lập (có ZIP riêng, không cần theme hay plugin đồn
 
 | Quy tắc | Cách plugin giữ |
 |---|---|
-| ~500 bài tiếng Việt không bị sửa, xóa, đổi slug, URL, canonical, tiêu đề hay trường SEO | Plugin không ghi vào bài viết nào. Dữ liệu duy nhất nó ghi: một tùy chọn riêng (danh sách cặp bài `nh_vien_translation_pairs_v1`), quy tắc rewrite của chính nó (một nút bấm, và khi gỡ kích hoạt để rút lại), và khi bạn bấm nút, một trang **nháp** `en`. |
-| Cài hoặc kích hoạt plugin không làm đổi website | Công tắc kép: hằng số `NH_VIEN_ENABLE_EN_ROUTES` **và** quản trị viên bấm "Store the rewrite rules". Trước đó plugin không đổi URL, truy vấn, trang hay thẻ nào. Trên production cần thêm hằng số thứ hai `NH_VIEN_ALLOW_PRODUCTION`. |
+| ~500 bài tiếng Việt không bị sửa, xóa, đổi slug, URL, canonical, tiêu đề hay trường SEO | Plugin không ghi vào bài viết nào. Dữ liệu nó ghi: vài tùy chọn riêng (công tắc `nh_vien_routes_enabled_v1`, cặp bài `nh_vien_translation_pairs_v1`, bài/danh mục tiếng Anh, lần bật/tắt gần nhất), quy tắc rewrite của chính nó (khi bật/tắt, và khi gỡ kích hoạt để rút lại), và khi bạn bấm nút, một trang **nháp** `en`. |
+| Cài hoặc kích hoạt plugin không làm đổi website | Plugin tắt cho đến khi quản trị viên (quyền `manage_options`, có nonce) bấm **Switch the English routes on** ở *Công cụ → VI/EN Links*. Trước đó plugin không đổi URL, truy vấn, trang hay thẻ nào. Trên production phải tích thêm ô xác nhận đã sao lưu. Hằng số `NH_VIEN_ENABLE_EN_ROUTES`/`NH_VIEN_ALLOW_PRODUCTION` của 0.4–0.5 vẫn được tôn trọng khi chưa lưu công tắc; `define( 'NH_VIEN_ENABLE_EN_ROUTES', false )` là công tắc khẩn cấp luôn thắng. |
 | Không tự đăng bài tiếng Anh | Một bài tiếng Anh đã ghép chỉ hiện khi **cả hai** bài của cặp đã xuất bản, slug dùng được và không có trang nào chiếm địa chỉ đó; chưa đủ điều kiện (nháp, bài Việt chưa xuất bản, slug lạ) → 404 ở mọi địa chỉ. Bài chưa ghép là bài thường, giữ nguyên địa chỉ gốc và không bị đổi. |
 | Không dùng plugin đa ngôn ngữ, không API trả phí | Chỉ mã trong thư mục plugin; không gọi dịch vụ ngoài; không nạp JavaScript. |
 
@@ -37,20 +37,25 @@ Plugin chạy độc lập (có ZIP riêng, không cần theme hay plugin đồn
 
 ## 3. Cài đặt và công tắc
 
-1. Lấy `nguyen-ha-vi-en-<phiên bản>.zip` từ artifact `release-<sha>` của một lần chạy Theme QA **xanh** (đối chiếu `SHA256SUMS`/`manifest.json`). ZIP chỉ chứa plugin (không có thư mục `tests/`).
-2. *Plugins → Add New → Upload Plugin*, cài, kích hoạt. **Chưa có gì thay đổi.**
-3. (Staging) thêm vào `wp-config.php`: `define( 'NH_VIEN_ENABLE_EN_ROUTES', true );` và đảm bảo môi trường là `staging`/`development`/`local` (`define( 'WP_ENVIRONMENT_TYPE', 'staging' );`).
-4. *Công cụ → VI/EN Links → Store the rewrite rules* (nút chỉ có tác dụng với quản trị viên, có nonce; lưu lại *Cài đặt → Đường dẫn tĩnh* cũng lưu các quy tắc). Màn hình nêu rõ "English pages are live" là Yes/No và lý do.
-5. Viết bài tiếng Anh dạng **nháp**, ghép với bài tiếng Việt, kiểm tra, rồi xuất bản.
-6. (Tùy chọn) nút *Create a draft English home page* tạo trang nháp `en` có `[nh_vien_posts]`; bạn tự chỉnh và tự xuất bản.
+1. Lấy `nguyen-ha-vi-en-<phiên bản>.zip` từ artifact `release-<sha>` của một lần chạy Theme QA **xanh** (đối chiếu `SHA256SUMS`/`manifest.json`) hoặc từ GitHub Release. ZIP chỉ chứa plugin (không có thư mục `tests/`).
+2. *Plugins → Add New → Upload Plugin*, cài, kích hoạt; khi nâng cấp, tải ZIP mới và chọn **Replace current with uploaded**. **Chưa có gì thay đổi.**
+3. *Công cụ → VI/EN Links*: màn hình chạy **preflight** và liệt kê từng kiểm tra: permalink đẹp, không có **bài** đã xuất bản ở `/en/`, không có **trang** đã xuất bản ở địa chỉ dành riêng dưới `/en/` (page, category, tag, feed…), không có rewrite rule/post type/taxonomy nào khác chiếm `/en/`, có trang đã xuất bản ở `/en/` hay chưa (trang chủ tiếng Anh), loại môi trường và plugin SEO. Một **xung đột** chặn công tắc và được giải thích; một **ghi chú** thì không.
+4. Bấm **Switch the English routes on** (trên production tích thêm ô xác nhận đã sao lưu và đã kiểm tra trang tiếng Anh). Plugin lưu công tắc (Options API, autoload), đăng ký và lưu quy tắc rewrite **đúng một lần**, rồi tự gọi `/en/` của chính website (**smoke test**): mọi trang của phần tiếng Anh đều gửi header `X-NH-VIEN-Lang: en`. Nếu không lưu được quy tắc, hoặc `/en/` trả lời mà không có header đó (cache trang hoặc rule khác trả lời thay), plugin **tự quay lại trạng thái trước** và báo lý do. Nếu máy chủ không tự gọi được (tường lửa, redirect, timeout) thì công tắc vẫn bật và màn hình đề nghị bạn mở `/en/` kiểm tra.
+5. Viết bài tiếng Anh dạng **nháp**, đăng ký (ghép cặp hoặc "Register English article", đăng ký danh mục tiếng Anh trước khi gán), kiểm tra, rồi xuất bản. Bài xuất bản mà **chỉ** nằm trong danh mục tiếng Anh đã đăng ký sẽ được plugin tự đăng ký là bài tiếng Anh.
+6. (Tùy chọn) nút *Create a draft English home page* tạo trang nháp `en` có `[nh_vien_posts]`; bạn tự chỉnh và tự xuất bản. Theme Nguyen Ha Editorial hiển thị trang `/en/` đã xuất bản bằng mẫu trang chủ tiếng Anh của theme.
+7. **Undo the last switch** quay về trạng thái trước lần bật/tắt gần nhất. **Switch the English routes off** lưu công tắc tắt và rút **chỉ** quy tắc của plugin khỏi quy tắc đã lưu (không chạm vào quy tắc khác, không tạo lại toàn bộ). **Store the rewrite rules** chỉ còn là nút bảo trì khi một plugin khác hoặc một lần di chuyển làm rơi quy tắc.
+
+### REST API (cho pipeline phát hành)
+
+Mọi thao tác trên đều có qua REST, chỉ cho quản trị viên (application password dùng được), dưới `/wp-json/nh-vien/v1/`: `GET /status`; `POST /routes` `{"enabled": true, "confirm": true}` hoặc `{"enabled": false}`; `POST /routes/undo`; `POST /categories {"id": N}` và `DELETE /categories/N`; `POST /posts {"id": N}` và `DELETE /posts/N`; `POST /pairs {"vi": N, "en": M}` và `DELETE /pairs/N`; `POST /pages {"vi": N, "en": M}` và `DELETE /pages/N`. Từ chối trả mã lỗi của màn hình Công cụ kèm HTTP 400/403/404/409. Các route tồn tại cả khi công tắc đang tắt, vì đó là cách bật mà không cần hosting.
 
 ## 4. Danh sách kiểm tra staging (bắt buộc trước khi bật production)
 
 Làm trên **bản sao** có cùng theme, cùng plugin SEO, cùng cấu trúc permalink và dữ liệu giống production. Đạt = mọi mục đạt; còn mục chưa đạt thì **không** bật production.
 
 - [ ] Có sao lưu **mới** (CSDL + `wp-content`) đã mở thử được; biết cách quay lại (mục 6).
-- [ ] Trước khi bật, lưu HTML của trang chủ, một danh mục, một bài, `/?s=xe`, `/feed/`; sau khi bật hằng số và bấm "Store the rewrite rules" (chưa ghép bài nào) các trang đó **giống hệt**.
-- [ ] Không có trang hay bài nào đã dùng `/en/` hoặc `/en/…` ngoài ý muốn. Một **bài** đã xuất bản có slug `en` làm plugin từ chối lưu quy tắc (màn hình *Công cụ → VI/EN Links* ghi "Address /en/ used by a post"); một **trang** đã xuất bản ở `/en/` trở thành trang chủ tiếng Anh; một trang dưới `/en/…` giữ địa chỉ và làm ẩn bài Anh cùng slug (màn hình báo trạng thái của từng cặp).
+- [ ] Trước khi bật, lưu HTML của trang chủ, một danh mục, một bài, `/?s=xe`, `/feed/`; sau khi bấm "Switch the English routes on" (chưa ghép bài nào) các trang đó **giống hệt**.
+- [ ] Preflight ở *Công cụ → VI/EN Links* không có xung đột. Một **bài** đã xuất bản có slug `en` làm plugin từ chối bật; một **trang** đã xuất bản ở `/en/` trở thành trang chủ tiếng Anh; một trang dưới `/en/…` giữ địa chỉ và làm ẩn bài Anh cùng slug (màn hình báo trạng thái của từng cặp).
 - [ ] Một bài Việt đã ghép: có hreflang `vi`, `en`, `x-default` đúng hai chiều; một canonical; bộ chuyển ngôn ngữ dẫn đúng.
 - [ ] Bài Anh tương ứng: `<html lang="en-US">`, canonical là `/en/{slug}/`, JSON-LD (`WebPage`/`Article`/`BreadcrumbList`) có `url` là `/en/{slug}/`; địa chỉ `/{slug}/` trả **301** sang `/en/{slug}/` và không bị vòng lặp.
 - [ ] `/sitemap_index.xml` vẫn là **một** sơ đồ; bài Anh xuất hiện ở `/en/{slug}/`, không có nháp, không có địa chỉ gốc của bài Anh.
@@ -59,26 +64,25 @@ Làm trên **bản sao** có cùng theme, cùng plugin SEO, cùng cấu trúc pe
 - [ ] Bộ chuyển ngôn ngữ nhìn thấy và dùng được ở điện thoại (375 px), máy tính bảng (768 px), máy tính (1440 px), bằng bàn phím và trình đọc màn hình; không có cuộn ngang.
 - [ ] Cache trang/CDN: `/en/…` được lưu riêng, đã xóa cache sau khi ghép bài; không có nội dung ngôn ngữ này hiện ở URL của ngôn ngữ kia.
 - [ ] Bài Anh đã ghép nhưng chưa được phép hiện (nháp, bài Việt chưa xuất bản, slug lạ, trang đang chiếm địa chỉ) và mọi địa chỉ `/en/…` không có thật: tất cả 404; không có "soft 404" (trang 200 nhưng rỗng).
-- [ ] Thử gỡ: bỏ hằng số → `/en/…` thành 404 và trang tiếng Việt vẫn như cũ; bấm "Store the rewrite rules"; gỡ kích hoạt plugin → trang tiếng Việt vẫn như cũ.
+- [ ] Thử tắt: bấm "Switch the English routes off" → plugin không trả lời `/en/…` nữa và trang tiếng Việt vẫn như cũ; "Undo the last switch" bật lại; gỡ kích hoạt plugin → trang tiếng Việt vẫn như cũ.
 
 ## 5. Bật trên production
 
-Chỉ khi mục 4 đạt hoàn toàn và chủ sở hữu duyệt bằng văn bản:
+Chỉ khi mục 4 đạt và chủ sở hữu quyết định:
 
 1. Sao lưu CSDL + `wp-content` (từ hPanel) và xác nhận mở được.
-2. Cài ZIP, kích hoạt (chưa thay đổi gì).
-3. Thêm **cả hai** hằng số vào `wp-config.php`: `NH_VIEN_ENABLE_EN_ROUTES` và `NH_VIEN_ALLOW_PRODUCTION` (cùng giá trị `true`).
-4. Bấm "Store the rewrite rules". Mở `/en/` và một bài đã ghép; kiểm tra các mục chính của mục 4 trên chính website.
+2. Cài ZIP 0.5.1 (Replace current with uploaded), kích hoạt (chưa thay đổi gì).
+3. *Công cụ → VI/EN Links*: đọc preflight, tích ô xác nhận, bấm **Switch the English routes on**. Màn hình báo kết quả smoke test; nếu plugin tự quay lại, đọc lý do (thường là cache trang: xóa cache rồi bấm lại).
+4. Mở `/en/`, một trang tiếng Anh và một bài đã ghép; kiểm tra các mục chính của mục 4 trên chính website. Xóa cache trang/CDN.
 5. Đưa `https://blog.rentbikehanoi.com/sitemap_index.xml` vào Google Search Console nếu chưa có (không cần gửi lại sơ đồ riêng cho `/en/`), theo dõi Coverage trong vài tuần.
 
-Plugin **không** tự kích hoạt, không tự merge và không tự đưa gì lên production: `main` chỉ đổi khi chủ sở hữu quyết định.
+Plugin **không** tự kích hoạt và không tự bật: công tắc chỉ đổi khi quản trị viên bấm (hoặc gọi REST với tài khoản quản trị).
 
 ## 6. Quay lại
 
-1. Xóa hằng số `NH_VIEN_ENABLE_EN_ROUTES` (và `NH_VIEN_ALLOW_PRODUCTION`): plugin ngừng ngay mọi thay đổi và `/en/…` trả 404.
-2. *Công cụ → VI/EN Links → Store the rewrite rules*: quy tắc rewrite tiếng Anh bị rút khỏi dữ liệu đã lưu.
-3. Gỡ kích hoạt plugin nếu muốn. Gỡ kích hoạt cũng tự rút các quy tắc của plugin, nên dù làm sai thứ tự cũng **không** còn địa chỉ `/en/…` nào trả về bản sao của trang chủ tiếng Việt. Sau đó địa chỉ `/en/{slug}/` cũ trả 404 hoặc được WordPress dẫn về địa chỉ gốc của bài tiếng Anh.
-4. Danh sách cặp bài vẫn nằm trong CSDL (tùy chọn `nh_vien_translation_pairs_v1`) để bật lại không phải làm lại; xóa tay nếu muốn.
+1. *Công cụ → VI/EN Links → Undo the last switch* (về đúng trạng thái trước) hoặc **Switch the English routes off**: plugin ngừng ngay mọi thay đổi và rút quy tắc của mình khỏi quy tắc đã lưu; `/en/…` do WordPress trả lời như khi không có plugin.
+2. Không vào được admin? Thêm `define( 'NH_VIEN_ENABLE_EN_ROUTES', false );` vào `wp-config.php` (công tắc khẩn cấp, thắng mọi cài đặt) hoặc gỡ kích hoạt plugin. Gỡ kích hoạt cũng tự rút các quy tắc của plugin, nên **không** còn địa chỉ `/en/…` nào trả về bản sao của trang chủ tiếng Việt.
+3. Danh sách cặp bài, bài và danh mục tiếng Anh vẫn nằm trong CSDL để bật lại không phải làm lại; xóa tay nếu muốn.
 
 Trang tiếng Việt không đổi ở mọi bước (kiểm thử CI so sánh HTML với bản chụp ban đầu).
 
@@ -86,7 +90,7 @@ Trang tiếng Việt không đổi ở mọi bước (kiểm thử CI so sánh H
 
 | Lớp | Nội dung | Nơi chạy |
 |---|---|---|
-| Kiểm thử offline (PHP thuần) | `tests/smoke.php`, `links.php`, `routes.php`, `boot.php`, `query.php`: công tắc, quy tắc, slug, cặp bài, nonce/quyền, phạm vi truy vấn, hook theo từng môi trường | PHP 7.4 – 8.4 trong CI |
+| Kiểm thử offline (PHP thuần) | `tests/smoke.php`, `links.php`, `routes.php`, `boot.php`, `query.php`, `seo.php`, `settings.php`, `rest.php`: công tắc (cài đặt, hằng số, khẩn cấp), preflight, bật/tắt/undo với smoke test và rollback, REST (quyền, mã trạng thái), guard khi xuất bản, quy tắc, slug, cặp bài, nonce/quyền, phạm vi truy vấn, hook theo từng môi trường | PHP 7.4 – 8.4 trong CI |
 | Site WordPress thật qua HTTP | `tests/site/run.php`: trạng thái và chuyển hướng, ngôn ngữ từng danh sách, bộ chuyển ngôn ngữ, hreflang/canonical/sơ đồ, an ninh (XSS, tham số thô, CSRF, quyền), cache tách ngôn ngữ, màn hình quản trị, trang chủ tiếng Anh dạng trang, công tắc đóng lại, **trang tiếng Việt giống hệt khi bật/tắt**, gỡ kích hoạt | WordPress 7.1.3 và 6.3.5; theme Editorial có và không có Yoast SEO; theme khối mặc định; theme cổ điển không gọi `wp_body_open()` |
 | Trình duyệt | `tests/e2e/switcher.spec.mjs`: bộ chuyển ngôn ngữ ở 375/768/1440 px, vùng chạm, bàn phím, thứ tự sau liên kết bỏ qua, axe (sáng và tối) | Chromium trong CI |
 | Đóng gói | `tools/verify-package.sh`: thư mục và tệp bắt buộc, không có `tests/`, bảo vệ truy cập trực tiếp ở mọi tệp, một phiên bản ở mọi nơi, không phụ thuộc theme hay plugin đồng hành | CI (job `static`) |

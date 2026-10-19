@@ -8,7 +8,7 @@ if ( 'cli' !== PHP_SAPI ) {
 
 define( 'ABSPATH', __DIR__ . '/../../../../' );
 define( 'OBJECT', 'OBJECT' );
-define( 'NH_VIEN_VERSION', '0.5.0' );
+define( 'NH_VIEN_VERSION', '0.5.1' );
 define( 'NH_VIEN_PLUGIN_FILE', dirname( __DIR__ ) . '/nguyen-ha-vi-en.php' );
 
 $GLOBALS['env']       = 'staging';
@@ -62,6 +62,11 @@ function get_posts( $args ) {
 function home_url( $path = '' ) { return 'https://example.test' . $path; }
 function user_trailingslashit( $url ) { return rtrim( $url, '/' ) . '/'; }
 function must( $condition, $message ) { if ( ! $condition ) { throw new RuntimeException( $message ); } }
+function __( $text, $domain = null ) { return $text; }
+function get_post_types( $args = array(), $output = 'names' ) { return $GLOBALS['post_types']; }
+function get_taxonomies( $args = array(), $output = 'names' ) { return $GLOBALS['taxonomies']; }
+$GLOBALS['post_types'] = array();
+$GLOBALS['taxonomies'] = array();
 
 require dirname( __DIR__ ) . '/includes/class-nh-vien-languages.php';
 require dirname( __DIR__ ) . '/includes/class-nh-vien-links.php';
@@ -85,19 +90,33 @@ function request( $rule, $vars ) {
 	);
 }
 
-// ---- Gate: the constant is required, and a production site needs a second constant.
+// ---- Gate: a setting saved from the administration, else the constants of older versions.
 fresh();
-must( ! NH_VIEN_Routes::enabled(), 'Gate open without the constant' );
+must( ! NH_VIEN_Routes::enabled() && 'unset' === NH_VIEN_Routes::source(), 'Gate open without a setting or a constant' );
+$GLOBALS['env'] = 'production';
+$GLOBALS['options'][ NH_VIEN_Routes::CONTROL_OPTION ] = '1';
+must( NH_VIEN_Routes::enabled() && 'setting_on' === NH_VIEN_Routes::source(), 'The saved setting did not switch the routes on, on production' );
+$GLOBALS['options'][ NH_VIEN_Routes::CONTROL_OPTION ] = '0';
+must( ! NH_VIEN_Routes::enabled() && 'setting_off' === NH_VIEN_Routes::source(), 'The saved setting did not switch the routes off' );
+$GLOBALS['options'][ NH_VIEN_Routes::CONTROL_OPTION ] = 'yes';
+must( ! NH_VIEN_Routes::enabled() && 'unset' === NH_VIEN_Routes::source(), 'An unknown setting value must count as no setting' );
+unset( $GLOBALS['options'][ NH_VIEN_Routes::CONTROL_OPTION ] );
+$GLOBALS['env'] = 'staging';
+
 define( 'NH_VIEN_ENABLE_EN_ROUTES', true );
 $GLOBALS['env'] = 'production';
-must( ! NH_VIEN_Routes::enabled(), 'Production gate open with the first constant only' );
+must( ! NH_VIEN_Routes::enabled() && 'constant_production_blocked' === NH_VIEN_Routes::source(), 'Production gate open with the first constant only' );
 foreach ( array( 'local', 'development', 'staging' ) as $env ) {
 	$GLOBALS['env'] = $env;
-	must( NH_VIEN_Routes::enabled(), "Gate closed on $env" );
+	must( NH_VIEN_Routes::enabled() && 'constant_on' === NH_VIEN_Routes::source(), "Gate closed on $env" );
 }
 $GLOBALS['env'] = 'production';
 define( 'NH_VIEN_ALLOW_PRODUCTION', true );
-must( NH_VIEN_Routes::enabled(), 'Production gate closed with both constants' );
+must( NH_VIEN_Routes::enabled() && 'constant_on' === NH_VIEN_Routes::source(), 'Production gate closed with both constants' );
+// The setting wins over the constants, in both directions.
+$GLOBALS['options'][ NH_VIEN_Routes::CONTROL_OPTION ] = '0';
+must( ! NH_VIEN_Routes::enabled(), 'The setting "off" must win over the constants' );
+unset( $GLOBALS['options'][ NH_VIEN_Routes::CONTROL_OPTION ] );
 $GLOBALS['env'] = 'staging';
 
 // ---- Rules: all of them live below /en/, the specific ones first, each flagged as English.
@@ -237,7 +256,7 @@ must( array( 'error' => '404' ) === $wp->query_vars, 'The English home without E
 // ---- boot: the rules are registered whenever the gate is open (the closed gate is checked in boot.php).
 fresh();
 NH_VIEN_Routes::boot();
-must( array( 'init', 'query_vars', 'parse_request' ) === $GLOBALS['hooks'], 'Open gate: wrong hooks' );
+must( array( 'init', 'query_vars', 'parse_request', 'wp_headers' ) === $GLOBALS['hooks'], 'Open gate: wrong hooks' );
 
 // ---- A published post that already has the address /en/ is noticed (a page is the English home, not a collision).
 $GLOBALS['published'] = array( new WP_Post( 1, 'something' ), new WP_Post( 2, 'en', 'publish', 'page' ), new WP_Post( 3, 'en', 'draft' ) );
@@ -245,6 +264,92 @@ must( ! NH_VIEN_Routes::post_at_en(), 'A page or a draft with the slug en must n
 $GLOBALS['published'][] = new WP_Post( 4, 'en' );
 must( NH_VIEN_Routes::post_at_en(), 'A published post with the slug en must be noticed' );
 $GLOBALS['published'] = array();
+
+// ---- Switching off removes only this plugin's runtime rewrite entries.
+$wp_rewrite = (object) array(
+	'extra_rules_top' => array_merge( NH_VIEN_Routes::rules(), array( '^other/?$' => 'index.php?name=other' ) ),
+	'extra_rules'     => array( '^another/?$' => 'index.php?name=another' ),
+);
+NH_VIEN_Routes::clear_registered_rules();
+must( array( '^other/?$' => 'index.php?name=other' ) === $wp_rewrite->extra_rules_top, 'Off switch removed unrelated top-level rules' );
+must( array( '^another/?$' => 'index.php?name=another' ) === $wp_rewrite->extra_rules, 'Off switch removed unrelated rewrite rules' );
+
+// ---- The response header that marks an English answer.
+fresh();
+must( array( 'X-Pingback' => 'x' ) === NH_VIEN_Routes::headers( array( 'X-Pingback' => 'x' ) ), 'A Vietnamese answer must not carry the English marker' );
+NH_VIEN_Context::set( 'en' );
+must( 'en' === NH_VIEN_Routes::headers( array() )['X-NH-VIEN-Lang'], 'An English answer must carry the marker header' );
+must( 'nope' === NH_VIEN_Routes::headers( 'nope' ), 'A non-array header set must be returned as it is' );
+fresh();
+
+// ---- Preflight: what must hold before the routes are switched on; running it changes nothing.
+function checks_by_id( array $checks ) {
+	$by_id = array();
+	foreach ( $checks as $check ) {
+		$by_id[ $check['id'] ] = $check;
+	}
+	return $by_id;
+}
+$GLOBALS['options']   = array( 'permalink_structure' => '/%postname%/' );
+$GLOBALS['published'] = array();
+$GLOBALS['pages']     = array();
+$wp_rewrite           = (object) array( 'extra_rules_top' => array(), 'extra_rules' => array() );
+fresh();
+$GLOBALS['writes'] = 0;
+$checks = NH_VIEN_Routes::preflight();
+$by_id  = checks_by_id( $checks );
+must( 0 === $GLOBALS['writes'], 'The preflight must not write anything' );
+must( NH_VIEN_Routes::preflight_passed( $checks ), 'A clean site must pass the preflight' );
+must( 'warning' === $by_id['home_page']['level'] && ! $by_id['home_page']['ok'], 'Without a page at /en/ the home check is a warning, not an error' );
+must( 'info' === $by_id['environment']['level'] && false !== strpos( $by_id['environment']['message'], 'staging' ), 'The environment must be reported' );
+$GLOBALS['options']['permalink_structure'] = '';
+fresh();
+$by_id = checks_by_id( NH_VIEN_Routes::preflight() );
+must( ! NH_VIEN_Routes::preflight_passed( NH_VIEN_Routes::preflight() ) && 'error' === $by_id['permalinks']['level'], 'Plain permalinks must fail the preflight' );
+$GLOBALS['options']['permalink_structure'] = '/%postname%/';
+$GLOBALS['published'][] = new WP_Post( 9, 'en' );
+fresh();
+$by_id = checks_by_id( NH_VIEN_Routes::preflight() );
+must( 'error' === $by_id['post_at_en']['level'], 'A published post at /en/ must fail the preflight' );
+$GLOBALS['published'] = array();
+$GLOBALS['pages']['en/category'] = new WP_Post( 8, 'category', 'publish', 'page' );
+$GLOBALS['pages']['en/feed']     = new WP_Post( 7, 'feed', 'draft', 'page' );
+fresh();
+$by_id = checks_by_id( NH_VIEN_Routes::preflight() );
+must( 'error' === $by_id['reserved_pages']['level'] && false !== strpos( $by_id['reserved_pages']['message'], '/en/category/' ) && false === strpos( $by_id['reserved_pages']['message'], '/en/feed/' ), 'A published page at a reserved address must fail the preflight, a draft must not' );
+$GLOBALS['pages'] = array( 'en' => new WP_Post( 5, 'en', 'publish', 'page' ) );
+fresh();
+$by_id = checks_by_id( NH_VIEN_Routes::preflight() );
+must( $by_id['reserved_pages']['ok'] && $by_id['home_page']['ok'] && false !== strpos( $by_id['home_page']['message'], '#5' ), 'A published page at /en/ is the English home' );
+$GLOBALS['options']['rewrite_rules'] = array_merge( NH_VIEN_Routes::rules(), array( 'category/(.+?)/?$' => 'index.php?category_name=$matches[1]' ) );
+fresh();
+must( checks_by_id( NH_VIEN_Routes::preflight() )['foreign_rules']['ok'], 'Our own stored rules are not a conflict' );
+$GLOBALS['options']['rewrite_rules'][ NH_VIEN_Routes::REWRITE ] = 'index.php?lang=en&pagename=$matches[1]';
+fresh();
+$by_id = checks_by_id( NH_VIEN_Routes::preflight() );
+must( 'error' === $by_id['foreign_rules']['level'] && false !== strpos( $by_id['foreign_rules']['message'], NH_VIEN_Routes::REWRITE ), 'Our regex with another query is a conflict' );
+$GLOBALS['options']['rewrite_rules'] = array();
+$wp_rewrite->extra_rules_top['^en/shop/?$'] = 'index.php?post_type=shop';
+fresh();
+$by_id = checks_by_id( NH_VIEN_Routes::preflight() );
+must( 'error' === $by_id['foreign_rules']['level'] && false !== strpos( $by_id['foreign_rules']['message'], '^en/shop/?$' ), 'A rule of another plugin below /en/ is a conflict' );
+$wp_rewrite->extra_rules_top = array( '^shop/?$' => 'index.php?post_type=shop' );
+fresh();
+must( checks_by_id( NH_VIEN_Routes::preflight() )['foreign_rules']['ok'], 'A rule outside /en/ is no conflict' );
+$GLOBALS['post_types'] = array(
+	'post'     => (object) array( 'rewrite' => false ),
+	'en_thing' => (object) array( 'rewrite' => array( 'slug' => 'en' ) ),
+);
+$GLOBALS['taxonomies'] = array( 'en_tax' => (object) array( 'rewrite' => array( 'slug' => 'en/topics' ) ), 'shop' => (object) array( 'rewrite' => array( 'slug' => 'shop' ) ) );
+fresh();
+$by_id = checks_by_id( NH_VIEN_Routes::preflight() );
+must( 'error' === $by_id['rewrite_slugs']['level'] && false !== strpos( $by_id['rewrite_slugs']['message'], 'en_thing' ) && false !== strpos( $by_id['rewrite_slugs']['message'], 'en_tax' ) && false === strpos( $by_id['rewrite_slugs']['message'], 'shop' ), 'A post type or taxonomy at /en/ is a conflict' );
+$GLOBALS['post_types'] = array();
+$GLOBALS['taxonomies'] = array();
+$GLOBALS['pages']      = array();
+$GLOBALS['options']    = array();
+$GLOBALS['writes']     = 0;
+fresh();
 
 // ---- Deactivation takes the plugin's own rules out of the stored ones and nothing else.
 $ours   = NH_VIEN_Routes::rules();
@@ -270,4 +375,4 @@ NH_VIEN_Routes::deactivate();
 must( 0 === $GLOBALS['writes'], 'Deactivation with a corrupt option must leave it alone' );
 $GLOBALS['options'] = array();
 
-echo "PASS: gate, rules, slugs, live state, pairs, request resolution, English addresses, deactivation.\n";
+echo "PASS: gate (setting and constants), rules, slugs, live state, pairs, request resolution, English addresses, marker header, preflight, deactivation.\n";

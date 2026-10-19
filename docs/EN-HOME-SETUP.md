@@ -13,8 +13,8 @@ This is a two-language WordPress site using **one** Nguyen Ha Editorial theme. T
 5. Create **empty** English category parents and children in WordPress → Posts → Categories. Register the parent IDs first, then each child ID under Tools → VI/EN Links. Do not rename existing Vietnamese categories.
 6. Author English posts as **drafts**; register their IDs in VI/EN Links **before** publishing. Assign only English categories. Existing Vietnamese published posts cannot be relabeled English.
 7. Create menus with WordPress menu slugs `primary-en` and `footer-en`. If absent, the English side uses a small English-only fallback menu; it does not expose Vietnamese menu items. English footer columns have their own widget areas `footer-en-1` through `footer-en-4`, and fall back to the verified shared business contact data.
-8. Enable English routes **only in staging** using `NH_VIEN_ENABLE_EN_ROUTES` and the plugin's explicit rewrite-rule action. Test /en/, /en/about/, /en/category/…, /en/{post}/, Yoast canonical/hreflang/sitemaps, phone/menu/search/CTA, desktop/tablet/mobile and rollback.
-9. Only with a backup and passing staging QA should production configuration explicitly set both `NH_VIEN_ENABLE_EN_ROUTES` and `NH_VIEN_ALLOW_PRODUCTION` and store the rewrite rules. Do not enable production as part of this code release.
+8. Switch the English routes on under **Tools → VI/EN Links** (VI-EN Core 0.5.1: preflight, one rewrite flush, smoke test, automatic rollback; no wp-config.php line). Test /en/, /en/about/, /en/category/…, /en/{post}/, Yoast canonical/hreflang/sitemaps, phone/menu/search/CTA, desktop/tablet/mobile and the "Undo the last switch" button.
+9. On production tick the confirmation box (fresh backup, English pages checked) before switching on. The same switch is available to release pipelines through `POST /wp-json/nh-vien/v1/routes` with an administrator application password.
 
 ## The English homepage
 
