@@ -7,6 +7,9 @@
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * Read-only VI/EN language metadata.
+ */
 final class NH_VIEN_Languages {
 	/**
 	 * Language identifiers and display metadata.
@@ -59,8 +62,10 @@ final class NH_VIEN_Languages {
 	}
 
 	/**
+	 * Check whether the language is known.
+	 *
 	 * @param mixed $code Language code.
-	 * @return bool
+	 * @return bool Whether supported.
 	 */
 	public static function is_supported( $code ) {
 		return null !== self::get( $code );

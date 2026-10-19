@@ -4,32 +4,47 @@
  *
  * @package Nguyen_Ha_VI_EN
  */
+
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * Tools panel for protected administrator pairing actions.
+ */
 final class NH_VIEN_Admin {
+	/** Register the administrator-only hooks. */
 	public static function boot() {
 		add_action( 'admin_menu', array( __CLASS__, 'menu' ) );
 		add_action( 'admin_post_nh_vien_link', array( __CLASS__, 'save' ) );
 		add_action( 'admin_post_nh_vien_unlink', array( __CLASS__, 'remove' ) );
 	}
 
+	/** Add the Tools navigation entry. */
 	public static function menu() {
 		add_management_page( 'VI/EN Translation Links', 'VI/EN Links', 'manage_options', 'nh-vien-links', array( __CLASS__, 'render' ) );
 	}
 
+	/** Save a pair after confirming a valid CSRF token. */
 	public static function save() {
+		check_admin_referer( NH_VIEN_Links::NONCE_ACTION );
 		$nonce = isset( $_POST['_wpnonce'] ) && is_string( $_POST['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ) : '';
 		$vi = isset( $_POST['vi_post_id'] ) && is_string( $_POST['vi_post_id'] ) ? wp_unslash( $_POST['vi_post_id'] ) : '';
 		$en = isset( $_POST['en_post_id'] ) && is_string( $_POST['en_post_id'] ) ? wp_unslash( $_POST['en_post_id'] ) : '';
 		self::redirect( NH_VIEN_Links::link( $vi, $en, $nonce ) );
 	}
 
+	/** Remove a pair after confirming a valid CSRF token. */
 	public static function remove() {
+		check_admin_referer( NH_VIEN_Links::NONCE_ACTION );
 		$nonce = isset( $_POST['_wpnonce'] ) && is_string( $_POST['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ) : '';
 		$vi = isset( $_POST['vi_post_id'] ) && is_string( $_POST['vi_post_id'] ) ? wp_unslash( $_POST['vi_post_id'] ) : '';
 		self::redirect( NH_VIEN_Links::unlink( $vi, $nonce ) );
 	}
 
+	/**
+	 * Redirect back to the Tools screen with a safe status token.
+	 *
+	 * @param true|WP_Error $result Saved result.
+	 */
 	private static function redirect( $result ) {
 		$status = is_wp_error( $result ) ? $result->get_error_code() : 'saved';
 		$allowed = array( 'saved', 'nh_vien_forbidden', 'nh_vien_bad_nonce', 'nh_vien_invalid_ids', 'nh_vien_invalid_posts', 'nh_vien_invalid_store', 'nh_vien_conflict', 'nh_vien_not_found', 'nh_vien_save_failed' );
@@ -40,13 +55,14 @@ final class NH_VIEN_Admin {
 		exit;
 	}
 
+	/** Render the Tools screen for permitted users. */
 	public static function render() {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_die( esc_html__( 'Administrator permission required.', 'nguyen-ha-vi-en' ) );
 		}
 		$pairs = NH_VIEN_Links::all();
 		echo '<div class="wrap"><h1>VI/EN Translation Links</h1>';
-		echo '<p>Link two existing WordPress posts by ID. No content, URL, canonical, sitemap, or hreflang is changed. No English route exists yet.</p>';
+		echo '<p>Link two existing WordPress posts by ID. No content, URL, canonical, sitemap, or hreflang is changed. Staging-only English route preview stays disabled until explicitly configured.</p>';
 		if ( isset( $_GET['nh_vien_status'] ) && is_string( $_GET['nh_vien_status'] ) ) {
 			$status = sanitize_key( wp_unslash( $_GET['nh_vien_status'] ) );
 			if ( 'saved' === $status ) {

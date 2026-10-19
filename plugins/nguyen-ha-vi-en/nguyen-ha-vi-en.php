@@ -8,6 +8,8 @@
  * Author: Nguyen Ha Editorial
  * License: GPL-2.0-or-later
  * Text Domain: nguyen-ha-vi-en
+ *
+ * @package Nguyen_Ha_VI_EN
  */
 
 defined( 'ABSPATH' ) || exit;

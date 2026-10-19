@@ -8,6 +8,9 @@
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * Validate and manage one-to-one translation relationships.
+ */
 final class NH_VIEN_Links {
 	const OPTION = 'nh_vien_translation_pairs_v1';
 	const NONCE_ACTION = 'nh_vien_manage_links';
@@ -66,7 +69,10 @@ final class NH_VIEN_Links {
 				if ( ! self::eligible_post( $vi ) || ! self::eligible_post( $en ) ) {
 					return null;
 				}
-				return array( 'vi' => $vi, 'en' => $en );
+				return array(
+					'vi' => $vi,
+					'en' => $en,
+				);
 			}
 		}
 		return null;
@@ -140,7 +146,12 @@ final class NH_VIEN_Links {
 		return update_option( self::OPTION, $pairs, false ) ? true : new WP_Error( 'nh_vien_save_failed', 'Could not remove translation link.' );
 	}
 
-	/** @return true|WP_Error */
+	/**
+	 * Check the administrator capability and request nonce.
+	 *
+	 * @param mixed $nonce Submitted request token.
+	 * @return true|WP_Error Whether authorized.
+	 */
 	private static function authorize( $nonce ) {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			return new WP_Error( 'nh_vien_forbidden', 'Administrator permission required.' );
@@ -151,13 +162,23 @@ final class NH_VIEN_Links {
 		return true;
 	}
 
-	/** @return bool */
+	/**
+	 * Validate an integer or an exact decimal post identifier.
+	 *
+	 * @param mixed $value Supplied identifier.
+	 * @return bool Whether positive and valid.
+	 */
 	private static function positive_id( $value ) {
 		return ( is_int( $value ) && $value > 0 ) ||
 			( is_string( $value ) && 1 === preg_match( '/^[1-9][0-9]*$/D', $value ) && (string) (int) $value === $value );
 	}
 
-	/** @return bool */
+	/**
+	 * Check that a post is suitable for manual translation linking.
+	 *
+	 * @param int $post_id WordPress post identifier.
+	 * @return bool Whether eligible.
+	 */
 	private static function eligible_post( $post_id ) {
 		$post = get_post( $post_id );
 		return $post instanceof WP_Post && 'post' === $post->post_type &&

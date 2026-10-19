@@ -7,8 +7,11 @@
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * Standalone plugin service container.
+ */
 final class NH_VIEN_Plugin {
-	/** @var NH_VIEN_Plugin|null */
+	/** @var NH_VIEN_Plugin|null Singleton instance. */
 	private static $instance = null;
 
 	/**
@@ -29,7 +32,9 @@ final class NH_VIEN_Plugin {
 	}
 
 	/**
-	 * @return NH_VIEN_Plugin
+	 * Get the singleton without running additional hooks.
+	 *
+	 * @return NH_VIEN_Plugin Plugin instance.
 	 */
 	public static function instance() {
 		if ( null === self::$instance ) {
@@ -39,17 +44,22 @@ final class NH_VIEN_Plugin {
 		return self::$instance;
 	}
 
+	/** Prevent direct construction of the service. */
 	private function __construct() {}
 
 	/**
-	 * @return array<string, array<string, string>>
+	 * Return the language registry.
+	 *
+	 * @return array<string, array<string, string>> Language definitions.
 	 */
 	public function languages() {
 		return NH_VIEN_Languages::all();
 	}
 
 	/**
-	 * @return string
+	 * Get the default language identifier.
+	 *
+	 * @return string Default language.
 	 */
 	public function default_language() {
 		return NH_VIEN_Languages::default_code();

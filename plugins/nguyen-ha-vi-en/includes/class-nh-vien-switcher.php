@@ -1,11 +1,17 @@
 <?php
 /**
  * Minimal accessible VI/EN switcher; frontend remains off by default.
+ *
  * @package Nguyen_Ha_VI_EN
  */
+
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * Provide accessible staging-only VI/EN article navigation.
+ */
 final class NH_VIEN_Switcher {
+	/** Register staging-only switcher hooks. */
 	public static function boot() {
 		if ( ! NH_VIEN_Routes::enabled() ) {
 			return;
@@ -15,10 +21,17 @@ final class NH_VIEN_Switcher {
 		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'styles' ) );
 	}
 
+	/** Enqueue only the lightweight navigation stylesheet. */
 	public static function styles() {
 		wp_enqueue_style( 'nh-vien-switcher', plugins_url( 'assets/switcher.css', NH_VIEN_PLUGIN_FILE ), array(), NH_VIEN_VERSION );
 	}
 
+	/**
+	 * Place a switcher before eligible single-post content.
+	 *
+	 * @param string $content WordPress post body.
+	 * @return string Original or augmented content.
+	 */
 	public static function prepend( $content ) {
 		if ( ! is_singular( 'post' ) || ! is_main_query() || ! in_the_loop() || is_feed() || has_shortcode( $content, 'nh_vien_switcher' ) ) {
 			return $content;
@@ -26,6 +39,11 @@ final class NH_VIEN_Switcher {
 		return self::html( get_queried_object_id() ) . $content;
 	}
 
+	/**
+	 * Render the explicit editor shortcode.
+	 *
+	 * @return string Navigation markup or empty string.
+	 */
 	public static function shortcode() {
 		if ( ! is_singular( 'post' ) ) {
 			return '';
@@ -33,6 +51,12 @@ final class NH_VIEN_Switcher {
 		return self::html( get_queried_object_id() );
 	}
 
+	/**
+	 * Build the switcher only for a published VI/EN pair.
+	 *
+	 * @param int $post_id Current post identifier.
+	 * @return string Escaped navigation markup or empty string.
+	 */
 	public static function html( $post_id ) {
 		if ( ! NH_VIEN_Routes::enabled() ) {
 			return '';
