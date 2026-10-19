@@ -36,6 +36,7 @@ final class NH_VIEN_Urls {
 		add_action( 'wp_footer', array( __CLASS__, 'close_body_phase' ), 0 );
 		add_filter( 'home_url', array( __CLASS__, 'home_url' ), 10, 3 );
 		add_filter( 'rest_url', array( __CLASS__, 'rest_url' ), 10, 2 );
+		add_filter( 'url_to_postid', array( __CLASS__, 'url_to_postid' ) );
 	}
 
 	/**
@@ -210,5 +211,26 @@ final class NH_VIEN_Urls {
 			return add_query_arg( NH_VIEN_Routes::LANG_VAR, NH_VIEN_Context::language(), $url );
 		}
 		return $url;
+	}
+
+	/**
+	 * WordPress finds the post of an address through the rewrite rules, which only know the query variables of the English
+	 * routes. Handing it the ID of the English post that has the address lets oEmbed, embeds and link cards find an
+	 * English post at /en/{slug}/ like any other post.
+	 *
+	 * @param string $url The address WordPress is looking up.
+	 * @return string
+	 */
+	public static function url_to_postid( $url ) {
+		if ( ! is_string( $url ) || ! NH_VIEN_Routes::live() ) {
+			return $url;
+		}
+		$prefix = trailingslashit( (string) wp_parse_url( home_url(), PHP_URL_PATH ) ) . 'en/';
+		$path   = (string) wp_parse_url( $url, PHP_URL_PATH );
+		if ( 0 !== strpos( $path, $prefix ) ) {
+			return $url;
+		}
+		$id = NH_VIEN_Routes::post_id_for_slug( trim( substr( $path, strlen( $prefix ) ), '/' ) );
+		return $id ? add_query_arg( 'p', $id, home_url( '/' ) ) : $url;
 	}
 }

@@ -127,6 +127,9 @@ function get_term_children( $id ) {
 }
 function get_term( $id ) { return isset( $GLOBALS['terms'][ $id ] ) ? $GLOBALS['terms'][ $id ] : null; }
 function add_query_arg( $key, $value, $url ) { return $url . ( false === strpos( $url, '?' ) ? '?' : '&' ) . $key . '=' . $value; }
+function wp_parse_url( $url, $component = -1 ) { return parse_url( $url, $component ); }
+function home_url( $path = '' ) { return 'https://example.test' . $path; }
+function trailingslashit( $value ) { return rtrim( $value, '/' ) . '/'; }
 function must( $condition, $message ) { if ( ! $condition ) { throw new RuntimeException( $message ); } }
 /** A REST request with the few parameters the suggestions look at. */
 class WP_REST_Request {
@@ -361,5 +364,23 @@ $GLOBALS['options'][ NH_VIEN_Links::OPTION ] = array();
 fresh( 'vi' );
 must( $route === NH_VIEN_Urls::rest_url( $route, 'wp/v2/search' ), 'Without English posts the address must stay as it is' );
 NH_VIEN_Urls::close_body_phase();
+
+// ---- WordPress finds an English post by its address: embeds, oEmbed and link cards.
+$GLOBALS['options'][ NH_VIEN_Links::OPTION ] = array(
+	11 => 22,
+	33 => 44,
+);
+fresh( 'vi' );
+must( 'https://example.test/?p=22' === NH_VIEN_Urls::url_to_postid( 'https://example.test/en/english-article/' ), 'An English post must be found at its English address' );
+must( 'https://example.test/?p=22' === NH_VIEN_Urls::url_to_postid( 'https://example.test/en/english-article' ), 'The trailing slash must not matter' );
+must( 'https://example.test/?p=22' === NH_VIEN_Urls::url_to_postid( 'https://example.test/en/english-article/?utm_source=x' ), 'A query string must not matter' );
+foreach ( array( 'https://example.test/en/hidden-english/', 'https://example.test/en/nope/', 'https://example.test/en/', 'https://example.test/en/english-article/2/', 'https://example.test/bai-viet/', 'https://example.test/english-article/', 'https://example.test/entropy/english-article/' ) as $other ) {
+	must( $other === NH_VIEN_Urls::url_to_postid( $other ), "An address that is not an English post must be left alone: $other" );
+}
+must( 42 === NH_VIEN_Urls::url_to_postid( 42 ), 'Anything that is not an address must be left alone' );
+NH_VIEN_Routes::reset();
+$GLOBALS['options']['rewrite_rules'] = array();
+must( 'https://example.test/en/english-article/' === NH_VIEN_Urls::url_to_postid( 'https://example.test/en/english-article/' ), 'A site whose rules are not stored must not be touched' );
+$GLOBALS['options']['rewrite_rules'] = $rules;
 
 echo "PASS: language scoping of lists, terms, neighbours, empty archives and search suggestions.\n";

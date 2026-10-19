@@ -17,7 +17,7 @@ The Vietnamese site stays exactly where it is. The English side is a second set 
 **What it does, once the site has opted in**
 
 * **Paired posts.** An administrator pairs an English post with a Vietnamese one, by post ID, under Tools > VI/EN Links. A pair is one to one and works in both directions. Each post keeps its own title, content, slug, excerpt and SEO fields.
-* **English addresses.** A public English post is served at `/en/{slug}/`. The English home is `/en/` (with `/en/page/2/`, ...), categories and tags are `/en/category/{slug}/` and `/en/tag/{slug}/`, and the search is `/en/?s=...`.
+* **English addresses.** A public English post is served at `/en/{slug}/`. The English home is `/en/` (with `/en/page/2/`, ...), categories and tags are `/en/category/{slug}/` and `/en/tag/{slug}/`, and the search is `/en/?s=...`. WordPress finds an English post by that address like any other post, so oEmbed, embeds and link cards work for it.
 * **One language per list.** Vietnamese lists (home, categories, tags, archives, search, widgets and previous/next links of the theme) never show English posts, English lists never show Vietnamese ones. A language that has nothing in an archive answers 404 there. The suggestions under a search box follow too: inside the body of a page, the address of the REST search route (`/wp-json/wp/v2/search`) carries `nh_vien_lang=vi|en`, and a request that carries it is answered with that language only; any other REST client sees both languages.
 * **No duplicate content.** The ordinary address of an English post (`/{slug}/`) redirects with a 301 to `/en/{slug}/`, and the English post has one canonical address. Paired English posts that may not be shown yet (draft, unpublished Vietnamese partner, a slug that cannot be routed, a page that owns the address) answer 404 on every address; a post that is not paired stays an ordinary post at its own address.
 * **Language switcher.** A small navigation with VI and EN links, 44 px touch targets, keyboard and screen reader friendly. On a post it links to the translation, elsewhere to the home page of the other language, and it is left out where there is nothing to link to.
@@ -104,6 +104,7 @@ The CI also installs the plugin from its zip on real WordPress sites (WordPress 
 == Known limitations ==
 
 * One site per installation: WordPress multisite is not tested.
+* Only posts are paired: pages and other post types are not translated by this plugin.
 * There is no English feed (`/en/feed/` answers 404); the main feed stays Vietnamese.
 * Without an SEO plugin the sitemap of WordPress does not list the English home or the English archives (WordPress gives plugins no way to add entries to it).
 * The post counts that WordPress keeps for categories and tags, and the monthly Archives widget, count both languages.

@@ -849,5 +849,20 @@ ok( 'an unknown language is ignored', 200 === $status && $urls && ! array_diff( 
 list( $status, $urls ) = rest_suggestions( 'English draft', 'en' );
 ok( 'a draft English post is never suggested', 200 === $status && ! in_array( '/en/english-draft/', $urls, true ) && ! in_array( '/english-draft/', $urls, true ) );
 
+
+echo "\n[13] Embeds find the English posts\n";
+$oembed = function ( $path ) {
+	$r = http( '/wp-json/oembed/1.0/embed?url=' . rawurlencode( $path ) );
+	return array( $r['status'], json_decode( $r['body'], true ) );
+};
+list( $status, $data ) = $oembed( $base . '/en/motorbike-rental-in-hanoi/' );
+ok( 'oEmbed finds an English post at its English address', 200 === $status && is_array( $data ) && isset( $data['title'] ) && false !== strpos( $data['title'], 'Motorbike rental' ), 'status ' . $status );
+list( $status, $data ) = $oembed( $base . '/thue-xe-may-ha-noi/' );
+ok( 'oEmbed still finds a Vietnamese post', 200 === $status && is_array( $data ) && isset( $data['title'] ) && false !== strpos( $data['title'], 'Thuê xe máy' ), 'status ' . $status );
+list( $status ) = $oembed( $base . '/en/hidden-english-post/' );
+ok( 'oEmbed finds no English post that may not be shown', 404 === $status, 'status ' . $status );
+list( $status ) = $oembed( $base . '/en/nope/' );
+ok( 'oEmbed finds nothing at an unknown English address', 404 === $status, 'status ' . $status );
+
 echo "\n$checks checks, $failures failed\n";
 exit( $failures ? 1 : 0 );

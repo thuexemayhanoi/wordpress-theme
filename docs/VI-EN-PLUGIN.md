@@ -102,6 +102,7 @@ Trang tiếng Việt không đổi ở mọi bước (kiểm thử CI so sánh H
 ## 8. Giới hạn đã biết
 
 - Một site cho mỗi lần cài; multisite chưa kiểm thử.
+- Chỉ ghép được **bài viết** (post); trang tĩnh và các loại nội dung khác không được plugin dịch.
 - Không có feed tiếng Anh; số bài WordPress lưu cho danh mục/thẻ và widget "Archives" theo tháng đếm cả hai ngôn ngữ.
 - Logo và ô tìm kiếm đổi ngôn ngữ nhờ `home_url( '/' )`; theme dựng các liên kết đó bằng cách khác (một số theme khối) vẫn dẫn về trang chủ tiếng Việt.
 - Chỉ bài tiếng Anh có slug ASCII đơn giản mới truy cập được; mục menu, widget và văn bản gõ tay không tự dịch.
