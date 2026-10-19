@@ -475,11 +475,6 @@ if ( 'dashboard' === $suite ) {
 	$tools_body = function () use ( $admin, $tools_at ) {
 		return $admin( $tools_at )['body'];
 	};
-	// Not a check: what the title of the main feed was after each step, printed at the end (an SEO plugin may compose it).
-	$feed_notes = array();
-	$feed_note  = function ( $label ) use ( &$feed_notes ) {
-		$feed_notes[] = $label . ': ' . ( preg_match( '#<channel>\s*<title>(.*?)</title>#s', http( '/feed/' )['body'], $m ) ? html_entity_decode( $m[1] ) : '(no title)' );
-	};
 	$row = function ( $body, $label ) {
 		return preg_match( '#' . preg_quote( $label, '#' ) . '</th><td>([^<]*)</td>#', $body, $m ) ? html_entity_decode( $m[1] ) : '';
 	};
@@ -489,7 +484,6 @@ if ( 'dashboard' === $suite ) {
 	save_snapshot( "$work/warm" );
 	save_snapshot( "$work/closed" );
 	compare_snapshots( "$work/warm", "$work/closed", 'the Vietnamese page is the same twice' );
-	$feed_note( 'start, closed' );
 
 	echo "\n[1] Closed after the plugin was activated\n";
 	ok( 'WordPress answers as it would without the plugin, and no rewrite rule of the English side is stored', $off(), (string) $stored_rules() );
@@ -543,7 +537,6 @@ if ( 'dashboard' === $suite ) {
 	ok( 'the Vietnamese post names its English partner (hreflang)', (bool) array_filter( $vi_links, function ( $l ) { return 'en' === $l['hreflang'] && '/en/motorbike-rental-in-hanoi/' === $l['href']; } ), json_encode( $vi_links ) );
 	$body = $tools_body();
 	ok( 'the Tools screen says it is on, and live', 'Yes' === $row( $body, 'English routing is switched on' ) && 'Yes' === $row( $body, 'English pages are live' ) && 'Yes' === $row( $body, 'Rewrite rules stored' ) );
-	$feed_note( 'on (local)' );
 	ok( 'it says who switched it on', false !== strpos( $row( $body, 'Decided by' ), 'switched on by admin' ), $row( $body, 'Decided by' ) );
 	$form = $form_for( $body, 'nh_vien_toggle' );
 	ok( 'it now offers to switch it off', $form && 'disable' === $form['nh_vien_mode'] );
@@ -565,52 +558,7 @@ if ( 'dashboard' === $suite ) {
 	ok( 'switching on again works', $status_is( $r, 'routes_enabled' ) && $live() );
 	$toggle( 'disable' );
 
-	echo "\n[5] A production site\n";
-	$environment( 'production' );
-	$feed_note( 'environment production' );
-	$body = $tools_body();
-	ok( 'the Tools screen says the site is a production site and asks for the confirmation', false !== strpos( $row( $body, 'Environment type' ), 'production' ) && false !== strpos( $body, 'name="nh_vien_confirm"' ), $row( $body, 'Environment type' ) );
-	$r = $toggle( 'enable' );
-	ok( 'switching on without the confirmation is refused', $status_is( $r, 'nh_vien_confirm_required' ) && $off(), $r['status'] . ' ' . $r['location'] );
-	$r = $toggle( 'enable', array( 'nh_vien_confirm' => 'no' ) );
-	ok( 'a confirmation that is not "yes" is refused', $status_is( $r, 'nh_vien_confirm_required' ) && $off() );
-	$r = $toggle( 'enable', array( 'nh_vien_confirm' => 'yes' ) );
-	ok( 'switching on with the confirmation works', $status_is( $r, 'routes_enabled' ) && $live(), $r['status'] . ' ' . $r['location'] );
-	$feed_note( 'production, confirmed, on' );
-	$environment( 'staging' );
-	ok( 'the decision holds when the site is a staging site', $live() );
-	$feed_note( 'environment staging, on' );
-	$environment( 'production' );
-	ok( 'the confirmation holds while the site stays a production site', $live() );
-	$const( 'NH_VIEN_ALLOW_PRODUCTION', 'false' );
-	$feed_note( 'ALLOW_PRODUCTION false (stored rules answer 404)' );
-	ok( 'NH_VIEN_ALLOW_PRODUCTION = false closes a production site whatever the dashboard says (the stored rules answer 404)', $guarded() );
-	$body = $tools_body();
-	ok( 'the Tools screen says why, and offers no switch', false !== strpos( $row( $body, 'Decided by' ), 'NH_VIEN_ALLOW_PRODUCTION' ) && null === $form_for( $body, 'nh_vien_toggle' ), $row( $body, 'Decided by' ) );
-	$r = $toggle( 'enable', array( 'nh_vien_confirm' => 'yes' ) );
-	ok( 'the dashboard cannot switch it on against that constant', $status_is( $r, 'nh_vien_production_denied' ) && $guarded(), $r['status'] . ' ' . $r['location'] );
-	$const( 'NH_VIEN_ALLOW_PRODUCTION' );
-	ok( 'without that constant the confirmed decision counts again', $live() );
-	$toggle( 'disable' );
-	$feed_note( 'production, switched off' );
-	$const( 'NH_VIEN_ALLOW_PRODUCTION', 'true' );
-	$body = $tools_body();
-	ok( 'with NH_VIEN_ALLOW_PRODUCTION = true wp-config.php vouches for the production site: no confirmation is asked', false === strpos( $body, 'name="nh_vien_confirm"' ) );
-	$r = $toggle( 'enable' );
-	ok( 'switching on works without the confirmation then', $status_is( $r, 'routes_enabled' ) && $live() );
-	$const( 'NH_VIEN_ALLOW_PRODUCTION' );
-	ok( 'without that constant a decision that was never confirmed does not open a production site', $guarded() );
-	$body = $tools_body();
-	ok( 'the Tools screen says it was not confirmed', false !== strpos( $row( $body, 'Decided by' ), 'not confirmed' ), $row( $body, 'Decided by' ) );
-	$r = $toggle( 'disable' );
-	ok( 'switching off cleans the stored rules up', $status_is( $r, 'routes_disabled' ) && 0 === $stored_rules() );
-	$feed_note( 'production, ALLOW_PRODUCTION removed, off' );
-	$environment( 'local' );
-	$feed_note( 'environment local again, off' );
-	save_snapshot( "$work/after-production" );
-	compare_snapshots( "$work/closed", "$work/after-production", 'after the production scenarios, the Vietnamese page is as before' );
-
-	echo "\n[6] A database copied to another address stays closed\n";
+	echo "\n[5] A database copied to another address stays closed\n";
 	$toggle( 'enable' );
 	ok( 'it is on', $live() );
 	wp_cli( 'eval ' . escapeshellarg( '$o = get_option( "nh_vien_gate_v1" ); $o["site"] = "0123456789abcdef"; update_option( "nh_vien_gate_v1", $o, true );' ) );
@@ -620,7 +568,7 @@ if ( 'dashboard' === $suite ) {
 	$r = $toggle( 'enable' );
 	ok( 'switching it on at this address works', $status_is( $r, 'routes_enabled' ) && $live() );
 
-	echo "\n[7] wp-config.php decides when it defines the constant\n";
+	echo "\n[6] wp-config.php decides when it defines the constant\n";
 	$const( 'NH_VIEN_ENABLE_EN_ROUTES', 'false' );
 	ok( 'NH_VIEN_ENABLE_EN_ROUTES = false closes the English side whatever the dashboard says (the emergency brake)', $guarded() );
 	$body = $tools_body();
@@ -641,7 +589,7 @@ if ( 'dashboard' === $suite ) {
 	save_snapshot( "$work/after-constants" );
 	compare_snapshots( "$work/closed", "$work/after-constants", 'after the address and constant scenarios, the Vietnamese page is as before' );
 
-	echo "\n[8] Refusals that change nothing\n";
+	echo "\n[7] Refusals that change nothing\n";
 	$permalinks = wp_cli( 'option get permalink_structure' );
 	wp_cli( 'option update permalink_structure ""' );
 	$body = $tools_body();
@@ -661,7 +609,7 @@ if ( 'dashboard' === $suite ) {
 	save_snapshot( "$work/after-refusals" );
 	compare_snapshots( "$work/closed", "$work/after-refusals", 'after the refusals, the Vietnamese page is as before' );
 
-	echo "\n[9] Deactivating the plugin\n";
+	echo "\n[8] Deactivating the plugin\n";
 	$toggle( 'enable' );
 	ok( 'it is on', $live() && 8 === $stored_rules() );
 	wp_cli( 'plugin deactivate nguyen-ha-vi-en' );
@@ -674,9 +622,49 @@ if ( 'dashboard' === $suite ) {
 	ok( 'after activating it again the English side is closed', $off() );
 	$body = $tools_body();
 	ok( 'and the Tools screen says it is off, not switched on yet', 'No' === $row( $body, 'English routing is switched on' ) && false !== strpos( $row( $body, 'Decided by' ), 'not switched on yet' ), $row( $body, 'Decided by' ) );
-	$feed_note( 'end, after deactivating and activating again' );
 
-	echo "\nTitle of the main feed after each step (not a check):\n  " . implode( "\n  ", $feed_notes ) . "\n";
+	echo "\n[9] A production site (compared with itself: an SEO plugin may keep other data in production mode)\n";
+	$environment( 'production' );
+	// One pass to settle what an SEO plugin does the first time it runs in production mode, then the baseline of this block.
+	save_snapshot( "$work/production-warm" );
+	save_snapshot( "$work/production-before" );
+	$body = $tools_body();
+	ok( 'the Tools screen says the site is a production site and asks for the confirmation', false !== strpos( $row( $body, 'Environment type' ), 'production' ) && false !== strpos( $body, 'name="nh_vien_confirm"' ), $row( $body, 'Environment type' ) );
+	$r = $toggle( 'enable' );
+	ok( 'switching on without the confirmation is refused', $status_is( $r, 'nh_vien_confirm_required' ) && $off(), $r['status'] . ' ' . $r['location'] );
+	$r = $toggle( 'enable', array( 'nh_vien_confirm' => 'no' ) );
+	ok( 'a confirmation that is not "yes" is refused', $status_is( $r, 'nh_vien_confirm_required' ) && $off() );
+	$r = $toggle( 'enable', array( 'nh_vien_confirm' => 'yes' ) );
+	ok( 'switching on with the confirmation works', $status_is( $r, 'routes_enabled' ) && $live(), $r['status'] . ' ' . $r['location'] );
+	$environment( 'staging' );
+	ok( 'the decision holds when the site is a staging site', $live() );
+	$environment( 'production' );
+	ok( 'the confirmation holds while the site stays a production site', $live() );
+	$const( 'NH_VIEN_ALLOW_PRODUCTION', 'false' );
+	ok( 'NH_VIEN_ALLOW_PRODUCTION = false closes a production site whatever the dashboard says (the stored rules answer 404)', $guarded() );
+	$body = $tools_body();
+	ok( 'the Tools screen says why, and offers no switch', false !== strpos( $row( $body, 'Decided by' ), 'NH_VIEN_ALLOW_PRODUCTION' ) && null === $form_for( $body, 'nh_vien_toggle' ), $row( $body, 'Decided by' ) );
+	$r = $toggle( 'enable', array( 'nh_vien_confirm' => 'yes' ) );
+	ok( 'the dashboard cannot switch it on against that constant', $status_is( $r, 'nh_vien_production_denied' ) && $guarded(), $r['status'] . ' ' . $r['location'] );
+	$const( 'NH_VIEN_ALLOW_PRODUCTION' );
+	ok( 'without that constant the confirmed decision counts again', $live() );
+	$toggle( 'disable' );
+	$const( 'NH_VIEN_ALLOW_PRODUCTION', 'true' );
+	$body = $tools_body();
+	ok( 'with NH_VIEN_ALLOW_PRODUCTION = true wp-config.php vouches for the production site: no confirmation is asked', false === strpos( $body, 'name="nh_vien_confirm"' ) );
+	$r = $toggle( 'enable' );
+	ok( 'switching on works without the confirmation then', $status_is( $r, 'routes_enabled' ) && $live() );
+	$const( 'NH_VIEN_ALLOW_PRODUCTION' );
+	ok( 'without that constant a decision that was never confirmed does not open a production site', $guarded() );
+	$body = $tools_body();
+	ok( 'the Tools screen says it was not confirmed', false !== strpos( $row( $body, 'Decided by' ), 'not confirmed' ), $row( $body, 'Decided by' ) );
+	$r = $toggle( 'disable' );
+	ok( 'switching off cleans the stored rules up', $status_is( $r, 'routes_disabled' ) && 0 === $stored_rules() );
+	save_snapshot( "$work/production-after" );
+	compare_snapshots( "$work/production-before", "$work/production-after", 'on a production site the Vietnamese page is as before' );
+	$environment( 'local' );
+
+
 	echo "\n$checks checks, $failures failed\n";
 	exit( $failures ? 1 : 0 );
 }
