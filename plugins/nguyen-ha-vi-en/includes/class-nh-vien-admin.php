@@ -22,6 +22,12 @@ final class NH_VIEN_Admin {
 		add_action( 'admin_notices', array( __CLASS__, 'notice' ) );
 		add_action( 'admin_post_nh_vien_link', array( __CLASS__, 'save' ) );
 		add_action( 'admin_post_nh_vien_unlink', array( __CLASS__, 'remove' ) );
+		add_action( 'admin_post_nh_vien_mark_english', array( __CLASS__, 'mark_english' ) );
+		add_action( 'admin_post_nh_vien_unmark_english', array( __CLASS__, 'unmark_english' ) );
+		add_action( 'admin_post_nh_vien_mark_category', array( __CLASS__, 'mark_category' ) );
+		add_action( 'admin_post_nh_vien_unmark_category', array( __CLASS__, 'unmark_category' ) );
+		add_action( 'admin_post_nh_vien_link_page', array( __CLASS__, 'link_page' ) );
+		add_action( 'admin_post_nh_vien_unlink_page', array( __CLASS__, 'unlink_page' ) );
 		add_action( 'admin_post_nh_vien_flush', array( __CLASS__, 'flush' ) );
 		add_action( 'admin_post_nh_vien_home_page', array( __CLASS__, 'home_page' ) );
 	}
@@ -46,6 +52,58 @@ final class NH_VIEN_Admin {
 		$nonce = isset( $_POST['_wpnonce'] ) && is_string( $_POST['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ) : '';
 		$vi    = isset( $_POST['vi_post_id'] ) && is_string( $_POST['vi_post_id'] ) ? wp_unslash( $_POST['vi_post_id'] ) : '';
 		self::redirect( NH_VIEN_Links::unlink( $vi, $nonce ) );
+	}
+
+
+	/** Designate a new article as English, without changing its body or permalink. */
+	public static function mark_english() {
+		check_admin_referer( NH_VIEN_Links::NONCE_ACTION );
+		$nonce = isset( $_POST['_wpnonce'] ) && is_string( $_POST['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ) : '';
+		$id    = isset( $_POST['en_post_id'] ) && is_string( $_POST['en_post_id'] ) ? wp_unslash( $_POST['en_post_id'] ) : '';
+		self::redirect( NH_VIEN_Links::mark_english( $id, $nonce ) );
+	}
+
+	/** Remove an independent language assignment, leaving the original article untouched. */
+	public static function unmark_english() {
+		check_admin_referer( NH_VIEN_Links::NONCE_ACTION );
+		$nonce = isset( $_POST['_wpnonce'] ) && is_string( $_POST['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ) : '';
+		$id    = isset( $_POST['en_post_id'] ) && is_string( $_POST['en_post_id'] ) ? wp_unslash( $_POST['en_post_id'] ) : '';
+		self::redirect( NH_VIEN_Links::unmark_english( $id, $nonce ) );
+	}
+
+
+	/** Reserve an empty WordPress category for English. */
+	public static function mark_category() {
+		check_admin_referer( NH_VIEN_Links::NONCE_ACTION );
+		$nonce = isset( $_POST['_wpnonce'] ) && is_string( $_POST['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ) : '';
+		$id    = isset( $_POST['en_category_id'] ) && is_string( $_POST['en_category_id'] ) ? wp_unslash( $_POST['en_category_id'] ) : '';
+		self::redirect( NH_VIEN_Links::mark_english_category( $id, $nonce ) );
+	}
+
+	/** Remove an English category assignment without editing the term. */
+	public static function unmark_category() {
+		check_admin_referer( NH_VIEN_Links::NONCE_ACTION );
+		$nonce = isset( $_POST['_wpnonce'] ) && is_string( $_POST['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ) : '';
+		$id    = isset( $_POST['en_category_id'] ) && is_string( $_POST['en_category_id'] ) ? wp_unslash( $_POST['en_category_id'] ) : '';
+		self::redirect( NH_VIEN_Links::unmark_english_category( $id, $nonce ) );
+	}
+
+
+	/** Pair two independent pages that serve equivalent visitor needs. */
+	public static function link_page() {
+		check_admin_referer( NH_VIEN_Links::NONCE_ACTION );
+		$nonce = isset( $_POST['_wpnonce'] ) && is_string( $_POST['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ) : '';
+		$vi    = isset( $_POST['vi_page_id'] ) && is_string( $_POST['vi_page_id'] ) ? wp_unslash( $_POST['vi_page_id'] ) : '';
+		$en    = isset( $_POST['en_page_id'] ) && is_string( $_POST['en_page_id'] ) ? wp_unslash( $_POST['en_page_id'] ) : '';
+		self::redirect( NH_VIEN_Links::link_page( $vi, $en, $nonce ) );
+	}
+
+	/** Unlink two pages without modifying either. */
+	public static function unlink_page() {
+		check_admin_referer( NH_VIEN_Links::NONCE_ACTION );
+		$nonce = isset( $_POST['_wpnonce'] ) && is_string( $_POST['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ) : '';
+		$vi    = isset( $_POST['vi_page_id'] ) && is_string( $_POST['vi_page_id'] ) ? wp_unslash( $_POST['vi_page_id'] ) : '';
+		self::redirect( NH_VIEN_Links::unlink_page( $vi, $nonce ) );
 	}
 
 	/**
@@ -129,19 +187,21 @@ final class NH_VIEN_Admin {
 	private static function messages() {
 		$error = array( 'notice-error', __( 'Nothing was changed. Check the post IDs, your permissions, existing links and the nonce.', 'nguyen-ha-vi-en' ) );
 		return array(
-			'saved'                 => array( 'notice-success', __( 'Translation link operation completed.', 'nguyen-ha-vi-en' ) ),
-			'flushed'               => array( 'notice-success', __( 'The rewrite rules were stored again.', 'nguyen-ha-vi-en' ) ),
-			'address_taken'         => array( 'notice-error', __( 'Nothing was changed: a published post already has the address /en/. Give that post another slug first, or the English home would take its address away.', 'nguyen-ha-vi-en' ) ),
-			'home_exists'           => array( 'notice-warning', __( 'A page with the address /en/ already exists; it was left as it is.', 'nguyen-ha-vi-en' ) ),
-			'home_failed'           => array( 'notice-error', __( 'The English home page could not be created.', 'nguyen-ha-vi-en' ) ),
-			'nh_vien_forbidden'     => $error,
-			'nh_vien_bad_nonce'     => $error,
-			'nh_vien_invalid_ids'   => $error,
-			'nh_vien_invalid_posts' => $error,
-			'nh_vien_invalid_store' => $error,
-			'nh_vien_conflict'      => $error,
-			'nh_vien_not_found'     => $error,
-			'nh_vien_save_failed'   => $error,
+			'saved'                     => array( 'notice-success', __( 'Translation link operation completed.', 'nguyen-ha-vi-en' ) ),
+			'flushed'                   => array( 'notice-success', __( 'The rewrite rules were stored again.', 'nguyen-ha-vi-en' ) ),
+			'address_taken'             => array( 'notice-error', __( 'Nothing was changed: a published post already has the address /en/. Give that post another slug first, or the English home would take its address away.', 'nguyen-ha-vi-en' ) ),
+			'home_exists'               => array( 'notice-warning', __( 'A page with the address /en/ already exists; it was left as it is.', 'nguyen-ha-vi-en' ) ),
+			'home_failed'               => array( 'notice-error', __( 'The English home page could not be created.', 'nguyen-ha-vi-en' ) ),
+			'nh_vien_forbidden'         => $error,
+			'nh_vien_bad_nonce'         => $error,
+			'nh_vien_invalid_ids'       => $error,
+			'nh_vien_invalid_posts'     => $error,
+			'nh_vien_invalid_category'  => $error,
+			'nh_vien_category_conflict' => $error,
+			'nh_vien_invalid_store'     => $error,
+			'nh_vien_conflict'          => $error,
+			'nh_vien_not_found'         => $error,
+			'nh_vien_save_failed'       => $error,
 		);
 	}
 
@@ -178,6 +238,9 @@ final class NH_VIEN_Admin {
 			return;
 		}
 		self::render_pairs( $pairs );
+		self::render_independent();
+		self::render_english_categories();
+		self::render_page_pairs();
 		echo '</div>';
 	}
 
@@ -246,6 +309,83 @@ final class NH_VIEN_Admin {
 			wp_nonce_field( NH_VIEN_Links::NONCE_ACTION );
 			echo '<input type="hidden" name="action" value="nh_vien_unlink">';
 			echo '<input type="hidden" name="vi_post_id" value="' . esc_attr( (string) $vi ) . '">';
+			submit_button( __( 'Unlink', 'nguyen-ha-vi-en' ), 'secondary small', 'submit', false );
+			echo '</form></td></tr>';
+		}
+		echo '</tbody></table>';
+	}
+
+
+	/** Manage articles authored directly in English, without requiring a VI/EN pair. */
+	private static function render_independent() {
+		echo '<h2>' . esc_html__( 'Independent English articles', 'nguyen-ha-vi-en' ) . '</h2>';
+		echo '<p>' . esc_html__( 'Create an English draft, register its ID here before publishing, then complete its content. Vietnamese articles are never changed. An English article goes live only when the language routes are enabled, the article is published and the slug is valid.', 'nguyen-ha-vi-en' ) . '</p>';
+		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+		wp_nonce_field( NH_VIEN_Links::NONCE_ACTION );
+		echo '<input type="hidden" name="action" value="nh_vien_mark_english">';
+		echo '<p><label>' . esc_html__( 'English article ID', 'nguyen-ha-vi-en' ) . ' <input type="number" name="en_post_id" min="1" required></label></p>';
+		submit_button( __( 'Register English article', 'nguyen-ha-vi-en' ) );
+		echo '</form><table class="widefat striped"><thead><tr><th>' . esc_html__( 'English article', 'nguyen-ha-vi-en' ) . '</th><th>' . esc_html__( 'Action', 'nguyen-ha-vi-en' ) . '</th></tr></thead><tbody>';
+		foreach ( NH_VIEN_Links::independent_ids() as $id ) {
+			echo '<tr><td>' . wp_kses_post( self::post_cell( $id ) ) . '</td><td>';
+			echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+			wp_nonce_field( NH_VIEN_Links::NONCE_ACTION );
+			echo '<input type="hidden" name="action" value="nh_vien_unmark_english">';
+			echo '<input type="hidden" name="en_post_id" value="' . esc_attr( (string) $id ) . '">';
+			submit_button( __( 'Unregister', 'nguyen-ha-vi-en' ), 'secondary small', 'submit', false );
+			echo '</form></td></tr>';
+		}
+		echo '</tbody></table>';
+	}
+
+
+	/** Register an isolated parent/child tree of English WordPress categories. */
+	private static function render_english_categories() {
+		echo '<h2>' . esc_html__( 'English parent and child categories', 'nguyen-ha-vi-en' ) . '</h2>';
+		echo '<p>' . esc_html__( 'First create an empty category in Posts > Categories. Register its ID here BEFORE assigning articles. Register the parent before its children. Existing Vietnamese categories are not modified.', 'nguyen-ha-vi-en' ) . '</p>';
+		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+		wp_nonce_field( NH_VIEN_Links::NONCE_ACTION );
+		echo '<input type="hidden" name="action" value="nh_vien_mark_category">';
+		echo '<p><label>' . esc_html__( 'English category ID', 'nguyen-ha-vi-en' ) . ' <input type="number" name="en_category_id" min="1" required></label></p>';
+		submit_button( __( 'Register English category', 'nguyen-ha-vi-en' ) );
+		echo '</form><table class="widefat striped"><thead><tr><th>' . esc_html__( 'Category', 'nguyen-ha-vi-en' ) . '</th><th>' . esc_html__( 'Action', 'nguyen-ha-vi-en' ) . '</th></tr></thead><tbody>';
+		foreach ( NH_VIEN_Links::declared_en_terms() as $id ) {
+			$term = get_term( $id, 'category' );
+			$name = $term instanceof WP_Term ? $term->name : __( 'Missing category', 'nguyen-ha-vi-en' );
+			echo '<tr><td>' . esc_html( '#' . $id . ' ' . $name ) . '</td><td>';
+			echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+			wp_nonce_field( NH_VIEN_Links::NONCE_ACTION );
+			echo '<input type="hidden" name="action" value="nh_vien_unmark_category">';
+			echo '<input type="hidden" name="en_category_id" value="' . esc_attr( (string) $id ) . '">';
+			submit_button( __( 'Unregister', 'nguyen-ha-vi-en' ), 'secondary small', 'submit', false );
+			echo '</form></td></tr>';
+		}
+		echo '</tbody></table>';
+	}
+
+
+	/** Manage optional Page-to-Page relationships for equivalent English and Vietnamese pages. */
+	private static function render_page_pairs() {
+		echo '<h2>' . esc_html__( 'English pages / About, Prices, Contact', 'nguyen-ha-vi-en' ) . '</h2>';
+		echo '<p>' . esc_html__( 'Create an English page below the English homepage /en/ using WordPress Pages. Pair with a Vietnamese page only if the pages serve the same intent; the English text may be completely original.', 'nguyen-ha-vi-en' ) . '</p>';
+		$pairs = NH_VIEN_Links::page_pairs();
+		if ( is_wp_error( $pairs ) ) {
+			echo '<p>' . esc_html__( 'Invalid page-pair data. Resolve this before editing pairs.', 'nguyen-ha-vi-en' ) . '</p>';
+			return;
+		}
+		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+		wp_nonce_field( NH_VIEN_Links::NONCE_ACTION );
+		echo '<input type="hidden" name="action" value="nh_vien_link_page">';
+		echo '<p><label>' . esc_html__( 'Vietnamese page ID', 'nguyen-ha-vi-en' ) . ' <input type="number" name="vi_page_id" min="1" required></label></p>';
+		echo '<p><label>' . esc_html__( 'English page ID (must be under /en/)', 'nguyen-ha-vi-en' ) . ' <input type="number" name="en_page_id" min="1" required></label></p>';
+		submit_button( __( 'Link equivalent pages', 'nguyen-ha-vi-en' ) );
+		echo '</form><table class="widefat striped"><thead><tr><th>VI</th><th>EN</th><th>' . esc_html__( 'Action', 'nguyen-ha-vi-en' ) . '</th></tr></thead><tbody>';
+		foreach ( $pairs as $vi => $en ) {
+			echo '<tr><td>' . wp_kses_post( self::post_cell( $vi ) ) . '</td><td>' . wp_kses_post( self::post_cell( $en ) ) . '</td><td>';
+			echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+			wp_nonce_field( NH_VIEN_Links::NONCE_ACTION );
+			echo '<input type="hidden" name="action" value="nh_vien_unlink_page">';
+			echo '<input type="hidden" name="vi_page_id" value="' . esc_attr( (string) $vi ) . '">';
 			submit_button( __( 'Unlink', 'nguyen-ha-vi-en' ), 'secondary small', 'submit', false );
 			echo '</form></td></tr>';
 		}

@@ -12,8 +12,11 @@ defined( 'ABSPATH' ) || exit;
  * Validate and manage one-to-one translation relationships.
  */
 final class NH_VIEN_Links {
-	const OPTION       = 'nh_vien_translation_pairs_v1';
-	const NONCE_ACTION = 'nh_vien_manage_links';
+	const OPTION             = 'nh_vien_translation_pairs_v1';
+	const INDEPENDENT_OPTION = 'nh_vien_independent_en_posts_v1';
+	const EN_TERMS_OPTION    = 'nh_vien_english_categories_v1';
+	const PAGE_OPTION        = 'nh_vien_page_pairs_v1';
+	const NONCE_ACTION       = 'nh_vien_manage_links';
 
 	/**
 	 * What this request has read: the validated pairs and the English posts that may be shown.
@@ -118,6 +121,9 @@ final class NH_VIEN_Links {
 		if ( is_wp_error( $pairs ) ) {
 			return $pairs;
 		}
+		if ( in_array( $vi, self::independent_ids(), true ) ) {
+			return new WP_Error( 'nh_vien_conflict', 'The Vietnamese post has already been designated as English.' );
+		}
 		if ( isset( $pairs[ $vi ] ) ) {
 			return $pairs[ $vi ] === $en ? true : new WP_Error( 'nh_vien_conflict', 'The Vietnamese post is already linked.' );
 		}
@@ -196,13 +202,345 @@ final class NH_VIEN_Links {
 		return self::$memo['reverse'];
 	}
 
+
+	/**
+	 * Explicitly designated English articles. No existing Vietnamese article is modified.
+	 *
+	 * @return int[] Registered WordPress post IDs.
+	 */
+	public static function independent_ids() {
+		if ( ! isset( self::$memo['independent'] ) ) {
+			$stored = get_option( self::INDEPENDENT_OPTION, array() );
+			$ids    = is_array( $stored ) ? array_map( 'intval', $stored ) : array();
+			$valid  = array();
+			foreach ( $ids as $id ) {
+				if ( $id > 0 ) {
+					$valid[ $id ] = $id;
+				}
+			}
+			self::$memo['independent'] = array_values( array_diff( array_values( $valid ), array_keys( self::pairs() ) ) );
+		}
+		return self::$memo['independent'];
+	}
+
+	/**
+	 * Assign the English language to an article without requiring a Vietnamese counterpart.
+	 * Requires a real administrator action; cannot relabel the Vietnamese side of an existing pair.
+	 *
+	 * @param mixed $post_id Article ID.
+	 * @param mixed $nonce Action nonce.
+	 * @return true|WP_Error
+	 */
+	public static function mark_english( $post_id, $nonce ) {
+		$security = self::authorize( $nonce );
+		if ( is_wp_error( $security ) ) {
+			return $security;
+		}
+		if ( ! self::positive_id( $post_id ) || ! self::eligible_post( (int) $post_id ) ) {
+			return new WP_Error( 'nh_vien_invalid_posts', 'Enter an existing WordPress article ID.' );
+		}
+		$post_id = (int) $post_id;
+		if ( ! current_user_can( 'edit_post', $post_id ) || isset( self::pairs()[ $post_id ] ) ) {
+			return new WP_Error( 'nh_vien_conflict', 'The article cannot be designated English.' );
+		}
+		$ids = self::independent_ids();
+		if ( in_array( $post_id, $ids, true ) ) {
+			return true;
+		}
+		$post = get_post( $post_id );
+		// Explicitly protect existing published Vietnamese articles: English registration is allowed only
+		// while an article is still a draft or pending editorial review.
+		if ( ! in_array( $post->post_status, array( 'draft', 'pending' ), true ) ) {
+			return new WP_Error( 'nh_vien_invalid_posts', 'Register a draft English article before publishing it.' );
+		}
+		$ids[] = $post_id;
+		if ( ! update_option( self::INDEPENDENT_OPTION, $ids, false ) ) {
+			return new WP_Error( 'nh_vien_save_failed', 'Could not save the English article.' );
+		}
+		self::flush_cache();
+		do_action( 'nh_vien_pairs_changed', 0, $post_id );
+		return true;
+	}
+
+	/**
+	 * Remove an independent English designation without deleting or editing the article.
+	 *
+	 * @param mixed $post_id Article ID.
+	 * @param mixed $nonce Action nonce.
+	 * @return true|WP_Error
+	 */
+	public static function unmark_english( $post_id, $nonce ) {
+		$security = self::authorize( $nonce );
+		if ( is_wp_error( $security ) ) {
+			return $security;
+		}
+		if ( ! self::positive_id( $post_id ) || ! current_user_can( 'edit_post', (int) $post_id ) ) {
+			return new WP_Error( 'nh_vien_forbidden', 'You must be allowed to edit this article.' );
+		}
+		$post_id = (int) $post_id;
+		$ids     = self::independent_ids();
+		if ( ! in_array( $post_id, $ids, true ) ) {
+			return new WP_Error( 'nh_vien_not_found', 'No independent English designation exists.' );
+		}
+		$ids = array_values( array_diff( $ids, array( $post_id ) ) );
+		if ( ! update_option( self::INDEPENDENT_OPTION, $ids, false ) ) {
+			return new WP_Error( 'nh_vien_save_failed', 'Could not update the English article list.' );
+		}
+		self::flush_cache();
+		do_action( 'nh_vien_pairs_changed', 0, $post_id );
+		return true;
+	}
+
+
+	/**
+	 * IDs of newly created categories reserved for the English section.
+	 *
+	 * @return int[] Explicitly English category IDs, even when empty.
+	 */
+	public static function declared_en_terms() {
+		if ( ! isset( self::$memo['declared_terms'] ) ) {
+			$stored = get_option( self::EN_TERMS_OPTION, array() );
+			$ids    = is_array( $stored ) ? array_map( 'intval', $stored ) : array();
+			$valid  = array();
+			foreach ( $ids as $id ) {
+				if ( $id > 0 ) {
+					$valid[ $id ] = $id;
+				}
+			}
+			self::$memo['declared_terms'] = array_values( $valid );
+		}
+		return self::$memo['declared_terms'];
+	}
+
+	/**
+	 * Reserve an empty category for English. A child category can only have an English parent.
+	 * Never relabel a populated Vietnamese category or change any term's name, parent or slug.
+	 *
+	 * @param mixed $term_id Category term ID.
+	 * @param mixed $nonce Security nonce.
+	 * @return true|WP_Error
+	 */
+	public static function mark_english_category( $term_id, $nonce ) {
+		$security = self::authorize( $nonce );
+		if ( is_wp_error( $security ) ) {
+			return $security;
+		}
+		if ( ! self::positive_id( $term_id ) ) {
+			return new WP_Error( 'nh_vien_invalid_ids', 'Enter a valid category ID.' );
+		}
+		$term = get_term( (int) $term_id, 'category' );
+		if ( ! $term instanceof WP_Term ) {
+			return new WP_Error( 'nh_vien_invalid_category', 'Category does not exist.' );
+		}
+		$ids = self::declared_en_terms();
+		if ( in_array( (int) $term->term_id, $ids, true ) ) {
+			return true;
+		}
+		if ( (int) $term->count > 0 || ( $term->parent && ! in_array( (int) $term->parent, $ids, true ) ) ) {
+			return new WP_Error( 'nh_vien_category_conflict', 'Choose an empty category whose parent is also English.' );
+		}
+		$children = get_term_children( $term->term_id, 'category' );
+		if ( is_wp_error( $children ) ) {
+			return new WP_Error( 'nh_vien_invalid_category', 'Cannot inspect category children.' );
+		}
+		foreach ( $children as $child_id ) {
+			$child = get_term( (int) $child_id, 'category' );
+			if ( $child instanceof WP_Term && (int) $child->count > 0 ) {
+				return new WP_Error( 'nh_vien_category_conflict', 'A child category already has articles.' );
+			}
+		}
+		$ids[] = (int) $term->term_id;
+		if ( ! update_option( self::EN_TERMS_OPTION, $ids, false ) ) {
+			return new WP_Error( 'nh_vien_save_failed', 'Could not register English category.' );
+		}
+		self::flush_cache();
+		do_action( 'nh_vien_pairs_changed', 0, 0 );
+		return true;
+	}
+
+	/**
+	 * Remove an English category designation. Never mutate or delete the WordPress category.
+	 *
+	 * @param mixed $term_id Category term ID.
+	 * @param mixed $nonce Security nonce.
+	 * @return true|WP_Error
+	 */
+	public static function unmark_english_category( $term_id, $nonce ) {
+		$security = self::authorize( $nonce );
+		if ( is_wp_error( $security ) ) {
+			return $security;
+		}
+		if ( ! self::positive_id( $term_id ) ) {
+			return new WP_Error( 'nh_vien_invalid_ids', 'Invalid category ID.' );
+		}
+		$term_id = (int) $term_id;
+		$ids     = self::declared_en_terms();
+		if ( ! in_array( $term_id, $ids, true ) ) {
+			return new WP_Error( 'nh_vien_not_found', 'Category is not registered as English.' );
+		}
+		foreach ( $ids as $other_id ) {
+			$other = get_term( $other_id, 'category' );
+			if ( $other instanceof WP_Term && (int) $other->parent === $term_id ) {
+				return new WP_Error( 'nh_vien_category_conflict', 'Unregister English child categories first.' );
+			}
+		}
+		$ids = array_values( array_diff( $ids, array( $term_id ) ) );
+		if ( ! update_option( self::EN_TERMS_OPTION, $ids, false ) ) {
+			return new WP_Error( 'nh_vien_save_failed', 'Could not update English categories.' );
+		}
+		self::flush_cache();
+		do_action( 'nh_vien_pairs_changed', 0, 0 );
+		return true;
+	}
+
+
+	/**
+	 * Page-to-page correspondences, separate from article translations. Pages retain their own wording.
+	 *
+	 * @return array<int,int>|WP_Error Validated Vietnamese page ID => English page ID.
+	 */
+	public static function page_pairs() {
+		$stored = get_option( self::PAGE_OPTION, array() );
+		if ( ! is_array( $stored ) ) {
+			return new WP_Error( 'nh_vien_invalid_store', 'Page link store is invalid.' );
+		}
+		$pairs = array();
+		$seen  = array();
+		foreach ( $stored as $vi => $en ) {
+			if ( ! self::positive_id( $vi ) || ! self::positive_id( $en ) || (int) $vi === (int) $en || isset( $seen[ (int) $en ] ) ) {
+				return new WP_Error( 'nh_vien_invalid_store', 'Page link store has conflicting IDs.' );
+			}
+			$pairs[ (int) $vi ] = (int) $en;
+
+			$seen[ (int) $en ] = true;
+		}
+		foreach ( $pairs as $vi => $en ) {
+			if ( isset( $pairs[ $en ] ) || isset( $seen[ $vi ] ) ) {
+				return new WP_Error( 'nh_vien_invalid_store', 'A page is used for both languages.' );
+			}
+		}
+		return $pairs;
+	}
+
+	/**
+	 * Lookup an explicit page pair. An English page without a pair is legitimate and has no hreflang pair.
+	 *
+	 * @param mixed $page_id Page identifier.
+	 * @return array<string,int>|null Pair, or null.
+	 */
+	public static function for_page( $page_id ) {
+		$pairs = self::page_pairs();
+		if ( is_wp_error( $pairs ) || ! self::positive_id( $page_id ) ) {
+			return null;
+		}
+		foreach ( $pairs as $vi => $en ) {
+			if ( (int) $page_id === $vi || (int) $page_id === $en ) {
+				return array(
+					'vi' => $vi,
+					'en' => $en,
+				);
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Link two independently authored pages, with the English one strictly below /en/.
+	 *
+	 * @param mixed $vi Vietnamese page ID.
+	 * @param mixed $en English page ID.
+	 * @param mixed $nonce Nonce for this operation.
+	 * @return true|WP_Error
+	 */
+	public static function link_page( $vi, $en, $nonce ) {
+		$security = self::authorize( $nonce );
+		if ( is_wp_error( $security ) ) {
+			return $security;
+		}
+		if ( ! self::positive_id( $vi ) || ! self::positive_id( $en ) || (int) $vi === (int) $en ) {
+			return new WP_Error( 'nh_vien_invalid_ids', 'Specify two different page IDs.' );
+		}
+		$vi = (int) $vi;
+		$en = (int) $en;
+		if ( ! self::eligible_page( $vi ) || ! self::eligible_page( $en ) ||
+			0 === strpos( (string) get_page_uri( $vi ), 'en/' ) || 'en' === get_page_uri( $vi ) ||
+			0 !== strpos( (string) get_page_uri( $en ), 'en/' ) ) {
+			return new WP_Error( 'nh_vien_invalid_posts', 'Choose a Vietnamese page and an English child page under /en/.' );
+		}
+		if ( ! current_user_can( 'edit_post', $vi ) || ! current_user_can( 'edit_post', $en ) ) {
+			return new WP_Error( 'nh_vien_forbidden', 'You must be able to edit both pages.' );
+		}
+		$pairs = self::page_pairs();
+		if ( is_wp_error( $pairs ) ) {
+			return $pairs;
+		}
+		if ( isset( $pairs[ $vi ] ) ) {
+			return $pairs[ $vi ] === $en ? true : new WP_Error( 'nh_vien_conflict', 'Vietnamese page is already linked.' );
+		}
+		if ( isset( $pairs[ $en ] ) || in_array( $vi, $pairs, true ) || in_array( $en, $pairs, true ) ) {
+			return new WP_Error( 'nh_vien_conflict', 'One of the pages is already linked.' );
+		}
+		$pairs[ $vi ] = $en;
+		if ( ! update_option( self::PAGE_OPTION, $pairs, false ) ) {
+			return new WP_Error( 'nh_vien_save_failed', 'Could not save page link.' );
+		}
+		self::flush_cache();
+		do_action( 'nh_vien_pairs_changed', $vi, $en );
+		return true;
+	}
+
+	/**
+	 * Unlink a page pair without modifying either page.
+	 *
+	 * @param mixed $vi Vietnamese page ID.
+	 * @param mixed $nonce Nonce.
+	 * @return true|WP_Error
+	 */
+	public static function unlink_page( $vi, $nonce ) {
+		$security = self::authorize( $nonce );
+		if ( is_wp_error( $security ) ) {
+			return $security;
+		}
+		$pairs = self::page_pairs();
+		if ( is_wp_error( $pairs ) ) {
+			return $pairs;
+		}
+		$vi = (int) $vi;
+		if ( ! isset( $pairs[ $vi ] ) ) {
+			return new WP_Error( 'nh_vien_not_found', 'Page link does not exist.' );
+		}
+		if ( ! current_user_can( 'edit_post', $vi ) || ! current_user_can( 'edit_post', $pairs[ $vi ] ) ) {
+			return new WP_Error( 'nh_vien_forbidden', 'You must be able to edit both pages.' );
+		}
+		$en = $pairs[ $vi ];
+		unset( $pairs[ $vi ] );
+		if ( ! update_option( self::PAGE_OPTION, $pairs, false ) ) {
+			return new WP_Error( 'nh_vien_save_failed', 'Could not unlink pages.' );
+		}
+		self::flush_cache();
+		do_action( 'nh_vien_pairs_changed', $vi, $en );
+		return true;
+	}
+
+	/**
+	 * Whether a page can participate in an explicit translation link.
+	 *
+	 * @param int $page_id Page identifier.
+	 * @return bool Whether this is a valid page.
+	 */
+	private static function eligible_page( $page_id ) {
+		$page = get_post( $page_id );
+		return $page instanceof WP_Post && 'page' === $page->post_type &&
+			! in_array( $page->post_status, array( 'trash', 'auto-draft', 'inherit' ), true );
+	}
+
 	/**
 	 * Every post paired as the English side, whatever state the pair is in.
 	 *
 	 * @return int[]
 	 */
 	public static function en_ids() {
-		return array_keys( self::reverse() );
+		return array_values( array_unique( array_merge( array_keys( self::reverse() ), self::independent_ids() ) ) );
 	}
 
 	/**
@@ -213,7 +551,7 @@ final class NH_VIEN_Links {
 	 */
 	public static function is_en( $post_id ) {
 		$reverse = self::reverse();
-		return isset( $reverse[ (int) $post_id ] );
+		return isset( $reverse[ (int) $post_id ] ) || in_array( (int) $post_id, self::independent_ids(), true );
 	}
 
 	/**
@@ -261,10 +599,11 @@ final class NH_VIEN_Links {
 		}
 		self::$memo['public'] = array();
 		$pairs                = self::pairs();
-		if ( ! $pairs ) {
+		$standalone           = self::independent_ids();
+		if ( ! $pairs && ! $standalone ) {
 			return array();
 		}
-		$ids       = array_merge( array_keys( $pairs ), array_values( $pairs ) );
+		$ids       = array_values( array_unique( array_merge( array_keys( $pairs ), array_values( $pairs ), $standalone ) ) );
 		$published = get_posts(
 			array(
 				'post_type'              => 'post',
@@ -286,6 +625,15 @@ final class NH_VIEN_Links {
 		}
 		// Only a page below /en/ can take an address away from an English post.
 		$pages_below_en = null !== get_page_by_path( 'en', OBJECT, 'page' );
+		foreach ( $standalone as $en ) {
+			if ( ! isset( $by_id[ $en ] ) || ! NH_VIEN_Routes::slug_is_routable( $by_id[ $en ]->post_name ) ) {
+				continue;
+			}
+			if ( $pages_below_en && null !== NH_VIEN_Routes::page_at( 'en/' . $by_id[ $en ]->post_name ) ) {
+				continue;
+			}
+			self::$memo['public'][ $en ] = $by_id[ $en ];
+		}
 		foreach ( $pairs as $vi => $en ) {
 			if ( ! isset( $by_id[ $vi ], $by_id[ $en ] ) || ! NH_VIEN_Routes::slug_is_routable( $by_id[ $en ]->post_name ) ) {
 				continue;
@@ -317,10 +665,10 @@ final class NH_VIEN_Links {
 		if ( isset( self::$memo['terms'] ) ) {
 			return self::$memo['terms'];
 		}
-		self::$memo['terms'] = array();
+		self::$memo['terms'] = array_fill_keys( self::declared_en_terms(), true );
 		$ids                 = self::public_en_ids();
 		if ( ! $ids ) {
-			return array();
+			return self::$memo['terms'];
 		}
 		$term_ids = wp_get_object_terms( $ids, array( 'category', 'post_tag' ), array( 'fields' => 'ids' ) );
 		if ( is_wp_error( $term_ids ) ) {
@@ -345,10 +693,10 @@ final class NH_VIEN_Links {
 		if ( isset( self::$memo['en_only'] ) ) {
 			return self::$memo['en_only'];
 		}
-		self::$memo['en_only'] = array();
+		self::$memo['en_only'] = array_fill_keys( self::declared_en_terms(), true );
 		$english               = self::en_ids();
 		if ( ! $english ) {
-			return array();
+			return self::$memo['en_only'];
 		}
 		$published = get_posts(
 			array(
@@ -367,11 +715,11 @@ final class NH_VIEN_Links {
 			)
 		);
 		if ( ! $published ) {
-			return array();
+			return self::$memo['en_only'];
 		}
 		$rows = wp_get_object_terms( $published, array( 'category', 'post_tag' ), array( 'fields' => 'all_with_object_id' ) );
 		if ( is_wp_error( $rows ) ) {
-			return array();
+			return self::$memo['en_only'];
 		}
 		$english_posts = array();
 		$terms         = array();

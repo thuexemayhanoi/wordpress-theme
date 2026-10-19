@@ -8,7 +8,7 @@ if ( 'cli' !== PHP_SAPI ) {
 
 define( 'ABSPATH', __DIR__ . '/../../../../' );
 define( 'OBJECT', 'OBJECT' );
-define( 'NH_VIEN_VERSION', '0.4.0' );
+define( 'NH_VIEN_VERSION', '0.5.0' );
 define( 'NH_VIEN_PLUGIN_FILE', dirname( __DIR__ ) . '/nguyen-ha-vi-en.php' );
 define( 'NH_VIEN_ENABLE_EN_ROUTES', true );
 
@@ -329,6 +329,44 @@ $GLOBALS['any_posts']             = array( 22 );
 NH_VIEN_Query::send_empty_404();
 must( ! $GLOBALS['wp_query']->is_404, 'A Vietnamese archive with posts must not be a 404' );
 
+/** Save the original fixture: subsequent REST tests require the original paired English articles. */
+$saved_options = $GLOBALS['options'];
+$saved_posts = $GLOBALS['published'];
+$saved_terms = $GLOBALS['terms'];
+$saved_parents = $GLOBALS['parents'];
+$saved_assigned = $GLOBALS['assigned'];
+
+/** Independent English posts enter only the English side, without any VI pair. */
+$GLOBALS['options'][ NH_VIEN_Links::OPTION ] = array();
+$GLOBALS['options'][ NH_VIEN_Links::INDEPENDENT_OPTION ] = array( 77 );
+$GLOBALS['options'][ NH_VIEN_Links::EN_TERMS_OPTION ] = array( 201, 202 );
+$GLOBALS['published'][] = new WP_Post( 77, 'new-english-guide' );
+$GLOBALS['terms'][201] = new WP_Term( 201, 'category', 'guides-english', 0 );
+$GLOBALS['terms'][202] = new WP_Term( 202, 'category', 'rental-guides-english', 1 );
+$GLOBALS['terms'][999] = new WP_Term( 999, 'category', 'unmodified-vietnamese', 3 );
+$GLOBALS['parents'][202] = 201;
+$GLOBALS['assigned'][77] = array( 202 );
+fresh( 'en' );
+must( array( 77 ) === NH_VIEN_Links::public_en_ids(), 'Independent article missing from public English set' );
+$q = query();
+NH_VIEN_Query::scope( $q );
+must( array( 77 ) === $q->get( 'post__in' ), 'English query omitted the standalone article' );
+must( isset( NH_VIEN_Links::en_term_ids()[201] ) && isset( NH_VIEN_Links::en_term_ids()[202] ), 'English parent/child terms missing' );
+fresh( 'vi' );
+$q = query();
+NH_VIEN_Query::scope( $q );
+must( array( 77 ) === $q->get( 'post__not_in' ), 'Vietnamese query must exclude the independent English article' );
+$filtered_terms = NH_VIEN_Query::filter_terms( array( $GLOBALS['terms'][201], $GLOBALS['terms'][202], $GLOBALS['terms'][999] ), array( 'category' ) );
+must( array( $GLOBALS['terms'][999] ) === $filtered_terms, 'English category tree leaked into Vietnamese terms' );
+
+
+$GLOBALS['options'] = $saved_options;
+$GLOBALS['published'] = $saved_posts;
+$GLOBALS['terms'] = $saved_terms;
+$GLOBALS['parents'] = $saved_parents;
+$GLOBALS['assigned'] = $saved_assigned;
+fresh( 'vi' );
+
 // ---- The administration, REST requests, cron and the command line see every post.
 define( 'REST_REQUEST', true );
 fresh( 'vi' );
@@ -392,5 +430,6 @@ NH_VIEN_Routes::reset();
 $GLOBALS['options']['rewrite_rules'] = array();
 must( 'https://example.test/en/english-article/' === NH_VIEN_Urls::url_to_postid( 'https://example.test/en/english-article/' ), 'A site whose rules are not stored must not be touched' );
 $GLOBALS['options']['rewrite_rules'] = $rules;
+
 
 echo "PASS: language scoping of lists, terms, neighbours, empty archives and search suggestions.\n";

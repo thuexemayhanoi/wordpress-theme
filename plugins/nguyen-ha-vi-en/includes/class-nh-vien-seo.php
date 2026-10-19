@@ -74,6 +74,20 @@ final class NH_VIEN_Seo {
 			return null;
 		}
 		$english = NH_VIEN_Context::is_english();
+		if ( is_singular( 'page' ) ) {
+			$pair = NH_VIEN_Links::for_page( (int) get_queried_object_id() );
+			if ( $pair && 'publish' === get_post_status( $pair['vi'] ) && 'publish' === get_post_status( $pair['en'] ) ) {
+				$english_page = get_page_uri( $pair['en'] );
+				$vi_url       = (string) get_permalink( $pair['vi'] );
+				$en_url       = (string) get_permalink( $pair['en'] );
+				if ( 0 === strpos( (string) $english_page, 'en/' ) && $vi_url && $en_url ) {
+					return array(
+						'vi' => $vi_url,
+						'en' => $en_url,
+					);
+				}
+			}
+		}
 		if ( is_singular( 'post' ) ) {
 			$id      = (int) get_queried_object_id();
 			$en_id   = $english ? $id : NH_VIEN_Links::en_for_vi( $id );
