@@ -64,6 +64,10 @@ function update_option( $key, $value, $autoload = null ) {
 	$GLOBALS['mock_writes'][] = array( $key, $value, $autoload );
 	return true;
 }
+$GLOBALS['page_uris'] = array();
+function get_page_uri( $id ) {
+	return isset( $GLOBALS['page_uris'][ $id ] ) ? $GLOBALS['page_uris'][ $id ] : '';
+}
 function get_post( $id ) { return isset( $GLOBALS['mock_posts'][ $id ] ) ? $GLOBALS['mock_posts'][ $id ] : null; }
 function current_user_can( $cap, $id = null ) { return 'manage_options' === $cap ? $GLOBALS['allow_manage'] : $GLOBALS['allow_edit']; }
 function wp_verify_nonce( $nonce, $action ) { return $GLOBALS['nonce_ok'] && 'ok' === $nonce && 'nh_vien_manage_links' === $action; }
@@ -178,6 +182,27 @@ must( error_is( NH_VIEN_Links::unmark_english_category( 201, 'ok' ), 'nh_vien_ca
 must( true === NH_VIEN_Links::unmark_english_category( 202, 'ok' ), 'Failed to unmark English child' );
 must( true === NH_VIEN_Links::unmark_english_category( 201, 'ok' ), 'Failed to unmark English parent' );
 must( array() === NH_VIEN_Links::declared_en_terms(), 'English categories were not cleared' );
+
+
+/** Page pairs: independently authored English pages must sit under /en/ and preserve both originals. */
+$GLOBALS['mock_posts'][501] = new WP_Post( 'page', 'publish' );
+$GLOBALS['mock_posts'][502] = new WP_Post( 'page', 'publish' );
+$GLOBALS['mock_posts'][503] = new WP_Post( 'page', 'draft' );
+$GLOBALS['page_uris'] = array(
+	501 => 'gioi-thieu',
+	502 => 'en/about',
+	503 => 'en/prices',
+);
+must( array() === NH_VIEN_Links::page_pairs(), 'Page pairs should start empty' );
+must( error_is( NH_VIEN_Links::link_page( 501, 502, 'bad' ), 'nh_vien_bad_nonce' ), 'Page-link nonce bypassed' );
+must( error_is( NH_VIEN_Links::link_page( 502, 501, 'ok' ), 'nh_vien_invalid_posts' ), 'An English page was accepted as VI' );
+must( error_is( NH_VIEN_Links::link_page( 501, 55, 'ok' ), 'nh_vien_invalid_posts' ), 'A post was accepted as EN page' );
+must( true === NH_VIEN_Links::link_page( 501, 502, 'ok' ), 'Could not pair independently authored pages' );
+must( array( 501 => 502 ) === NH_VIEN_Links::page_pairs(), 'Page link store mismatch' );
+must( array( 'vi' => 501, 'en' => 502 ) === NH_VIEN_Links::for_page( 502 ), 'Page mapping did not work from English side' );
+must( error_is( NH_VIEN_Links::link_page( 501, 503, 'ok' ), 'nh_vien_conflict' ), 'Duplicate Vietnamese page pair accepted' );
+must( true === NH_VIEN_Links::unlink_page( 501, 'ok' ), 'Could not unlink page pair' );
+must( null === NH_VIEN_Links::for_page( 502 ), 'Old English page still paired after unlink' );
 
 must( array( 'plugins_loaded' ) === $GLOBALS['hooks'], 'Non-admin bootstrap added unexpected hooks' );
 echo "PASS: reciprocal links, one-to-one conflicts, CSRF/capability, corrupt-store and write boundaries.\n";

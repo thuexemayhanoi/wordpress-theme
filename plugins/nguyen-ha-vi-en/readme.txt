@@ -117,6 +117,7 @@ The CI also installs the plugin from its zip on real WordPress sites (WordPress 
 = 0.5.0 =
 * Permit administrator-designated English articles without mandatory Vietnamese partners; no content or slug is rewritten.
 * Permit explicitly designated empty parent/child English categories without changing or taking over Vietnamese categories.
+* Link independently authored VI and EN pages by ID only when both serve equivalent visitor intents; unmatched English pages under /en/ remain valid.
 * Keep production routes disabled until both explicit production gates and the administrator rewrite-rule action are completed.
 
 
