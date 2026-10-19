@@ -22,6 +22,7 @@ final class NH_VIEN_Routes {
 	const QUERY_VAR = 'nh_vien_en_slug';
 	const LANG_VAR  = 'nh_vien_lang';
 	const SCOPE_VAR = 'nh_vien_scope';
+	const CONTROL_OPTION = 'nh_vien_routes_enabled_v1';
 
 	/**
 	 * Memo of live() for this request.
@@ -45,6 +46,15 @@ final class NH_VIEN_Routes {
 	 * @return bool
 	 */
 	public static function enabled() {
+		// A deliberate setting saved by an administrator takes precedence. Old sites
+		// without the option continue using their existing wp-config.php gates.
+		$setting = get_option( self::CONTROL_OPTION, null );
+		if ( '1' === $setting ) {
+			return true;
+		}
+		if ( '0' === $setting ) {
+			return false;
+		}
 		if ( ! defined( 'NH_VIEN_ENABLE_EN_ROUTES' ) || true !== NH_VIEN_ENABLE_EN_ROUTES || ! function_exists( 'wp_get_environment_type' ) ) {
 			return false;
 		}
@@ -123,6 +133,25 @@ final class NH_VIEN_Routes {
 	 * answer them: every /en/ address would show the Vietnamese home page. Only keys of this plugin are removed, the
 	 * other stored rules stay exactly as they are, and nothing is written when none of ours is stored.
 	 */
+	/**
+	 * Clear the runtime rewrite entries after switching the English section off.
+	 * Preserve every other registered rewrite rule.
+	 *
+	 * @return void
+	 */
+	public static function clear_registered_rules() {
+		global $wp_rewrite;
+		if ( ! is_object( $wp_rewrite ) ) {
+			return;
+		}
+		$keys = array_fill_keys( array_keys( self::rules() ), true );
+		foreach ( array( 'extra_rules_top', 'extra_rules' ) as $property ) {
+			if ( isset( $wp_rewrite->$property ) && is_array( $wp_rewrite->$property ) ) {
+				$wp_rewrite->$property = array_diff_key( $wp_rewrite->$property, $keys );
+			}
+		}
+	}
+
 	public static function deactivate() {
 		$stored = get_option( 'rewrite_rules' );
 		if ( ! is_array( $stored ) ) {
