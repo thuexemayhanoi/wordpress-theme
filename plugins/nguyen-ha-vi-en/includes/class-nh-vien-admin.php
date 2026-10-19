@@ -29,6 +29,7 @@ final class NH_VIEN_Admin {
 		add_action( 'admin_post_nh_vien_link_page', array( __CLASS__, 'link_page' ) );
 		add_action( 'admin_post_nh_vien_unlink_page', array( __CLASS__, 'unlink_page' ) );
 		add_action( 'admin_post_nh_vien_flush', array( __CLASS__, 'flush' ) );
+		add_action( 'admin_post_nh_vien_toggle', array( __CLASS__, 'toggle' ) );
 		add_action( 'admin_post_nh_vien_home_page', array( __CLASS__, 'home_page' ) );
 	}
 
@@ -119,6 +120,28 @@ final class NH_VIEN_Admin {
 		flush_rewrite_rules( false );
 		NH_VIEN_Routes::reset();
 		do_action( 'nh_vien_pairs_changed', 0, 0 );
+		self::redirect( 'flushed' );
+	}
+
+	/** Turn English routes on or off through an authenticated administrator action. */
+	public static function toggle() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'Administrator permission required.', 'nguyen-ha-vi-en' ), '', array( 'response' => 403 ) );
+		}
+		check_admin_referer( 'nh_vien_toggle_routes' );
+		$turn_on = isset( $_POST['nh_vien_enable'] ) && 'yes' === sanitize_text_field( wp_unslash( $_POST['nh_vien_enable'] ) );
+		if ( $turn_on && NH_VIEN_Routes::post_at_en() ) {
+			self::redirect( 'address_taken' );
+		}
+		update_option( 'nh_vien_routes_enabled_v1', $turn_on ? 'yes' : 'no', false );
+		update_option( 'nh_vien_production_enabled_v1', $turn_on ? 'yes' : 'no', false );
+		NH_VIEN_Routes::reset();
+		// Register routes in this same request before persisting WordPress rewrite rules.
+		if ( $turn_on && NH_VIEN_Routes::enabled() ) {
+			NH_VIEN_Routes::register();
+		}
+		flush_rewrite_rules( false );
+		NH_VIEN_Routes::reset();
 		self::redirect( 'flushed' );
 	}
 
@@ -269,7 +292,13 @@ final class NH_VIEN_Admin {
 			echo '<tr><th scope="row">' . esc_html( $row[0] ) . '</th><td>' . esc_html( $row[1] ) . '</td></tr>';
 		}
 		echo '</tbody></table>';
-		echo '<p>' . esc_html__( 'Nothing changes on the site until the gate is open and the rules are stored. Storing the rules is the only time the plugin writes the rewrite rules; it never does it by itself.', 'nguyen-ha-vi-en' ) . '</p>';
+		echo '<p>' . esc_html__( 'English routes can be enabled here without editing wp-config.php. Existing wp-config.php constants, if defined, take precedence.', 'nguyen-ha-vi-en' ) . '</p>';
+		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+		wp_nonce_field( 'nh_vien_toggle_routes' );
+		echo '<input type="hidden" name="action" value="nh_vien_toggle">';
+		echo '<input type="hidden" name="nh_vien_enable" value="' . ( $enabled ? 'no' : 'yes' ) . '">';
+		submit_button( $enabled ? __( 'Disable English /en/', 'nguyen-ha-vi-en' ) : __( 'Enable English /en/', 'nguyen-ha-vi-en' ), $enabled ? 'secondary' : 'primary', 'submit', false );
+		echo '</form>';
 		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display:inline-block;margin-right:1rem">';
 		wp_nonce_field( self::FLUSH_NONCE );
 		echo '<input type="hidden" name="action" value="nh_vien_flush">';
