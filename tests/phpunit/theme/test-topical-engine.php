@@ -40,10 +40,9 @@ class NH_Test_Cache extends NH_Unit_Test_Case {
 		$this->assertSame( array( 'n' => 2 ), nh_editorial_cache_remember( 'unit-test', $cb ) );
 	}
 
-
 	public function test_structural_caches_keep_each_language_in_a_separate_namespace() {
-		$default = nh_editorial_cache_key( 'hubs:8' );
-		$english = static function () {
+		$default    = nh_editorial_cache_key( 'hubs:8' );
+		$english    = static function () {
 			return 'en';
 		};
 		$vietnamese = static function () {
