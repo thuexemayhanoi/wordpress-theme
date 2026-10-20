@@ -48,9 +48,9 @@
 
 .home-intro__language .nh-vien-switcher__link {
   display: inline-flex;
-  min-width: 38px;
-  min-height: 40px;
-  padding: 0 7px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 4px;
   font-size: 0.875rem;
   line-height: 1;
   border-radius: 999px;
