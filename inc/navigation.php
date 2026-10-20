@@ -155,6 +155,8 @@ function nh_editorial_prune_empty_en_archive_items( $items, $visible ) {
  * @return array Navigation items.
  */
 function nh_editorial_guard_english_menu_archives( $items, $args = null ) {
+	// Keep the two-argument WordPress filter signature, even though context is obtained from the VI/EN plugin.
+	unset( $args );
 	if (
 		! is_array( $items )
 		|| ! class_exists( 'NH_VIEN_Routes' )
