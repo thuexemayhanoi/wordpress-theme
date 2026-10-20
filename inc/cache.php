@@ -296,3 +296,35 @@ add_action( 'update_option_page_for_posts', 'nh_editorial_cache_bump' );
 add_action( 'update_option_default_category', 'nh_editorial_cache_bump' );
 add_action( 'customize_save_after', 'nh_editorial_cache_bump' );
 add_action( 'after_switch_theme', 'nh_editorial_cache_bump_now' );
+
+/**
+ * Purge full-page LiteSpeed cache once after an approved theme version release.
+ *
+ * Git-based theme deployments do not always fire WordPress core's upgrader
+ * hooks. An older HTML page can therefore still display the old VI/EN
+ * switcher in the EN hero after the new template has been deployed.
+ *
+ * Only the site's administrator can trigger the purge, through an authenticated
+ * admin or REST request. Anonymous page views never write an option or purge
+ * caches. The stored version makes subsequent requests free of purge work.
+ *
+ * @return void
+ */
+function nh_editorial_purge_litespeed_after_release() {
+	if ( ! current_user_can( 'manage_options' ) || ! has_action( 'litespeed_purge_all' ) ) {
+		return;
+	}
+
+	$version = (string) NH_EDITORIAL_VERSION;
+	$key     = 'nh_editorial_litespeed_purged_version';
+	if ( NH_EDITORIAL_VERSION === (string) get_option( $key, '' ) ) {
+		return;
+	}
+
+	// Record first so simultaneous admin requests cannot repeatedly purge.
+	update_option( $key, $version, false );
+	// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- LiteSpeed's documented external cache-purge hook.
+	do_action( 'litespeed_purge_all', 'Nguyen Ha theme deployment ' . $version );
+}
+add_action( 'admin_init', 'nh_editorial_purge_litespeed_after_release', 99 );
+add_action( 'rest_api_init', 'nh_editorial_purge_litespeed_after_release', 99 );
