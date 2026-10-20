@@ -7,6 +7,9 @@
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * Home-only language/search placement, without altering other page templates.
+ */
 class NH_Test_Home_Language_Search extends NH_Unit_Test_Case {
 
 	public function test_vietnamese_homepage_suppresses_only_the_top_switcher() {

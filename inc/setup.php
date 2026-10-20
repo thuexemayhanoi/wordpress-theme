@@ -107,11 +107,11 @@ function nh_editorial_home_language_switcher_in_search() {
 /**
  * Keep the native plugin switcher but move its sole homepage instance next to search.
  *
- * @param bool $print Whether the plugin normally prints its top-of-page bar.
+ * @param bool $print_top_bar Whether the plugin normally prints its top-of-page bar.
  * @return bool
  */
-function nh_editorial_home_switcher_auto_placement( $print ) {
-	return nh_editorial_home_language_switcher_in_search() ? false : $print;
+function nh_editorial_home_switcher_auto_placement( $print_top_bar ) {
+	return nh_editorial_home_language_switcher_in_search() ? false : $print_top_bar;
 }
 add_filter( 'nh_vien_switcher_auto_placement', 'nh_editorial_home_switcher_auto_placement' );
 
