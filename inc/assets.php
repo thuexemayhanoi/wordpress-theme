@@ -107,8 +107,8 @@ add_action( 'wp_enqueue_scripts', 'nh_editorial_enqueue_assets' );
  */
 function nh_editorial_home_language_search_css() {
 	if ( ! nh_editorial_home_language_switcher_in_search() ||
-		! class_exists( 'NH_VIEN_Routes' ) ||
-		! NH_VIEN_Routes::live() ) {
+		! class_exists( 'NH_VIEN_Switcher' ) ||
+		! NH_VIEN_Switcher::alternates() ) {
 		return;
 	}
 
