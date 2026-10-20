@@ -26,7 +26,7 @@ class NH_Test_Home_Language_Search extends NH_Unit_Test_Case {
 
 	/** English homepage and ordinary page use the same header placement. */
 	public function test_english_and_ordinary_pages_do_not_restore_a_duplicate_top_bar() {
-		$page = self::factory()->post->create(
+		$page  = self::factory()->post->create(
 			array(
 				'post_type'   => 'page',
 				'post_name'   => 'en',
