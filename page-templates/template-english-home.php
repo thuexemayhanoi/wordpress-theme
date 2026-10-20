@@ -24,6 +24,7 @@ $nh_editorial_en_title   = get_the_title( $nh_editorial_en_home_id );
 $nh_editorial_en_intro   = (string) get_post_field( 'post_excerpt', $nh_editorial_en_home_id );
 $nh_editorial_en_body    = (string) get_post_field( 'post_content', $nh_editorial_en_home_id );
 $nh_editorial_en_topics  = nh_editorial_search_topics();
+$nh_editorial_switcher   = nh_editorial_home_language_switcher_markup();
 
 // Do not retrieve any articles unless the VI/EN plugin explicitly identifies them as English.
 $nh_editorial_en_post_ids = class_exists( 'NH_VIEN_Links' ) ? NH_VIEN_Links::public_en_ids() : array();
@@ -59,7 +60,14 @@ $nh_editorial_en_latest   = array_slice( $nh_editorial_en_sorted, 4, 12 );
 		</div>
 		<div class="home-intro__search">
 			<p class="home-intro__label" id="home-search-label"><?php esc_html_e( 'What would you like to read?', 'nguyen-ha-editorial' ); ?></p>
-			<?php get_search_form( array( 'aria_label' => __( 'Search articles', 'nguyen-ha-editorial' ) ) ); ?>
+			<div class="home-intro__controls">
+				<?php get_search_form( array( 'aria_label' => __( 'Search articles', 'nguyen-ha-editorial' ) ) ); ?>
+				<?php if ( '' !== $nh_editorial_switcher ) : ?>
+					<div class="home-intro__language">
+						<?php echo $nh_editorial_switcher; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped by NH_VIEN_Switcher::html(). ?>
+					</div>
+				<?php endif; ?>
+			</div>
 			<?php if ( ! empty( $nh_editorial_en_topics ) ) : ?>
 				<ul class="chips" aria-label="<?php esc_attr_e( 'Popular topics', 'nguyen-ha-editorial' ); ?>">
 					<?php foreach ( array_slice( $nh_editorial_en_topics, 0, 5 ) as $nh_editorial_en_topic ) : ?>

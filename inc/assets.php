@@ -98,6 +98,42 @@ function nh_editorial_enqueue_assets() {
 add_action( 'wp_enqueue_scripts', 'nh_editorial_enqueue_assets' );
 
 /**
+ * Inline the tiny home-only language/search layout with the critical styles.
+ *
+ * Keeps the first mobile viewport stable (no flash of stacked controls), avoids
+ * another CSS request, and does not touch the generated esbuild bundles.
+ *
+ * @return void
+ */
+function nh_editorial_home_language_search_css() {
+	if ( ! nh_editorial_home_language_switcher_in_search() ||
+		! class_exists( 'NH_VIEN_Routes' ) ||
+		! NH_VIEN_Routes::live() ) {
+		return;
+	}
+
+	$path = NH_EDITORIAL_DIR . 'assets/css/home-language-search.css';
+	if ( ! is_readable( $path ) ) {
+		return;
+	}
+
+	// Local, versioned theme CSS; no remote request or user-controlled path.
+	$css = (string) file_get_contents( $path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+	if ( '' === $css ) {
+		return;
+	}
+
+	foreach ( array( 'nh-editorial-critical', 'nh-editorial-critical-file', 'nh-editorial-main' ) as $handle ) {
+		if ( wp_style_is( $handle, 'enqueued' ) ) {
+			wp_add_inline_style( $handle, $css );
+			break;
+		}
+	}
+}
+add_action( 'wp_enqueue_scripts', 'nh_editorial_home_language_search_css', 20 );
+
+
+/**
  * Reduce Local Site Assistant Lite's floating launcher covering mobile article copy.
  * The plugin owns the chat and its configuration; this only narrows and edge-docks its button.
  *
