@@ -3,8 +3,8 @@
  * keyboard, big enough to touch, takes the visitor to the other language, and passes axe in the light and the dark
  * colour scheme. Without a horizontal scroll bar at any width.
  *
- * NH_E2E_THEME=editorial (the default) checks the whole page of the Nguyen Ha Editorial theme, where the switcher comes
- * right after the theme's skip link. With any other value (a theme the plugin knows nothing about) axe checks the
+ * NH_E2E_THEME=editorial (the default) checks the whole page of the Nguyen Ha Editorial theme. On its homepage,
+ * the switcher is beside search; elsewhere it comes right after the skip link. With any other theme axe checks the
  * switcher itself, and the place of the skip link is left to the theme.
  * NH_E2E_AXE_SCOPED=1 limits axe to the switcher even for the editorial theme: on an old WordPress the markup of core
  * widgets is not what this plugin answers for.
@@ -77,7 +77,7 @@ for (const page of PAGES) {
       await expect(tab.locator('.nh-vien-switcher a[aria-current="page"]')).toHaveCount(1);
     });
 
-    test('the skip link is still the first stop of the keyboard; the switcher comes right after it', async ({ page: tab }) => {
+    test('the skip link is first; language controls follow the expected keyboard order', async ({ page: tab }) => {
       await tab.goto(page.url);
       test.skip(!OWN_THEME || (await tab.locator('.skip-link').count()) === 0, 'where the skip link goes is up to the theme');
       const before = await tab.evaluate(() => {
@@ -88,8 +88,24 @@ for (const page of PAGES) {
       expect(before, 'the switcher is after the skip link in the document').toBe(true);
       await tab.keyboard.press('Tab');
       await expect(tab.locator('.skip-link')).toBeFocused();
-      await tab.keyboard.press('Tab');
-      await expect(tab.locator('.nh-vien-switcher a').first()).toBeFocused();
+      if (OWN_THEME && page.url === '/') {
+        // Homepage switcher sits after the input and submit, not immediately after the skip link.
+        const form = tab.locator('.home-intro__controls .search-form');
+        const nav = tab.locator('.home-intro__controls .nh-vien-switcher');
+        await expect(form).toHaveCount(1);
+        await expect(nav).toHaveCount(1);
+        const formBox = await form.boundingBox();
+        const navBox = await nav.boundingBox();
+        expect(Math.abs(formBox.y + formBox.height / 2 - (navBox.y + navBox.height / 2))).toBeLessThanOrEqual(8);
+        await form.locator('input[type="search"]').focus();
+        await tab.keyboard.press('Tab');
+        await expect(form.locator('.search-submit')).toBeFocused();
+        await tab.keyboard.press('Tab');
+        await expect(nav.locator('a').first()).toBeFocused();
+      } else {
+        await tab.keyboard.press('Tab');
+        await expect(tab.locator('.nh-vien-switcher a').first()).toBeFocused();
+      }
     });
 
     for (const scheme of ['light', 'dark']) {
@@ -101,7 +117,7 @@ for (const page of PAGES) {
         // title as typed, so the probe shows up as a bare image in lists. It is not what this test is about.
         await tab.evaluate(() => document.querySelectorAll('img[src="x"]').forEach((img) => img.remove()));
         const axe = new AxeBuilder({ page: tab }).withTags(AXE_TAGS);
-        const results = await (WHOLE_PAGE_AXE ? axe : axe.include('.nh-vien-bar')).analyze();
+        const results = await (WHOLE_PAGE_AXE ? axe : axe.include('.nh-vien-switcher')).analyze();
         const report = results.violations.map((v) => `${v.id}: ${v.nodes.slice(0, 3).map((n) => n.target.join(' ')).join(' | ')}`);
         expect(report, report.join('\n')).toEqual([]);
       });
