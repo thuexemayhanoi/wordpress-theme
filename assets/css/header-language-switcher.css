@@ -1,0 +1,125 @@
+/*
+ * Compact native VI/EN switcher in the header, immediately after Search.
+ * Applied across both languages and all templates. VI/EN Core remains solely
+ * responsible for route selection, paired links, and selected-language state.
+ */
+.site-header .header-language {
+  display: flex;
+  flex: none;
+  align-items: center;
+  min-width: 0;
+}
+
+.site-header .header-language .nh-vien-switcher {
+  display: inline-flex;
+  box-sizing: border-box;
+  align-items: center;
+  gap: 2px;
+  flex: none;
+  min-height: 48px;
+  max-width: 100%;
+  margin: 0;
+  padding: 2px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--paper);
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.site-header .header-language .nh-vien-switcher__link {
+  display: inline-flex;
+  box-sizing: border-box;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 4px;
+  font-size: 0.8125rem;
+  line-height: 1;
+  border-radius: 999px;
+  color: inherit;
+}
+
+.site-header .header-language .nh-vien-switcher__link[aria-current="page"] {
+  background: var(--accent-soft);
+  color: var(--accent);
+  outline: 1px solid var(--accent);
+  outline-offset: -1px;
+  text-decoration: none;
+}
+
+.site-header .header-language .nh-vien-switcher__link:hover {
+  background: var(--accent-soft);
+}
+
+.site-header .header-language .nh-vien-switcher__link:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* The drawer already takes navigation out of the flex row at <= 1180px.
+ * Leave enough room for language, search, colour and menu actions on tablets. */
+@media (max-width: 700px) {
+  .site-header .header-row {
+    gap: 10px;
+  }
+
+  .site-header .custom-logo {
+    max-width: 140px;
+  }
+
+  .site-header .header-actions {
+    gap: 2px;
+  }
+}
+
+/* On phones, keep the four controls in ONE row instead of moving the
+ * language links back down beside the large homepage search input. */
+@media (max-width: 480px) {
+  .site-header .header-row {
+    gap: 6px;
+  }
+
+  .site-header .custom-logo {
+    max-width: 115px;
+  }
+
+  .site-header .header-actions {
+    gap: 0;
+  }
+
+  .site-header .header-actions .icon-btn {
+    width: 40px;
+    height: 44px;
+  }
+
+  .site-header .header-language .nh-vien-switcher {
+    gap: 0;
+    min-height: 48px;
+    padding: 1px;
+  }
+
+  .site-header .header-language .nh-vien-switcher__link {
+    padding: 0;
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 360px) {
+  .site-header .custom-logo {
+    max-width: 68px;
+  }
+
+  .site-header .header-actions .icon-btn {
+    width: 36px;
+  }
+}
+
+@media (forced-colors: active) {
+  .site-header .header-language .nh-vien-switcher__link[aria-current="page"] {
+    outline: 2px solid CanvasText;
+  }
+}
