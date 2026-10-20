@@ -1,0 +1,117 @@
+/*
+ * VI/EN switcher beside the homepage search only. The native plugin still
+ * provides both destination URLs, aria labels and selected-language state.
+ * Kept separate from esbuild bundles so it can be inlined only on the two
+ * homepages, avoiding an extra request and first-paint layout shifts.
+ */
+.home-intro__controls {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  min-width: 0;
+  margin-bottom: 1em;
+}
+
+.home-intro__search .home-intro__controls .search-form {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: none;
+  margin: 0;
+}
+
+.home-intro__controls .search-field {
+  min-width: 0;
+}
+
+.home-intro__language {
+  display: flex;
+  flex: none;
+  align-items: stretch;
+}
+
+.home-intro__language .nh-vien-switcher {
+  display: inline-flex;
+  align-items: center;
+  align-self: stretch;
+  gap: 2px;
+  box-sizing: border-box;
+  max-width: 100%;
+  min-height: 48px;
+  margin: 0;
+  padding: 3px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--paper);
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.home-intro__language .nh-vien-switcher__link {
+  display: inline-flex;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 4px;
+  font-size: 0.875rem;
+  line-height: 1;
+  border-radius: 999px;
+}
+
+.home-intro__language .nh-vien-switcher__link[aria-current="page"] {
+  background: var(--accent-soft);
+  color: var(--accent);
+  outline: 1px solid var(--accent);
+  outline-offset: -1px;
+  text-decoration: none;
+}
+
+.home-intro__language .nh-vien-switcher__link:hover {
+  background: var(--accent-soft);
+}
+
+.home-intro__language .nh-vien-switcher__link:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+@media (max-width: 600px) {
+  .home-intro__controls {
+    gap: 8px;
+  }
+
+  .home-intro__search .home-intro__controls .search-form {
+    gap: 4px;
+  }
+
+  .home-intro__controls .search-field {
+    padding-inline: 9px;
+    font-size: 16px; /* Keep iOS from zooming the page on focus. */
+  }
+
+  .home-intro__controls .search-submit {
+    width: 40px;
+    min-height: 44px;
+    border-radius: 12px;
+  }
+
+  .home-intro__language .nh-vien-switcher {
+    gap: 0;
+    min-height: 48px;
+    padding: 2px;
+  }
+
+  .home-intro__language .nh-vien-switcher__link {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0;
+    font-size: 0.8125rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .home-intro__controls {
+    gap: 6px;
+  }
+  .home-intro__search .home-intro__controls .search-form {
+    gap: 3px;
+  }
+}

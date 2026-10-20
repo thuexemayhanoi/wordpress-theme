@@ -79,6 +79,57 @@ function nh_editorial_setup() {
 add_action( 'after_setup_theme', 'nh_editorial_setup' );
 
 /**
+ * Whether this request renders a homepage hero with a search form.
+ *
+ * Only these templates move the language switcher out of the plugin's top bar.
+ * Other pages (including page 2 of the posts index) retain the normal switcher,
+ * so changing a theme never hides language navigation elsewhere.
+ *
+ * @return bool
+ */
+function nh_editorial_home_language_switcher_in_search() {
+	if ( is_admin() ) {
+		return false;
+	}
+
+	if ( is_front_page() ) {
+		return ! is_paged();
+	}
+
+	if ( is_page() ) {
+		$page_id = (int) get_queried_object_id();
+		return $page_id > 0 && 'en' === get_page_uri( $page_id );
+	}
+
+	return false;
+}
+
+/**
+ * Keep the native plugin switcher but move its sole homepage instance next to search.
+ *
+ * @param bool $print_top_bar Whether the plugin normally prints its top-of-page bar.
+ * @return bool
+ */
+function nh_editorial_home_switcher_auto_placement( $print_top_bar ) {
+	return nh_editorial_home_language_switcher_in_search() ? false : $print_top_bar;
+}
+add_filter( 'nh_vien_switcher_auto_placement', 'nh_editorial_home_switcher_auto_placement' );
+
+/**
+ * Render the native VI/EN links, including page-pair URLs, without duplicating them.
+ *
+ * @return string Plugin-escaped navigation HTML, or an empty string when EN is off.
+ */
+function nh_editorial_home_language_switcher_markup() {
+	if ( ! nh_editorial_home_language_switcher_in_search() || ! class_exists( 'NH_VIEN_Switcher' ) ) {
+		return '';
+	}
+
+	return NH_VIEN_Switcher::shortcode();
+}
+
+
+/**
  * Content width for embeds and legacy image sizing.
  *
  * @return void
