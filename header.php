@@ -36,6 +36,12 @@ defined( 'ABSPATH' ) || exit;
 				<?php echo nh_editorial_icon( 'search' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Static SVG markup. ?>
 				<span class="screen-reader-text"><?php esc_html_e( 'Search', 'nguyen-ha-editorial' ); ?></span>
 			</button>
+			<?php $nh_editorial_header_languages = nh_editorial_header_language_switcher_markup(); ?>
+			<?php if ( '' !== $nh_editorial_header_languages ) : ?>
+				<div class="header-language">
+					<?php echo $nh_editorial_header_languages; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Plugin escapes the nav and its URLs. ?>
+				</div>
+			<?php endif; ?>
 			<?php if ( nh_editorial_option( 'nh_dark_mode' ) ) : ?>
 			<button type="button" class="icon-btn mode-toggle" aria-pressed="false">
 				<?php echo nh_editorial_icon( 'moon', 'icon--moon' ) . nh_editorial_icon( 'sun', 'icon--sun' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Static SVG markup. ?>

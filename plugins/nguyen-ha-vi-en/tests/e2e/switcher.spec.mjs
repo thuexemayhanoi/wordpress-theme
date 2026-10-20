@@ -3,9 +3,9 @@
  * keyboard, big enough to touch, takes the visitor to the other language, and passes axe in the light and the dark
  * colour scheme. Without a horizontal scroll bar at any width.
  *
- * NH_E2E_THEME=editorial (the default) checks the whole page of the Nguyen Ha Editorial theme. On its homepage,
- * the switcher is beside search; elsewhere it comes right after the skip link. With any other theme axe checks the
- * switcher itself, and the place of the skip link is left to the theme.
+ * NH_E2E_THEME=editorial (the default) checks the whole page of the Nguyen Ha Editorial theme. One
+ * switcher stays inside the header after the search button on every route. With any other theme axe
+ * checks the switcher itself; the skip link location belongs to that theme.
  * NH_E2E_AXE_SCOPED=1 limits axe to the switcher even for the editorial theme: on an old WordPress the markup of core
  * widgets is not what this plugin answers for.
  */
@@ -88,20 +88,22 @@ for (const page of PAGES) {
       expect(before, 'the switcher is after the skip link in the document').toBe(true);
       await tab.keyboard.press('Tab');
       await expect(tab.locator('.skip-link')).toBeFocused();
-      if (OWN_THEME && page.url === '/') {
-        // Homepage switcher sits after the input and submit, not immediately after the skip link.
-        const form = tab.locator('.home-intro__controls .search-form');
-        const nav = tab.locator('.home-intro__controls .nh-vien-switcher');
-        await expect(form).toHaveCount(1);
-        await expect(nav).toHaveCount(1);
-        const formBox = await form.boundingBox();
-        const navBox = await nav.boundingBox();
-        expect(Math.abs(formBox.y + formBox.height / 2 - (navBox.y + navBox.height / 2))).toBeLessThanOrEqual(8);
-        await form.locator('input[type="search"]').focus();
+      if (OWN_THEME) {
+        const header = tab.locator('.site-header .header-actions');
+        const search = header.locator('.search-toggle');
+        const languages = header.locator('.header-language .nh-vien-switcher');
+        await expect(languages, 'exactly one VI/EN switcher in the header').toHaveCount(1);
+        await expect(tab.locator('.home-intro__search .nh-vien-switcher')).toHaveCount(0);
+        await expect(tab.locator('.nh-vien-bar')).toHaveCount(0);
+        const searchBox = await search.boundingBox();
+        const languagesBox = await languages.boundingBox();
+        expect(languagesBox.x, 'language links follow header search').toBeGreaterThanOrEqual(searchBox.x + searchBox.width - 1);
+        expect(Math.abs(searchBox.y + searchBox.height / 2 - (languagesBox.y + languagesBox.height / 2)), 'header controls align vertically').toBeLessThanOrEqual(8);
+        await search.focus();
         await tab.keyboard.press('Tab');
-        await expect(form.locator('.search-submit')).toBeFocused();
+        await expect(languages.locator('a').first()).toBeFocused();
         await tab.keyboard.press('Tab');
-        await expect(nav.locator('a').first()).toBeFocused();
+        await expect(languages.locator('a').last()).toBeFocused();
       } else {
         await tab.keyboard.press('Tab');
         await expect(tab.locator('.nh-vien-switcher a').first()).toBeFocused();
