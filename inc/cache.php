@@ -317,14 +317,14 @@ function nh_editorial_purge_litespeed_after_release() {
 
 	$version = (string) NH_EDITORIAL_VERSION;
 	$key     = 'nh_editorial_litespeed_purged_version';
-	if ( $version === (string) get_option( $key, '' ) ) {
+	if ( NH_EDITORIAL_VERSION === (string) get_option( $key, '' ) ) {
 		return;
 	}
 
 	// Record first so simultaneous admin requests cannot repeatedly purge.
 	update_option( $key, $version, false );
+	// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- LiteSpeed's documented external cache-purge hook.
 	do_action( 'litespeed_purge_all', 'Nguyen Ha theme deployment ' . $version );
 }
 add_action( 'admin_init', 'nh_editorial_purge_litespeed_after_release', 99 );
 add_action( 'rest_api_init', 'nh_editorial_purge_litespeed_after_release', 99 );
-
