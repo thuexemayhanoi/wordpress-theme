@@ -52,7 +52,7 @@ function nh_editorial_media_fallback( $with_term = true, $post_id = 0 ) {
 	$html = '<span class="nh-fallback" aria-hidden="true">' . $vector
 		. '<span class="nh-fallback__caption">' . esc_html( $caption ) . '</span>';
 	if ( $with_term ) {
-		$html .= '<span class="nh-fallback__term">' . esc_html( $label ) . '</span>';
+		$html .= '<span class="chip chip--accent nh-fallback__term">' . esc_html( $label ) . '</span>';
 	}
 	return $html . '</span>';
 }
