@@ -67,6 +67,10 @@ while ( have_posts() ) {
 						<figcaption><?php echo wp_kses_post( get_the_post_thumbnail_caption() ); ?></figcaption>
 					<?php endif; ?>
 				</figure>
+			<?php else : ?>
+				<figure class="article-media article-media--fallback">
+					<?php echo nh_editorial_media_fallback( false ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped by helper. ?>
+				</figure>
 			<?php endif; ?>
 
 			<div class="article-layout<?php echo $nh_editorial_has_toc ? ' has-toc' : ''; ?>">

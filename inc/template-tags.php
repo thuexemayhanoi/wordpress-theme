@@ -20,16 +20,50 @@ function nh_editorial_heading_tag( $level ) {
 
 
 /**
- * An honest, topic-specific visual label when the post has no featured image.
- * Never invent or reuse a photograph from another article.
+ * Decorative SVG used only when a post or page has no featured image.
+ * It is not an image attachment and must not be reported as one to SEO plugins.
  *
- * @return string Safe HTML.
+ * @param bool $with_term Whether to display an editorial category label.
+ * @param int  $post_id   Post/page ID; zero uses the current post.
+ * @return string Presentation-only escaped HTML.
+ */
+function nh_editorial_media_fallback( $with_term = true, $post_id = 0 ) {
+	$post = get_post( $post_id ? $post_id : get_the_ID() );
+	if ( ! $post instanceof WP_Post ) {
+		return '';
+	}
+
+	$path    = (string) wp_parse_url( (string) get_permalink( $post ), PHP_URL_PATH );
+	$path    = trim( $path, '/' );
+	$is_en   = 'en' === $path || 0 === strpos( $path, 'en/' );
+	$caption = $is_en ? 'EXPLORE HANOI' : 'KHÁM PHÁ HÀ NỘI';
+	$term    = nh_editorial_primary_category( $post );
+	$label   = $term instanceof WP_Term ? $term->name : get_bloginfo( 'name' );
+
+	$vector = '<svg class="nh-fallback__vector" viewBox="0 0 360 138" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" focusable="false" aria-hidden="true">'
+		. '<circle cx="286" cy="28" r="30" fill="currentColor" stroke="none" opacity=".08"/>'
+		. '<circle cx="65" cy="111" r="37" fill="currentColor" stroke="none" opacity=".08"/>'
+		. '<path d="M18 109H342M35 115H325M51 121H309" opacity=".56"/>'
+		. '<path d="M43 109L93 35L143 109M93 35V109M93 35L192 109M177 109L230 37L281 109M230 37V109M230 37L320 109" opacity=".67"/>'
+		. '<g stroke-width="2.6"><circle cx="146" cy="82" r="15"/><circle cx="221" cy="82" r="15"/>'
+		. '<path d="M146 82L169 52H194L207 82H221M169 52L183 82L205 56M158 82H183M189 46H201M207 59L215 65M180 52H173"/></g>'
+		. '</svg>';
+
+	$html = '<span class="nh-fallback" aria-hidden="true">' . $vector
+		. '<span class="nh-fallback__caption">' . esc_html( $caption ) . '</span></span>';
+	if ( $with_term ) {
+		$html .= '<span class="chip chip--accent nh-fallback__term">' . esc_html( $label ) . '</span>';
+	}
+	return $html;
+}
+
+/**
+ * The shared card fallback. All three post card sizes call this tag.
+ *
+ * @return string Escaped presentation HTML.
  */
 function nh_editorial_card_placeholder_label() {
-	$term  = nh_editorial_primary_category( get_post() );
-	$label = $term instanceof WP_Term ? $term->name : get_bloginfo( 'name' );
-
-	return '<span class="chip chip--accent">' . esc_html( $label ) . '</span>';
+	return nh_editorial_media_fallback( true );
 }
 
 /**
