@@ -22,6 +22,11 @@ while ( have_posts() ) {
 		<header class="wrap article-header article-header--full">
 			<h1 class="article-title"><?php the_title(); ?></h1>
 		</header>
+		<div class="wrap">
+			<figure class="article-media<?php echo has_post_thumbnail() ? '' : ' article-media--fallback'; ?>">
+				<?php echo has_post_thumbnail() ? nh_editorial_thumbnail( get_the_ID(), 'featured' ) : nh_editorial_media_fallback( false ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped by core/helper. ?>
+			</figure>
+		</div>
 		<div class="entry-content prose prose--full">
 			<?php the_content(); ?>
 		</div>
