@@ -212,19 +212,19 @@ add_action( 'wp_head', 'nh_editorial_print_head_extras', 1 );
  * @return void
  */
 function nh_editorial_media_fallback_css() {
-    $path = NH_EDITORIAL_DIR . 'assets/css/media-fallback.css';
-    if ( ! is_readable( $path ) ) {
-        return;
-    }
-    $css = (string) file_get_contents( $path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
-    if ( '' === $css ) {
-        return;
-    }
-    foreach ( array( 'nh-editorial-critical', 'nh-editorial-critical-file', 'nh-editorial-main' ) as $handle ) {
-        if ( wp_style_is( $handle, 'enqueued' ) ) {
-            wp_add_inline_style( $handle, $css );
-            break;
-        }
-    }
+	$path = NH_EDITORIAL_DIR . 'assets/css/media-fallback.css';
+	if ( ! is_readable( $path ) ) {
+		return;
+	}
+	$css = (string) file_get_contents( $path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+	if ( '' === $css ) {
+		return;
+	}
+	foreach ( array( 'nh-editorial-critical', 'nh-editorial-critical-file', 'nh-editorial-main' ) as $handle ) {
+		if ( wp_style_is( $handle, 'enqueued' ) ) {
+			wp_add_inline_style( $handle, $css );
+			break;
+		}
+	}
 }
 add_action( 'wp_enqueue_scripts', 'nh_editorial_media_fallback_css', 21 );
