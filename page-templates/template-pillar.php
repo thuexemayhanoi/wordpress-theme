@@ -46,6 +46,10 @@ while ( have_posts() ) {
 				<figure class="article-media">
 					<?php echo nh_editorial_thumbnail( $nh_editorial_page_id, 'featured' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped by core (get_the_post_thumbnail). ?>
 				</figure>
+			<?php else : ?>
+				<figure class="article-media article-media--fallback">
+					<?php echo nh_editorial_media_fallback( false ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped by helper. ?>
+				</figure>
 			<?php endif; ?>
 
 			<div class="article-layout<?php echo $nh_editorial_has_toc ? ' has-toc' : ''; ?>">
