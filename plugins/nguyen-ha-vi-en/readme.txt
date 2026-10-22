@@ -4,7 +4,7 @@ Tags: multilingual, vietnamese, english, hreflang, seo
 Requires at least: 6.3
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.5.2
+Stable tag: 0.5.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -133,6 +133,11 @@ The CI also installs the plugin from its zip on real WordPress sites (WordPress 
 * The first matching rule wins: a real page at `/en/` or below it takes priority over the plugin's addresses, and a page at `/en/` has no page 2.
 
 == Changelog ==
+
+= 0.5.3 =
+* Correct English category/tag link fields in WordPress REST responses to use the public /en/ archive routes.
+* Resolve published /en/ pages for WordPress oEmbed without modifying permalinks, SEO canonicals or content.
+* English post, Vietnamese post and page URLs stay unchanged.
 
 = 0.5.2 =
 * English site name: a field on Tools > VI/EN Links (and `POST /settings` of the REST API) names the site inside English pages, so that the `<title>` suffix, `og:site_name`, the WebSite of the structured data and the name the theme prints are English there; Vietnamese pages keep the stored name. Empty keeps the Vietnamese name everywhere.
