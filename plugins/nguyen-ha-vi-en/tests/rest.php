@@ -8,7 +8,7 @@ if ( 'cli' !== PHP_SAPI ) {
 
 define( 'ABSPATH', __DIR__ . '/../../../../' );
 define( 'OBJECT', 'OBJECT' );
-define( 'NH_VIEN_VERSION', '0.5.2' );
+define( 'NH_VIEN_VERSION', '0.5.3' );
 define( 'NH_VIEN_PLUGIN_FILE', dirname( __DIR__ ) . '/nguyen-ha-vi-en.php' );
 // The emergency constant: the English side stays off whatever the setting says.
 define( 'NH_VIEN_ENABLE_EN_ROUTES', false );

@@ -1,0 +1,62 @@
+name: Release Nguyen Ha VI-EN Plugin ZIP (after QA)
+# Publishes only the independently installable VI-EN ZIP to a public GitHub
+# Release after a successful full Theme QA on main. Never contacts WordPress.
+on:
+  workflow_run:
+    workflows: ['Theme QA']
+    types: [completed]
+    branches: [main]
+permissions:
+  contents: write
+concurrency:
+  group: nguyen-ha-vi-en-plugin-release
+  cancel-in-progress: false
+jobs:
+  release:
+    if: >-
+      github.repository == 'thuexemayhanoi/wordpress-theme' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exactly the QA-approved commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 2
+      - name: Release only if this commit changed VI-EN plugin code
+        id: gate
+        run: |
+          if git diff --quiet HEAD^ HEAD -- plugins/nguyen-ha-vi-en; then
+            echo 'changed=false' >> "$GITHUB_OUTPUT"
+          else
+            echo 'changed=true' >> "$GITHUB_OUTPUT"
+          fi
+      - name: Verify source, package versions and payload
+        if: steps.gate.outputs.changed == 'true'
+        run: |
+          for test in plugins/nguyen-ha-vi-en/tests/*.php; do php "$test"; done
+          bash tools/package.sh
+          bash tools/verify-package.sh dist
+      - name: Release the plugin, never the site or theme
+        if: steps.gate.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          version="$(sed -n 's/^ \* Version:[[:space:]]*//p' plugins/nguyen-ha-vi-en/nguyen-ha-vi-en.php | head -1)"
+          test -n "$version"
+          tag="nguyen-ha-vi-en-v$version"
+          zip="dist/nguyen-ha-vi-en-$version.zip"
+          test -s "$zip"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "::notice::Plugin release already exists; never overwrite it automatically."
+            exit 0
+          fi
+          gh release create "$tag" "$zip" dist/SHA256SUMS \
+            --target "$SOURCE_SHA" \
+            --title "Nguyen Ha VI-EN Core $version" \
+            --notes "Independent, QA-approved VI-EN Core plugin. English REST category URLs, safe legacy 301 archive aliases, and English-page oEmbed lookup. WordPress itself was not changed by this release." \
+            --latest=false

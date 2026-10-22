@@ -31,12 +31,20 @@ final class NH_VIEN_Urls {
 		}
 		add_filter( 'post_link', array( __CLASS__, 'post_link' ), 10, 3 );
 		add_filter( 'term_link', array( __CLASS__, 'term_link' ), 10, 2 );
+		// Core REST term responses have no English page context: the normal term_link
+		// filter cannot see /en/. Publish the same real archive URL in REST instead.
+		add_filter( 'rest_prepare_category', array( __CLASS__, 'rest_term_link' ), 10, 2 );
+		add_filter( 'rest_prepare_post_tag', array( __CLASS__, 'rest_term_link' ), 10, 2 );
 		add_action( 'template_redirect', array( __CLASS__, 'guard_native_url' ), 1 );
+		add_action( 'template_redirect', array( __CLASS__, 'redirect_legacy_en_category' ), 0 );
 		add_action( 'wp_head', array( __CLASS__, 'open_body_phase' ), 9999 );
 		add_action( 'wp_footer', array( __CLASS__, 'close_body_phase' ), 0 );
 		add_filter( 'home_url', array( __CLASS__, 'home_url' ), 10, 3 );
 		add_filter( 'rest_url', array( __CLASS__, 'rest_url' ), 10, 2 );
 		add_filter( 'url_to_postid', array( __CLASS__, 'url_to_postid' ) );
+		// Core oEmbed cannot derive a post ID for published /en/ pages from its
+		// native permalink rewrite; identify those pages without changing their URLs.
+		add_filter( 'oembed_request_post_id', array( __CLASS__, 'oembed_page_id' ), 10, 2 );
 	}
 
 	/**
@@ -95,6 +103,90 @@ final class NH_VIEN_Urls {
 		}
 		$slugs[] = $term->slug;
 		return NH_VIEN_Routes::url( $bases[ $term->taxonomy ] . '/' . implode( '/', $slugs ) );
+	}
+
+	/**
+	 * WordPress's default REST categories/tags are built without a front-end
+	 * language context, so their "link" field previously pointed to /category/
+	 * rather than the real /en/category/ archive of English-only terms.
+	 *
+	 * Only rewrite the response link for explicitly registered English terms.
+	 * Leave term IDs, slugs, names, parent IDs and all Vietnamese terms unchanged.
+	 *
+	 * @param WP_REST_Response $response Core term response.
+	 * @param WP_Term          $term     Term from the core REST controller.
+	 * @return WP_REST_Response
+	 */
+	public static function rest_term_link( $response, $term ) {
+		if ( ! NH_VIEN_Routes::live() || ! $response instanceof WP_REST_Response || ! $term instanceof WP_Term ) {
+			return $response;
+		}
+		$english = self::english_term_url( $term );
+		if ( '' !== $english ) {
+			$response->data['link'] = $english;
+		}
+		return $response;
+	}
+
+	/**
+	 * Redirect only legacy native /category/ paths for registered EN terms.
+	 *
+	 * Old WordPress REST responses advertised this native path without /en/
+	 * even though the English archive lives under /en/category/. This
+	 * preserves externally saved links, but never moves or rewrites VI terms.
+	 * No new WordPress rewrite rule, database change or slug mutation is used.
+	 *
+	 * @param string $request_uri Incoming request URI.
+	 * @return string Verified English destination, or empty string.
+	 */
+	public static function legacy_en_category_target( $request_uri ) {
+		if ( ! NH_VIEN_Routes::live() || ! is_string( $request_uri ) ) {
+			return '';
+		}
+		$home_path = (string) wp_parse_url( self::vi_home(), PHP_URL_PATH );
+		$path      = (string) wp_parse_url( $request_uri, PHP_URL_PATH );
+		$base      = trim( $home_path, '/' );
+		$root      = '' === $base ? 'category/' : $base . '/category/';
+		$path      = trim( $path, '/' );
+		if ( 0 !== strpos( $path, $root ) ) {
+			return '';
+		}
+		$relative = substr( $path, strlen( $root ) );
+		if ( ! preg_match( '~^[a-z0-9-]+(?:/[a-z0-9-]+)*$~D', $relative ) ) {
+			return '';
+		}
+		$slugs = explode( '/', $relative );
+		$term  = get_term_by( 'slug', end( $slugs ), 'category' );
+		if ( ! $term instanceof WP_Term ) {
+			return '';
+		}
+		$english = self::english_term_url( $term );
+		if ( '' === $english ) {
+			return '';
+		}
+		$native = get_term_link( $term );
+		if ( is_wp_error( $native ) ) {
+			return '';
+		}
+		$native_path = trim( (string) wp_parse_url( $native, PHP_URL_PATH ), '/' );
+		return $native_path === $path ? $english : '';
+	}
+
+	/** Redirect only a normal GET/HEAD request that exactly matches an old EN category permalink. */
+	public static function redirect_legacy_en_category() {
+		if ( ! NH_VIEN_Routes::live() || ! isset( $_SERVER['REQUEST_URI'] ) ) {
+			return;
+		}
+		$method = isset( $_SERVER['REQUEST_METHOD'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) : 'GET';
+		if ( ! in_array( $method, array( 'GET', 'HEAD' ), true ) ) {
+			return;
+		}
+		$uri    = wp_unslash( $_SERVER['REQUEST_URI'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- only passed to a strictly validated URL matcher.
+		$target = self::legacy_en_category_target( $uri );
+		if ( '' !== $target ) {
+			wp_safe_redirect( $target, 301, 'Nguyen Ha VI-EN Core' );
+			exit;
+		}
 	}
 
 	/**
@@ -211,6 +303,54 @@ final class NH_VIEN_Urls {
 			return add_query_arg( NH_VIEN_Routes::LANG_VAR, NH_VIEN_Context::language(), $url );
 		}
 		return $url;
+	}
+
+	/**
+	 * Map an English page's advertised /en/ permalink to the real, published
+	 * WordPress page ID for the core oEmbed controller.
+	 *
+	 * Standard WordPress rewrites do not resolve /en/ and /en/about/ inside
+	 * url_to_postid(), even though the page renders successfully. Core's
+	 * oembed_request_post_id filter operates after that lookup and before it
+	 * returns HTTP 404. Only same-origin published pages are considered; EN
+	 * posts continue using the existing url_to_postid filter.
+	 *
+	 * @param int    $post_id Resolved post ID, if WordPress already has one.
+	 * @param string $url     Permalink requested by the embed endpoint.
+	 * @return int
+	 */
+	public static function oembed_page_id( $post_id, $url ) {
+		if ( (int) $post_id > 0 || ! NH_VIEN_Routes::live() || ! is_string( $url ) ) {
+			return $post_id;
+		}
+		$requested = wp_parse_url( $url );
+		$home      = wp_parse_url( self::vi_home() );
+		if ( ! is_array( $requested ) || ! is_array( $home ) ||
+			! isset( $requested['host'], $home['host'], $requested['scheme'], $home['scheme'] ) ||
+			strtolower( $requested['host'] ) !== strtolower( $home['host'] ) ||
+			strtolower( $requested['scheme'] ) !== strtolower( $home['scheme'] ) ||
+			(int) ( $requested['port'] ?? 0 ) !== (int) ( $home['port'] ?? 0 ) ||
+			isset( $requested['user'] ) || isset( $requested['pass'] ) ||
+			isset( $requested['query'] ) || isset( $requested['fragment'] ) ) {
+			return $post_id;
+		}
+
+		$base   = trim( (string) ( $home['path'] ?? '' ), '/' );
+		$path   = trim( (string) ( $requested['path'] ?? '' ), '/' );
+		$prefix = '' !== $base ? $base . '/en' : 'en';
+		if ( $path === $prefix ) {
+			$page = NH_VIEN_Routes::home_page();
+		} elseif ( 0 === strpos( $path, $prefix . '/' ) ) {
+			$child = substr( $path, strlen( $prefix ) + 1 );
+			// Never reinterpret encoded paths, WP REST routes or unknown URLs.
+			if ( '' === $child || ! preg_match( '~^[a-z0-9/-]+$~D', $child ) ) {
+				return $post_id;
+			}
+			$page = NH_VIEN_Routes::page_at( 'en/' . $child );
+		} else {
+			return $post_id;
+		}
+		return $page instanceof WP_Post ? (int) $page->ID : $post_id;
 	}
 
 	/**
