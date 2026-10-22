@@ -161,7 +161,7 @@ function nh_editorial_menu_category_tree( $en ) {
 
 /**
  * Render the actual taxonomy ancestry, up to six levels (current site max four).
- * No invented paths, offsite links, empty English archives or category duplication.
+ * No invented paths, offsite links, or empty English archive URLs.
  *
  * @param array $tree Hierarchical terms.
  * @param int   $parent Parent term ID, zero at the root.
@@ -218,7 +218,7 @@ function nh_editorial_menu_append_categories( $items, $args ) {
 	if ( '' === $html ) {
 		return $items;
 	}
-	$title = $en ? 'Categories' : 'Danh mục';
+	$title = $en ? 'All Categories' : 'Danh mục';
 	$home  = $en ? get_page_by_path( 'en/guides', OBJECT, 'page' ) : get_page_by_path( 'cam-nang', OBJECT, 'page' );
 	$link  = $home instanceof WP_Post && 'publish' === $home->post_status
 		? get_permalink( $home )
@@ -226,7 +226,6 @@ function nh_editorial_menu_append_categories( $items, $args ) {
 
 	// Same disclosure classes as the native mega-menu, with unique aria ID.
 	$button = nh_editorial_submenu_toggle( 'nh-all-categories', $title );
-	$html   = str_replace( 'class="sub-menu sub-menu--level-1 mega-panel', 'class="sub-menu sub-menu--level-1 mega-panel', $html );
 	// Submenu stays hidden until the accessible toggle is activated.
 	$html   = str_replace( 'id="submenu-nh-all-categories">', 'id="submenu-nh-all-categories" hidden>', $html );
 
