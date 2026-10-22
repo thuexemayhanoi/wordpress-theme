@@ -14,7 +14,7 @@
 defined( 'ABSPATH' ) || exit;
 
 // Keep in sync with the Version header in style.css (a unit test enforces it).
-define( 'NH_EDITORIAL_VERSION', '2.0.5' );
+define( 'NH_EDITORIAL_VERSION', '2.0.6' );
 define( 'NH_EDITORIAL_DIR', trailingslashit( get_template_directory() ) );
 define( 'NH_EDITORIAL_URI', trailingslashit( get_template_directory_uri() ) );
 
@@ -36,6 +36,7 @@ $nh_editorial_modules = array(
 	'toc',
 	'author',
 	'navigation',
+	'menu-taxonomy',
 	'search',
 	'template-tags',
 	'schema-presentation',
