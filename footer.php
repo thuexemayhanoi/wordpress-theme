@@ -67,7 +67,7 @@ $nh_editorial_privacy  = get_privacy_policy_url();
 						<h2 class="footer-title"><?php esc_html_e( 'Topics', 'nguyen-ha-editorial' ); ?></h2>
 						<ul class="footer-list">
 							<?php foreach ( $nh_editorial_topics as $nh_editorial_topic ) : ?>
-								<li><a href="<?php echo esc_url( $nh_editorial_topic['url'] ); ?>"><?php echo esc_html( $nh_editorial_topic['name'] ); ?></a></li>
+								<li><a href="<?php echo esc_url( $nh_editorial_topic['url'] ); ?>"><?php echo esc_html( nh_editorial_seo_footer_hub_label( $nh_editorial_topic ) ); ?></a></li>
 							<?php endforeach; ?>
 						</ul>
 					<?php endif; ?>
