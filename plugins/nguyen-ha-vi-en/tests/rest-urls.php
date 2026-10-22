@@ -55,6 +55,22 @@ class NH_VIEN_Routes {
 function is_taxonomy_hierarchical( $tax ) { return 'category' === $tax; }
 function get_ancestors( $id, $tax, $type ) { return 51 === $id ? array( 46 ) : array(); }
 function get_term( $id, $tax ) { return 46 === $id ? new WP_Term( 46, 'category', 'hanoi-motorbike-rental' ) : null; }
+function get_term_by( $field, $value, $taxonomy ) {
+    if ( 'slug' !== $field || 'category' !== $taxonomy ) {
+        return null;
+    }
+    if ( '50cc-motorbikes' === $value ) { return new WP_Term( 51, 'category', '50cc-motorbikes' ); }
+    if ( 'vi-only' === $value ) { return new WP_Term( 301, 'category', 'vi-only' ); }
+    return null;
+}
+function get_term_link( $term ) {
+    if ( 51 === $term->term_id ) {
+        return 'https://blog.rentbikehanoi.com/category/hanoi-motorbike-rental/50cc-motorbikes/';
+    }
+    return 'https://blog.rentbikehanoi.com/category/vi-only/';
+}
+function is_wp_error( $value ) { return false; }
+
 function wp_parse_url( $value, $component = -1 ) { return parse_url( $value, $component ); }
 function get_option( $name ) { return 'https://blog.rentbikehanoi.com'; }
 function set_url_scheme( $url ) { return $url; }
@@ -109,6 +125,15 @@ foreach ( array(
 ) as $invalid ) {
     must( 0 === NH_VIEN_Urls::oembed_page_id( 0, $invalid ), 'Unexpected oEmbed ID for ' . $invalid );
 }
+must( 'https://blog.rentbikehanoi.com/en/category/hanoi-motorbike-rental/50cc-motorbikes/' ===
+    NH_VIEN_Urls::legacy_en_category_target( '/category/hanoi-motorbike-rental/50cc-motorbikes/' ),
+    'Legacy English-only category should redirect to canonical English archive' );
+must( '' === NH_VIEN_Urls::legacy_en_category_target( '/category/vi-only/' ), 'Vietnamese category should not redirect' );
+must( '' === NH_VIEN_Urls::legacy_en_category_target( '/category/hanoi-motorbike-rental/vi-only/' ), 'Wrong nested category path accepted' );
+must( '' === NH_VIEN_Urls::legacy_en_category_target( '/en/category/hanoi-motorbike-rental/50cc-motorbikes/' ), 'English route would redirect' );
+must( '' === NH_VIEN_Urls::legacy_en_category_target( '/category/hanoi-motorbike-rental/50cc-motorbikes/extra/' ), 'Malformed legacy path accepted' );
+NH_VIEN_Routes::$live = false;
+must( '' === NH_VIEN_Urls::legacy_en_category_target( '/category/hanoi-motorbike-rental/50cc-motorbikes/' ), 'Closed routes emitted redirect' );
 NH_VIEN_Routes::$live = false;
 must( 0 === NH_VIEN_Urls::oembed_page_id( 0, 'https://blog.rentbikehanoi.com/en/' ), 'Disabled English routes leaked oEmbed' );
 
