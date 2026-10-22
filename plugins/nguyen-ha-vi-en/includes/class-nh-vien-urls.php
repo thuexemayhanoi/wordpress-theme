@@ -36,6 +36,7 @@ final class NH_VIEN_Urls {
 		add_filter( 'rest_prepare_category', array( __CLASS__, 'rest_term_link' ), 10, 2 );
 		add_filter( 'rest_prepare_post_tag', array( __CLASS__, 'rest_term_link' ), 10, 2 );
 		add_action( 'template_redirect', array( __CLASS__, 'guard_native_url' ), 1 );
+		add_action( 'template_redirect', array( __CLASS__, 'redirect_legacy_en_category' ), 0 );
 		add_action( 'wp_head', array( __CLASS__, 'open_body_phase' ), 9999 );
 		add_action( 'wp_footer', array( __CLASS__, 'close_body_phase' ), 0 );
 		add_filter( 'home_url', array( __CLASS__, 'home_url' ), 10, 3 );
@@ -125,6 +126,67 @@ final class NH_VIEN_Urls {
 			$response->data['link'] = $english;
 		}
 		return $response;
+	}
+
+	/**
+	 * Redirect only legacy native /category/ paths for registered EN terms.
+	 *
+	 * Old WordPress REST responses advertised this native path without /en/
+	 * even though the English archive lives under /en/category/. This
+	 * preserves externally saved links, but never moves or rewrites VI terms.
+	 * No new WordPress rewrite rule, database change or slug mutation is used.
+	 *
+	 * @param string $request_uri Incoming request URI.
+	 * @return string Verified English destination, or empty string.
+	 */
+	public static function legacy_en_category_target( $request_uri ) {
+		if ( ! NH_VIEN_Routes::live() || ! is_string( $request_uri ) ) {
+			return '';
+		}
+		$home_path = (string) wp_parse_url( self::vi_home(), PHP_URL_PATH );
+		$path      = (string) wp_parse_url( $request_uri, PHP_URL_PATH );
+		$base      = trim( $home_path, '/' );
+		$root      = '' === $base ? 'category/' : $base . '/category/';
+		$path      = trim( $path, '/' );
+		if ( 0 !== strpos( $path, $root ) ) {
+			return '';
+		}
+		$relative = substr( $path, strlen( $root ) );
+		if ( ! preg_match( '~^[a-z0-9-]+(?:/[a-z0-9-]+)*$~D', $relative ) ) {
+			return '';
+		}
+		$slugs = explode( '/', $relative );
+		$term  = get_term_by( 'slug', end( $slugs ), 'category' );
+		if ( ! $term instanceof WP_Term ) {
+			return '';
+		}
+		$english = self::english_term_url( $term );
+		if ( '' === $english ) {
+			return '';
+		}
+		$native = get_term_link( $term );
+		if ( is_wp_error( $native ) ) {
+			return '';
+		}
+		$native_path = trim( (string) wp_parse_url( $native, PHP_URL_PATH ), '/' );
+		return $native_path === $path ? $english : '';
+	}
+
+	/** Redirect only a normal GET/HEAD request that exactly matches an old EN category permalink. */
+	public static function redirect_legacy_en_category() {
+		if ( ! NH_VIEN_Routes::live() || ! isset( $_SERVER['REQUEST_URI'] ) ) {
+			return;
+		}
+		$method = isset( $_SERVER['REQUEST_METHOD'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) : 'GET';
+		if ( ! in_array( $method, array( 'GET', 'HEAD' ), true ) ) {
+			return;
+		}
+		$uri    = wp_unslash( $_SERVER['REQUEST_URI'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- only passed to a strictly validated URL matcher.
+		$target = self::legacy_en_category_target( $uri );
+		if ( '' !== $target ) {
+			wp_safe_redirect( $target, 301, 'Nguyen Ha VI-EN Core' );
+			exit;
+		}
 	}
 
 	/**
@@ -273,8 +335,8 @@ final class NH_VIEN_Urls {
 			return $post_id;
 		}
 
-		$base = trim( (string) ( $home['path'] ?? '' ), '/' );
-		$path = trim( (string) ( $requested['path'] ?? '' ), '/' );
+		$base   = trim( (string) ( $home['path'] ?? '' ), '/' );
+		$path   = trim( (string) ( $requested['path'] ?? '' ), '/' );
 		$prefix = '' !== $base ? $base . '/en' : 'en';
 		if ( $path === $prefix ) {
 			$page = NH_VIEN_Routes::home_page();
