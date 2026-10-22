@@ -870,11 +870,24 @@ list( $status, $urls ) = rest_suggestions( 'English draft', 'en' );
 ok( 'a draft English post is never suggested', 200 === $status && ! in_array( '/en/english-draft/', $urls, true ) && ! in_array( '/english-draft/', $urls, true ) );
 
 
+// Core REST terms are generated outside the English request context: their
+// link property must still point at the actual English archive, not a 404.
+$cat_result = http( '/wp-json/wp/v2/categories?slug=travel-tips' );
+$cat_data   = json_decode( $cat_result['body'], true );
+ok( 'core REST advertises the actual English category archive',
+    200 === $cat_result['status'] && isset( $cat_data[0]['link'] ) &&
+    '/en/category/travel-tips/' === path_of( $cat_data[0]['link'] ),
+    isset( $cat_data[0]['link'] ) ? $cat_data[0]['link'] : (string) $cat_result['status'] );
+
 echo "\n[13] Embeds find the English posts\n";
 $oembed = function ( $path ) {
 	$r = http( '/wp-json/oembed/1.0/embed?url=' . rawurlencode( $path ) );
 	return array( $r['status'], json_decode( $r['body'], true ) );
 };
+list( $status, $data ) = $oembed( $base . '/en/' );
+ok( 'oEmbed responds for published English home page', 200 === $status && is_array( $data ) && ! empty( $data['title'] ), 'status ' . $status );
+list( $status, $data ) = $oembed( $base . '/en/about/' );
+ok( 'oEmbed responds for published English About page', 200 === $status && is_array( $data ) && ! empty( $data['title'] ), 'status ' . $status );
 list( $status, $data ) = $oembed( $base . '/en/motorbike-rental-in-hanoi/' );
 ok( 'oEmbed finds an English post at its English address', 200 === $status && is_array( $data ) && isset( $data['title'] ) && false !== strpos( $data['title'], 'Motorbike rental' ), 'status ' . $status );
 list( $status, $data ) = $oembed( $base . '/thue-xe-may-ha-noi/' );
