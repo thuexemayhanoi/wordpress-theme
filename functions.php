@@ -36,6 +36,7 @@ $nh_editorial_modules = array(
 	'toc',
 	'author',
 	'navigation',
+	'menu-taxonomy',
 	'search',
 	'template-tags',
 	'schema-presentation',
