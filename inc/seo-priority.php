@@ -51,7 +51,7 @@ function nh_editorial_seo_priority_catalog( $en ) {
 	}
 
 	return array(
-		array( 'label' => 'Thuê xe Hà Nội',  'pillar' => 16,  'posts' => array( 333, 165 ),  'group' => 'rental' ),
+		array( 'label' => 'Thuê xe máy',  'pillar' => 16,  'posts' => array( 333, 165 ),  'group' => 'rental' ),
 		array( 'label' => 'Thuê xe tháng',   'pillar' => 164, 'posts' => array( 406, 163 ),  'group' => 'rental' ),
 		array( 'label' => 'Thuê gần đây',    'pillar' => 387, 'posts' => array( 397, 395 ),  'group' => 'rental' ),
 		array( 'label' => 'Giá thuê xe',     'pillar' => 19,  'posts' => array( 406, 402 ),  'group' => 'rental' ),
