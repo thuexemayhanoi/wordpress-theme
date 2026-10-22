@@ -107,14 +107,110 @@ function nh_editorial_image_attributes( $context, $priority = null ) {
  * @param bool|null $priority See nh_editorial_image_attributes().
  * @return string Safe HTML from core.
  */
+/**
+ * An editorial image for EN homepage cards that do not yet have a post thumbnail.
+ *
+ * This is display-only: no _thumbnail_id is written, no misleading featured-image
+ * metadata is added and uploads can replace it normally. The library IDs refer
+ * to the site's previously uploaded lightweight English WebP illustrations.
+ * Missing/deleted media falls back to the existing inline SVG.
+ *
+ * @param int $post_id Article ID.
+ * @return int Attachment ID, or zero when unavailable/not applicable.
+ */
+function nh_editorial_en_home_card_fallback_id( $post_id ) {
+	if ( ! is_front_page() && ! is_home() ) {
+		return 0;
+	}
+
+	$path = trim( (string) wp_parse_url( (string) get_permalink( $post_id ), PHP_URL_PATH ), '/' );
+	if ( 0 !== strpos( $path, 'en/' ) ) {
+		return 0;
+	}
+
+	$title = strtolower( wp_strip_all_tags( (string) get_the_title( $post_id ) ) );
+	// Ordered from specific subjects to broad topics; matching is deterministic.
+	$rules = array(
+		'helmet'        => 3472,
+		'protective'    => 3472,
+		'phone mount'   => 3472,
+		'brake light'   => 3481,
+		'indicator'     => 3481,
+		'traffic-light' => 3481,
+		'traffic light' => 3481,
+		'road sign'     => 3482,
+		'lane marking'  => 3479,
+		'roundabout'    => 3473,
+		'u-turn'        => 3473,
+		'left turn'     => 3468,
+		'right turn'    => 3483,
+		'intersection'  => 3483,
+		'tyre'          => 3470,
+		'braking'       => 3468,
+		'parking'       => 3470,
+		'parked'        => 3470,
+		'rolling'       => 3470,
+		'checklist'     => 3470,
+		'handover'      => 3477,
+		'passenger'     => 3474,
+		'pedestrian'    => 3474,
+		'bus'           => 3474,
+		'monthly'       => 3476,
+		'weekly'        => 3476,
+		'payment'       => 3484,
+		'receipt'       => 3469,
+		'price'         => 3480,
+		'deposit'       => 3480,
+		'contract'      => 3476,
+		'rain'          => 3478,
+		'flood'         => 3478,
+		'traffic'       => 3478,
+		'countryside'   => 3471,
+		'day trip'      => 3471,
+		'heat'          => 3471,
+		'fatigue'       => 3471,
+		'fatigued'      => 3471,
+		'navigation'    => 3475,
+		'route'         => 3475,
+	);
+
+	$attachment_id = 3474; // General city-riding illustration.
+	foreach ( $rules as $phrase => $media_id ) {
+		if ( false !== strpos( $title, $phrase ) ) {
+			$attachment_id = $media_id;
+			break;
+		}
+	}
+
+	return wp_attachment_is_image( $attachment_id ) ? $attachment_id : 0;
+}
+
+/**
+ * Responsive post thumbnail, with a temporary English-homepage editorial image
+ * when the post has not been assigned a dedicated featured image yet.
+ *
+ * @param int       $post_id  Post ID.
+ * @param string    $context  hero | featured | card | thumb.
+ * @param bool|null $priority Whether to claim the single LCP slot.
+ * @return string Core-escaped HTML or an empty string.
+ */
 function nh_editorial_thumbnail( $post_id, $context = 'card', $priority = null ) {
-	if ( ! has_post_thumbnail( $post_id ) ) {
+	$contexts   = nh_editorial_image_contexts();
+	$size       = isset( $contexts[ $context ] ) ? $contexts[ $context ]['size'] : 'medium_large';
+	$attributes = nh_editorial_image_attributes( $context, $priority );
+
+	if ( has_post_thumbnail( $post_id ) ) {
+		return get_the_post_thumbnail( $post_id, $size, $attributes );
+	}
+
+	$attachment_id = nh_editorial_en_home_card_fallback_id( $post_id );
+	if ( ! $attachment_id ) {
 		return '';
 	}
-	$contexts = nh_editorial_image_contexts();
-	$size     = isset( $contexts[ $context ] ) ? $contexts[ $context ]['size'] : 'medium_large';
 
-	return get_the_post_thumbnail( $post_id, $size, nh_editorial_image_attributes( $context, $priority ) );
+	$attributes['class'] = 'nh-editorial-home-fallback';
+	$attributes['alt']   = sprintf( 'Editorial illustration for %s', wp_strip_all_tags( (string) get_the_title( $post_id ) ) );
+	return wp_get_attachment_image( $attachment_id, $size, false, $attributes );
 }
 
 /**
