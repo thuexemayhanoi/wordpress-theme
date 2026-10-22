@@ -30,6 +30,7 @@ $nh_editorial_modules = array(
 	'assets',
 	'performance',
 	'topics',
+	'seo-priority',
 	'related-posts',
 	'breadcrumbs',
 	'toc',
