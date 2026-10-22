@@ -68,7 +68,7 @@ $nh_editorial_en_menu     = wp_get_nav_menu_object( 'footer-en' );
 						<h2 class="footer-title"><?php esc_html_e( 'Topics', 'nguyen-ha-editorial' ); ?></h2>
 						<ul class="footer-list">
 							<?php foreach ( $nh_editorial_en_topics as $nh_editorial_en_topic ) : ?>
-								<li><a href="<?php echo esc_url( $nh_editorial_en_topic['url'] ); ?>"><?php echo esc_html( $nh_editorial_en_topic['name'] ); ?></a></li>
+								<li><a href="<?php echo esc_url( $nh_editorial_en_topic['url'] ); ?>"><?php echo esc_html( nh_editorial_seo_footer_hub_label( $nh_editorial_en_topic ) ); ?></a></li>
 							<?php endforeach; ?>
 						</ul>
 					<?php endif; ?>
