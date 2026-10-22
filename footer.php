@@ -84,6 +84,8 @@ $nh_editorial_privacy  = get_privacy_policy_url();
 
 		</div>
 
+		<?php if ( function_exists( 'nh_editorial_seo_footer_links' ) ) { nh_editorial_seo_footer_links(); } ?>
+
 		<div class="footer-bottom">
 			<p class="footer-copy">
 				&copy; <?php echo esc_html( wp_date( 'Y' ) ); ?> <?php echo esc_html( get_bloginfo( 'name' ) ); ?>.
