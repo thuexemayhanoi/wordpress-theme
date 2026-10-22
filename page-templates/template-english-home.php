@@ -85,6 +85,11 @@ if ( '' !== trim( $nh_editorial_en_body ) && '[nh_vien_posts]' !== trim( $nh_edi
 endif;
 
 get_template_part( 'template-parts/home/featured', null, array( 'ids' => $nh_editorial_en_featured ) );
+// The VI/EN plugin deliberately uses this separate template, not front-page.php.
+// Reuse the exact same verified Pillar/Hub/Silo rendering and language guards.
+if ( function_exists( 'nh_editorial_seo_home_matrix' ) ) {
+	nh_editorial_seo_home_matrix();
+}
 get_template_part( 'template-parts/home/hubs' );
 
 // Topic sections reuse the Nguyen Ha card grids, while the VI/EN query context scopes
