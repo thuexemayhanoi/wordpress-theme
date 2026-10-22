@@ -422,9 +422,9 @@ $expect = array(
 	'/en/about/'                                       => 200,
 	'/category/kinh-nghiem/'                           => 200,
 	'/category/thue-xe/'                               => 200,
-	'/category/travel-tips/'                           => 404,
-	'/category/guides/'                                => 404,
-	'/category/guides/motorbike-rental/'               => 404,
+	'/category/travel-tips/'                           => 301,
+	'/category/guides/'                                => 301,
+	'/category/guides/motorbike-rental/'               => 301,
 	'/tag/hanoi/'                                      => 404,
 	'/tag/safety/'                                     => 404,
 	'/page/2/'                                         => 200,
@@ -458,6 +458,17 @@ $r = page( '/en/collision-post/' );
 ok( 'a page below /en/ keeps its address (the page wins over the English post)', false !== strpos( $r['body'], 'A real page below /en/' ) );
 $r = page( '/en/about/' );
 ok( 'a page below /en/ is served', false !== strpos( $r['body'], 'About (English page).' ) );
+
+// Owner-approved legacy English category aliases now issue permanent 301s,
+// instead of answering 404 as old WordPress REST term links did.
+foreach ( array(
+    '/category/travel-tips/' => '/en/category/travel-tips/',
+    '/category/guides/' => '/en/category/guides/',
+    '/category/guides/motorbike-rental/' => '/en/category/guides/motorbike-rental/',
+) as $from => $to ) {
+    $response = page( $from );
+    ok( "$from redirects with 301 to $to", 301 === $response['status'] && $to === path_of( $response['location'] ), $response['location'] );
+}
 
 echo "\n[2] Language of the page\n";
 foreach ( array( '/', '/thue-xe-may-ha-noi/', '/bai-chua-dich/', '/category/kinh-nghiem/', '/page/2/', '/nope-404-test/' ) as $url ) {
