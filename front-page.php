@@ -81,6 +81,10 @@ if ( ! $nh_editorial_posts_mode ) {
 }
 
 get_template_part( 'template-parts/home/featured', null, array( 'ids' => $nh_editorial_featured ) );
+// Stable, verified Pillar/Hub/Silo links; new Writer posts do not push these off the homepage.
+if ( function_exists( 'nh_editorial_seo_home_matrix' ) ) {
+	nh_editorial_seo_home_matrix();
+}
 get_template_part( 'template-parts/home/hubs' );
 get_template_part( 'template-parts/home/topic-sections', null, array( 'skip' => array_merge( $nh_editorial_featured, $nh_editorial_latest_ids ) ) );
 ?>

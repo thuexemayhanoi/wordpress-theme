@@ -82,6 +82,7 @@ $nh_editorial_en_menu     = wp_get_nav_menu_object( 'footer-en' );
 				<?php endif; ?>
 			</div>
 		</div>
+		<?php if ( function_exists( 'nh_editorial_seo_footer_links' ) ) { nh_editorial_seo_footer_links(); } ?>
 		<div class="footer-bottom">
 			<p class="footer-copy">
 				&copy; <?php echo esc_html( wp_date( 'Y' ) ); ?> <?php echo esc_html( get_bloginfo( 'name' ) ); ?>.
