@@ -75,3 +75,20 @@
 .seo-footer-links a:hover,.seo-footer-links a:focus-visible{text-decoration-color:currentColor}
 @media(max-width:980px){.seo-matrix__grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:550px){.seo-matrix__grid{grid-template-columns:1fr 1fr;gap:8px}.seo-matrix__card{padding:11px}.seo-matrix__support{font-size:.75rem}.seo-matrix__card h4{font-size:.91rem}.seo-footer-links ul{gap:7px 12px}.seo-footer-links a{font-size:.8rem}}
+
+/* Complete, language-specific category tree in the native accessible mega-menu. */
+.mega-panel--all-categories{grid-template-columns:repeat(3,minmax(0,1fr));column-gap:clamp(16px,3vw,38px);align-items:start}
+.mega-panel--all-categories .sub-menu{list-style:none}
+.mega-panel--all-categories .sub-menu--level-2{padding-left:.6rem;margin-bottom:.35rem}
+.mega-panel--all-categories .sub-menu--level-3,
+.mega-panel--all-categories .sub-menu--level-4,
+.mega-panel--all-categories .sub-menu--level-5{margin:.15rem 0 .45rem .65rem;padding-left:.65rem;border-left:1px solid var(--line)}
+.mega-panel--all-categories .sub-menu--level-3 a,
+.mega-panel--all-categories .sub-menu--level-4 a,
+.mega-panel--all-categories .sub-menu--level-5 a{font-size:.83rem}
+.mega-panel--all-categories .menu-item>a{overflow-wrap:anywhere}
+@media(max-width:900px){
+ .mega-panel--all-categories{display:block}
+ .mega-panel--all-categories>li{margin-bottom:8px;padding:2px 0}
+ .mega-panel--all-categories>li>a{color:var(--accent)}
+}
