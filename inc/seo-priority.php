@@ -249,3 +249,23 @@ function nh_editorial_seo_footer_links() {
 	}
 	echo '</ul></nav>';
 }
+
+/**
+ * Short visible labels for the existing category Hub links in the footer.
+ * Category names, URLs and terms remain unchanged.
+ *
+ * @param array $hub Array from nh_editorial_get_hubs().
+ * @return string
+ */
+function nh_editorial_seo_footer_hub_label( $hub ) {
+	$id = isset( $hub['id'] ) ? (int) $hub['id'] : 0;
+	$short = array(
+		46 => 'Rental Guides',
+		47 => 'Hanoi Routes',
+		48 => 'Rider Safety',
+		15 => 'Cẩm nang',
+		9  => 'Khu vực',
+		3  => 'Dịch vụ',
+	);
+	return isset( $short[ $id ] ) ? $short[ $id ] : (string) $hub['name'];
+}
