@@ -8,7 +8,7 @@ if ( 'cli' !== PHP_SAPI ) {
 
 define( 'ABSPATH', __DIR__ . '/../../../../' );
 define( 'OBJECT', 'OBJECT' );
-define( 'NH_VIEN_VERSION', '0.5.2' );
+define( 'NH_VIEN_VERSION', '0.5.3' );
 define( 'NH_VIEN_PLUGIN_FILE', dirname( __DIR__ ) . '/nguyen-ha-vi-en.php' );
 
 $GLOBALS['env']        = 'production';
@@ -178,7 +178,7 @@ must( in_array( array( 'nh_vien_pairs_changed', 0, 0 ), $GLOBALS['fired'], true 
 $change = NH_VIEN_Settings::last_change();
 must( 'enable' === $change['action'] && null === $change['previous']['setting'] && false === $change['previous']['rules_stored'] && 7 === $change['user'] && $change['at'] > 0, 'The previous state must be remembered' );
 $status = NH_VIEN_Settings::status();
-must( true === $status['enabled'] && true === $status['live'] && 5 === $status['home_page'] && 'production' === $status['environment'] && '0.5.2' === $status['version'] && is_array( $status['preflight'] ), 'The status must describe the switched-on site' );
+must( true === $status['enabled'] && true === $status['live'] && 5 === $status['home_page'] && 'production' === $status['environment'] && '0.5.3' === $status['version'] && is_array( $status['preflight'] ), 'The status must describe the switched-on site' );
 
 // Switching on again changes nothing and does not fail.
 $GLOBALS['responses'][] = answer( 200 );
