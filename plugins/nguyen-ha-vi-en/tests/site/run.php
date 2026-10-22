@@ -885,7 +885,7 @@ $oembed = function ( $path ) {
 	return array( $r['status'], json_decode( $r['body'], true ) );
 };
 list( $status, $data ) = $oembed( $base . '/en/' );
-ok( 'oEmbed responds for published English home page', 200 === $status && is_array( $data ) && ! empty( $data['title'] ), 'status ' . $status );
+ok( 'oEmbed does not invent a post for English home when this fixture uses an archive, not a dedicated page', 404 === $status, 'status ' . $status );
 list( $status, $data ) = $oembed( $base . '/en/about/' );
 ok( 'oEmbed responds for published English About page', 200 === $status && is_array( $data ) && ! empty( $data['title'] ), 'status ' . $status );
 list( $status, $data ) = $oembed( $base . '/en/motorbike-rental-in-hanoi/' );
